@@ -1,0 +1,14 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+html { scroll-behavior: smooth; }
+body { -webkit-font-smoothing: antialiased; }
+::selection { background: #FFE6D3; color: #4C1E71; }
+.font-display { font-optical-sizing: auto; }
+.grain {
+  background-image: radial-gradient(rgba(94,38,139,.07) 1px, transparent 1px);
+  background-size: 18px 18px;
+}
+.no-scrollbar::-webkit-scrollbar { display: none; }
+.no-scrollbar { scrollbar-width: none; }
