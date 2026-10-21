@@ -1,10 +1,16 @@
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 import { VitePWA } from "vite-plugin-pwa";
+import legacy from "@vitejs/plugin-legacy";
 
 export default defineConfig({
   plugins: [
     react(),
+    // Older phones/browsers (common across Nigeria) get a transpiled + polyfilled bundle.
+    legacy({
+      targets: ["defaults", "iOS >= 12", "Safari >= 12", "Android >= 5", "Chrome >= 49", "Samsung >= 6", "UCAndroid >= 11", "OperaMobile >= 46"],
+      modernPolyfills: true,
+    }),
     VitePWA({
       registerType: "prompt",
       includeAssets: ["tyche-logo.png", "tyche-mark.png", "icons/apple-touch-icon.png", "icons/favicon-64.png"],
@@ -39,6 +45,7 @@ export default defineConfig({
       workbox: {
         // Only the app shell and static assets are cached — never user data.
         globPatterns: ["**/*.{js,css,html,png,jpg,svg,woff2}"],
+        globIgnores: ["**/*-legacy-*.js"], // old browsers fetch these on demand
         navigateFallback: "/index.html",
         navigateFallbackDenylist: [/^\/api\//],
         cleanupOutdatedCaches: true,

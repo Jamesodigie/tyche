@@ -17,10 +17,44 @@
     <meta property="og:image" content="/og-cover.jpg" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=Caveat:wght@500;700&family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,600;0,9..144,700;1,9..144,400;1,9..144,600&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet" />
+    <!-- Fonts load without blocking the page (slow networks shouldn't mean a blank screen). -->
+    <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Caveat:wght@500;700&family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,600;0,9..144,700;1,9..144,400;1,9..144,600&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" />
+    <link rel="stylesheet" media="print" onload="this.media='all'" href="https://fonts.googleapis.com/css2?family=Caveat:wght@500;700&family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,600;0,9..144,700;1,9..144,400;1,9..144,600&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" />
+    <style>
+      #boot { min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px; background: #FFFBF7; font-family: system-ui, sans-serif; color: #5E268B; text-align: center; padding: 24px; }
+      #boot img { width: 84px; height: auto; animation: tyche-pulse 1.4s ease-in-out infinite; }
+      #boot p { margin: 0; font-size: 15px; }
+      #boot .err { display: none; max-width: 420px; font-size: 13px; color: #2A1838; background: #FDEDEA; border-radius: 16px; padding: 12px 14px; word-break: break-word; }
+      #boot a { color: #5E268B; font-weight: 600; }
+      @keyframes tyche-pulse { 0%,100% { transform: scale(1); opacity: 1 } 50% { transform: scale(.92); opacity: .75 } }
+    </style>
   </head>
   <body>
-    <div id="root"></div>
+    <div id="root">
+      <div id="boot">
+        <img src="/tyche-mark.png" alt="Tyche" />
+        <p id="boot-msg">Loading Tyche…</p>
+        <p class="err" id="boot-err"></p>
+      </div>
+    </div>
+    <noscript>
+      <p style="font-family:system-ui;text-align:center;padding:24px;color:#5E268B">Tyche needs JavaScript. Please open this link in Chrome or Safari (not Opera Mini's data-saving mode).</p>
+    </noscript>
+    <script>
+      // If the app fails to start, show why instead of a blank page.
+      (function () {
+        function show(msg) {
+          var e = document.getElementById("boot-err"), m = document.getElementById("boot-msg");
+          if (!e) return;
+          m.innerHTML = 'Tyche couldn\'t start on this browser. Try updating it or opening the link in Chrome. <a href="/">Reload</a>';
+          e.style.display = "block";
+          e.textContent = String(msg).slice(0, 300);
+        }
+        window.addEventListener("error", function (ev) { show(ev.message || ev.error); });
+        window.addEventListener("unhandledrejection", function (ev) { show(ev.reason && ev.reason.message || ev.reason); });
+        setTimeout(function () { if (document.getElementById("boot")) show("Still loading after 15s — your connection may be slow or a script was blocked."); }, 15000);
+      })();
+    </script>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

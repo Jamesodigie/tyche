@@ -49,7 +49,8 @@ export default function Messages() {
           </div>
           <div className="flex-1 overflow-y-auto p-2">
             {threads.length ? threads.map((b) => {
-              const last = messages.filter((m) => m.threadId === b.id).at(-1);
+              const thr = messages.filter((m) => m.threadId === b.id);
+              const last = thr[thr.length - 1];
               return (
                 <Link key={b.id} to={`/messages/${b.id}`} className={cx("flex items-center gap-3 rounded-3xl p-3 transition", b.id === threadId ? "bg-plum-50" : "hover:bg-cream")}>
                   <Avatar name={otherName(b)} hue={otherHue(b)} size={46} className="ring-2" />
