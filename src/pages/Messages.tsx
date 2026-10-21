@@ -20,7 +20,7 @@ export default function Messages() {
 
   useEffect(() => {
     const box = endRef.current?.parentElement;
-    if (box) box.scrollTo({ top: box.scrollHeight, behavior: "smooth" });
+    if (box) box.scrollTop = box.scrollHeight;
   }, [thread.length, threadId]);
 
   if (!user)

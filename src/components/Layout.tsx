@@ -49,7 +49,9 @@ function Header() {
   const [open, setOpen] = useState(false);
   const loc = useLocation();
   const navigate = useNavigate();
-  useEffect(() => setOpen(false), [loc.pathname]);
+  useEffect(() => {
+    setOpen(false);
+  }, [loc.pathname]);
   const dash = user?.role === "lawyer" ? "/lawyer/dashboard" : "/me";
 
   return (
@@ -196,7 +198,11 @@ function WelcomeBubbles() {
 
 export function Layout() {
   const { pathname } = useLocation();
-  useEffect(() => window.scrollTo(0, 0), [pathname]);
+  // Block body on purpose: newer Chrome makes scrollTo() return a Promise, and React would
+  // try to call that Promise as the effect's cleanup ("n is not a function").
+  useEffect(() => {
+    try { window.scrollTo(0, 0); } catch { /* noop */ }
+  }, [pathname]);
   const bare = pathname.startsWith("/session/");
   const { user, isSuspended } = useStore();
   return (

@@ -12,7 +12,7 @@ export default defineConfig({
       modernPolyfills: true,
     }),
     VitePWA({
-      registerType: "prompt",
+      registerType: "autoUpdate", // fixes reach everyone on next load
       includeAssets: ["tyche-logo.png", "tyche-mark.png", "icons/apple-touch-icon.png", "icons/favicon-64.png"],
       manifest: {
         id: "/",
@@ -49,6 +49,8 @@ export default defineConfig({
         navigateFallback: "/index.html",
         navigateFallbackDenylist: [/^\/api\//],
         cleanupOutdatedCaches: true,
+        skipWaiting: true,
+        clientsClaim: true,
         runtimeCaching: [
           {
             urlPattern: /^https:\/\/fonts\.(googleapis|gstatic)\.com\/.*/i,
