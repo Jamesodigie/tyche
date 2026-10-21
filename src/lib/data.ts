@@ -451,3 +451,100 @@ export function timeSlots(from: string, to: string, mins: number) {
   }
   return out;
 }
+
+// ---------------------------------------------------------------------------
+// Admin demo data — sample accounts, pending lawyer applications and payments
+// so the admin dashboard has something to show before the backend exists.
+// ---------------------------------------------------------------------------
+
+export type Account = {
+  id: string;
+  name: string;
+  email: string;
+  phone?: string;
+  role: "client" | "lawyer";
+  lawyerId?: string;
+  state: string;
+  joinedAt: string;
+};
+
+const daysAgo = (d: number, h = 0) => new Date(Date.now() - (d * 24 + h) * 3600_000).toISOString();
+
+const CLIENT_NAMES = [
+  "Tomi A.", "Chiamaka O.", "Zainab M.", "Blessing E.", "Funke L.", "Hauwa B.", "Ifeoma K.", "Kemi S.",
+  "Precious U.", "Aisha D.", "Ngozi P.", "Ruth T.", "Simisola F.", "Esther I.", "Halima G.", "Joy N.",
+  "Amaka C.", "Bisola R.", "Fatima Y.", "Deborah W.",
+];
+
+export const SEED_ACCOUNTS: Account[] = [
+  ...CLIENT_NAMES.map((n, i) => ({
+    id: "U-" + (1000 + i),
+    name: n,
+    email: n.toLowerCase().replace(/[^a-z]/g, "") + "@mail.com",
+    role: "client" as const,
+    state: ["Lagos", "FCT Abuja", "Rivers", "Oyo", "Kano", "Enugu"][i % 6],
+    joinedAt: daysAgo((i * 7) % 29, i),
+  })),
+  ...LAWYERS.map((l, i) => ({
+    id: "U-L" + i,
+    name: l.name,
+    email: l.id + "@chambers.ng",
+    role: "lawyer" as const,
+    lawyerId: l.id,
+    state: l.state,
+    joinedAt: daysAgo(30 + i * 3),
+  })),
+];
+
+/** Lawyer applications waiting for admin review. */
+export const SEED_APPLICANTS: Lawyer[] = [
+  {
+    ...LAWYERS[2],
+    id: "chidinma-obi", name: "Chidinma Obi", city: "Surulere", yearCalled: 2021, verified: false, rating: 5, reviews: 0,
+    areas: ["Workplace harassment", "Employment law"], bio: "Employment lawyer passionate about safe workplaces for women.",
+    consultFee: 7000, bookingFee: 80000, hue: 300, responds: "within a day",
+  },
+  {
+    ...LAWYERS[1],
+    id: "musa-ibrahim", name: "Musa Ibrahim", state: "Kaduna", city: "Barnawa", yearCalled: 2015, verified: false, rating: 5, reviews: 0,
+    areas: ["Criminal litigation", "Human rights"], bio: "Criminal litigator with experience prosecuting sexual offence cases.",
+    consultFee: 10000, bookingFee: 200000, hue: 210, responds: "within a day",
+  },
+  {
+    ...LAWYERS[3],
+    id: "grace-etim", name: "Grace Etim", state: "Akwa Ibom", city: "Uyo", yearCalled: 2019, verified: false, rating: 5, reviews: 0,
+    areas: ["Domestic violence", "Family law"], bio: "Family lawyer offering pro bono help to women in Akwa Ibom.",
+    consultFee: 0, consultFree: true, bookingFee: 0, bookingFree: true, hue: 350, responds: "within a day",
+  },
+];
+
+SEED_ACCOUNTS.push(
+  ...SEED_APPLICANTS.map((l, i) => ({
+    id: "U-A" + i,
+    name: l.name,
+    email: l.id + "@chambers.ng",
+    role: "lawyer" as const,
+    lawyerId: l.id,
+    state: l.state,
+    joinedAt: daysAgo(i, 3 + i),
+  })),
+);
+
+export const SEED_BOOKINGS: Booking[] = [
+  ["adaeze-okafor", "Tomi A.", "booking", 250000, 2], ["fatima-bello", "Zainab M.", "consultation", 10000, 3],
+  ["temi-adeyemi", "Blessing E.", "booking", 120000, 5], ["kemi-balogun", "Kemi S.", "consultation", 20000, 6],
+  ["ifeoma-nwosu", "Precious U.", "booking", 220000, 9], ["tolu-ajayi", "Simisola F.", "consultation", 5000, 11],
+  ["temi-adeyemi", "Joy N.", "consultation", 8000, 14], ["adaeze-okafor", "Amaka C.", "consultation", 0, 16],
+  ["fatima-bello", "Hauwa B.", "booking", 180000, 20], ["ngozi-eze", "Ruth T.", "consultation", 12000, 24],
+].map(([lawyerId, clientName, kind, fee, d], i) => ({
+  id: "BK-S" + i,
+  lawyerId: lawyerId as string,
+  clientName: clientName as string,
+  kind: kind as SessionKind,
+  fee: fee as number,
+  date: daysAgo(d as number).slice(0, 10),
+  time: "11:00am",
+  channel: (["call", "meet", "chat"] as Channel[])[i % 3],
+  status: (d as number) > 4 ? "done" : "upcoming",
+  createdAt: daysAgo((d as number) + 1),
+}));

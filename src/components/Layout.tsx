@@ -149,7 +149,7 @@ function Footer() {
         ))}
       </div>
       <div className="border-t border-white/10 py-6 text-center text-xs text-plum-300">
-        © {new Date().getFullYear()} Tyche. Lawyers on Tyche are independent practitioners verified by our team.
+        © {new Date().getFullYear()} Tyche. Lawyers on Tyche are independent practitioners verified by our team. · <Link to="/admin" className="text-plum-400 hover:text-white">Team</Link>
       </div>
     </footer>
   );
@@ -195,9 +195,15 @@ export function Layout() {
   const { pathname } = useLocation();
   useEffect(() => window.scrollTo(0, 0), [pathname]);
   const bare = pathname.startsWith("/session/");
+  const { user, isSuspended } = useStore();
   return (
     <div className="min-h-screen bg-cream font-sans text-ink">
       {!bare && <Header />}
+      {user && isSuspended(user.email) && (
+        <div className="bg-tangerine-100 px-5 py-3 text-center text-sm text-ink">
+          Your account is paused while our team reviews it. You can still read your saved reports. Questions? Reach the Tyche team.
+        </div>
+      )}
       <main><Outlet /></main>
       {!bare && <Footer />}
       <QuickExit />

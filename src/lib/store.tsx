@@ -1,7 +1,7 @@
 import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
 import {
-  LAWYERS, SEED_REPORTS, uid,
-  type Bid, type Booking, type Lawyer, type Message, type Report,
+  LAWYERS, SEED_ACCOUNTS, SEED_APPLICANTS, SEED_BOOKINGS, SEED_REPORTS, uid,
+  type Account, type Bid, type Booking, type Lawyer, type Message, type Report,
 } from "./data";
 
 // Demo persistence in localStorage. Replace with Supabase / your API later.
@@ -18,10 +18,23 @@ type State = {
   bookings: Booking[];
   messages: Message[];
   community: CommunityMember | null;
+  // --- admin ---
+  admin: boolean;
+  accounts: Account[]; // people who signed up on this device
+  lawyerReview: Record<string, "approved" | "rejected">;
+  suspended: string[]; // account emails
+  hiddenReports: string[];
+  adminLog: { at: string; text: string }[];
 };
 
 const KEY = "tyche:v1";
-const initial: State = { user: null, myLawyers: [], reports: [], bids: [], bookings: [], messages: [], community: null };
+const initial: State = {
+  user: null, myLawyers: [], reports: [], bids: [], bookings: [], messages: [], community: null,
+  admin: false, accounts: [], lawyerReview: {}, suspended: [], hiddenReports: [], adminLog: [],
+};
+
+/** Front-end gate only. Replace with real admin auth (roles in your database) before launch. */
+export const ADMIN_PASSCODE = "tyche-admin";
 
 function load(): State {
   try {
@@ -33,8 +46,18 @@ function load(): State {
 }
 
 type Ctx = State & {
-  lawyers: Lawyer[];
+  lawyers: Lawyer[]; // every lawyer incl. pending/rejected, with review applied
+  publicLawyers: Lawyer[]; // approved only — what clients see
   allReports: Report[];
+  allAccounts: Account[];
+  allBookings: Booking[];
+  isSuspended: (email?: string) => boolean;
+  lawyerState: (l: Lawyer) => "approved" | "pending" | "rejected";
+  adminSignIn: (code: string) => boolean;
+  adminSignOut: () => void;
+  reviewLawyer: (id: string, decision: "approved" | "rejected") => void;
+  setSuspended: (email: string, on: boolean) => void;
+  setReportHidden: (id: string, on: boolean) => void;
   signIn: (u: User) => void;
   signOut: () => void;
   addLawyer: (l: Lawyer) => void;
@@ -67,12 +90,48 @@ export function StoreProvider({ children }: { children: ReactNode }) {
 
   const value = useMemo<Ctx>(() => {
     const mine = new Set(s.myLawyers.map((l) => l.id));
-    const lawyers = [...s.myLawyers, ...LAWYERS.filter((l) => !mine.has(l.id))];
+    const raw = [...s.myLawyers, ...[...LAWYERS, ...SEED_APPLICANTS].filter((l) => !mine.has(l.id))];
+    const lawyerState = (l: Lawyer) => s.lawyerReview[l.id] || (l.verified ? "approved" : "pending");
+    const lawyers = raw.map((l) => ({ ...l, verified: lawyerState(l) === "approved" }));
+    const log = (p: State, text: string) => [{ at: new Date().toISOString(), text }, ...p.adminLog].slice(0, 50);
+    const seen = new Set(s.accounts.map((a) => a.email));
     return {
       ...s,
       lawyers,
+      publicLawyers: lawyers.filter((l) => l.verified),
       allReports: [...s.reports, ...SEED_REPORTS],
-      signIn: (user) => setS((p) => ({ ...p, user })),
+      allAccounts: [...s.accounts, ...SEED_ACCOUNTS.filter((a) => !seen.has(a.email))],
+      allBookings: [...s.bookings, ...SEED_BOOKINGS],
+      isSuspended: (email) => !!email && s.suspended.includes(email),
+      lawyerState,
+      adminSignIn: (code) => {
+        const ok = code.trim() === ADMIN_PASSCODE;
+        if (ok) setS((p) => ({ ...p, admin: true }));
+        return ok;
+      },
+      adminSignOut: () => setS((p) => ({ ...p, admin: false })),
+      reviewLawyer: (id, decision) =>
+        setS((p) => ({ ...p, lawyerReview: { ...p.lawyerReview, [id]: decision }, adminLog: log(p, `${decision === "approved" ? "Approved" : "Rejected"} lawyer ${id}`) })),
+      setSuspended: (email, on) =>
+        setS((p) => ({
+          ...p,
+          suspended: on ? [...new Set([...p.suspended, email])] : p.suspended.filter((e) => e !== email),
+          adminLog: log(p, `${on ? "Suspended" : "Restored"} ${email}`),
+        })),
+      setReportHidden: (id, on) =>
+        setS((p) => ({
+          ...p,
+          hiddenReports: on ? [...new Set([...p.hiddenReports, id])] : p.hiddenReports.filter((r) => r !== id),
+          adminLog: log(p, `${on ? "Hid" : "Restored"} report ${id}`),
+        })),
+      signIn: (user) =>
+        setS((p) => ({
+          ...p,
+          user,
+          accounts: p.accounts.some((a) => a.email === user.email)
+            ? p.accounts
+            : [{ id: uid("U-"), name: user.name, email: user.email, phone: user.phone, role: user.role, lawyerId: user.lawyerId, state: "—", joinedAt: new Date().toISOString() }, ...p.accounts],
+        })),
       signOut: () => setS((p) => ({ ...p, user: null })),
       addLawyer: (l) => setS((p) => ({ ...p, myLawyers: [l, ...p.myLawyers.filter((x) => x.id !== l.id)] })),
       updateLawyer: (l) => setS((p) => ({ ...p, myLawyers: [l, ...p.myLawyers.filter((x) => x.id !== l.id)] })),
@@ -131,7 +190,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       sendMessage: (m) =>
         setS((p) => ({ ...p, messages: [...p.messages, { ...m, id: uid("M-"), at: new Date().toISOString() }] })),
       joinCommunity: (c) => setS((p) => ({ ...p, community: c })),
-      reset: () => setS(initial),
+      reset: () => setS({ ...initial, admin: s.admin }),
     };
   }, [s]);
 

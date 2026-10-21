@@ -30,6 +30,8 @@ React 18 + Vite + TypeScript + Tailwind. Deploys as a static site (Vercel / Netl
 | `/messages`, `/session/:id` | In-app chat, voice call and Meet rooms |
 | `/how-it-works`, `/for-lawyers`, `/safety`, `/about`, `/signin` | Supporting pages |
 
+| `/admin` | **Admin dashboard** (passcode `tyche-admin`): overview & sign-up chart, lawyer approvals, users (search, suspend, CSV export), report moderation, bookings & payments with the 20% split, community capacity, settings |
+
 Plus a **Quick exit** button on every page (or press Esc 3×).
 
 ## Business rules (in `src/lib/data.ts`)
@@ -46,4 +48,5 @@ Data lives in the browser (`localStorage`, see `src/lib/store.tsx`) and the lawy
 - **Payments** — Paystack checkout for bookings and community, with split/subaccount payouts for the 80/20.
 - **Calls / Meet** — a voice/video SDK (e.g. Daily, Agora) and Google Calendar API to create Meet links per booking.
 - **WhatsApp invite** — send the group invite link after community payment.
-- **Lawyer verification** — admin review of enrolment numbers before `verified: true`.
+- **Admin auth** — the `/admin` passcode (`ADMIN_PASSCODE` in `src/lib/store.tsx`) is a front-end gate for the demo only. Before launch, protect admin with real accounts and roles on the server.
+- **Lawyer verification** — approvals in `/admin` currently live in the browser; persist them in the database.

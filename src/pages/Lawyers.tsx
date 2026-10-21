@@ -7,7 +7,7 @@ import { KIND_COPY, PRACTICE_AREAS, type SessionKind } from "../lib/data";
 import { useStore } from "../lib/store";
 
 export default function Lawyers() {
-  const { lawyers } = useStore();
+  const { publicLawyers: lawyers } = useStore();
   const [params, setParams] = useSearchParams();
   const kind = (params.get("kind") as SessionKind) || "consultation";
   const [q, setQ] = useState("");

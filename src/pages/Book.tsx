@@ -34,6 +34,9 @@ export default function Book() {
 
   if (!l) return <div className="mx-auto max-w-xl px-5 py-20"><Empty icon={<MessageCircleHeart />} title="Lawyer not found" action={<Button to="/lawyers">Browse lawyers</Button>} /></div>;
 
+  if (!l.verified)
+    return <div className="mx-auto max-w-xl px-5 py-20"><Empty icon={<MessageCircleHeart />} title={`${l.name.split(" ")[0]} isn't taking bookings yet`} sub="This lawyer is still being verified by our team." action={<Button to="/lawyers">See verified lawyers</Button>} /></div>;
+
   const fee = bid ? (bid.free ? 0 : bid.fee) : kind === "consultation" ? (l.consultFree ? 0 : l.consultFee) : l.bookingFree ? 0 : l.bookingFee;
   const STEPS = ["What you need", "Pick a time", "About you", fee ? "Pay" : "Confirm"];
   const dateLabel = dates.find((d) => d.iso === date);

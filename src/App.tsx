@@ -18,10 +18,12 @@ import Session from "./pages/Session";
 import HowItWorks from "./pages/HowItWorks";
 import ForLawyers from "./pages/ForLawyers";
 import { About, Safety, NotFound } from "./pages/Static";
+import Admin from "./pages/Admin";
 
 export default function App() {
   return (
     <Routes>
+      <Route path="admin/*" element={<Admin />} />
       <Route element={<Layout />}>
         <Route index element={<Home />} />
         <Route path="signin" element={<SignIn />} />

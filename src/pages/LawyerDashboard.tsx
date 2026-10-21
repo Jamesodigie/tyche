@@ -91,7 +91,7 @@ function CaseCard({ r, me }: { r: Report; me: Lawyer }) {
           </div>
         </div>
       ) : (
-        <Button className="mt-5" onClick={() => setOpen(true)}><Gavel size={16} /> Bid for this case</Button>
+        <Button className="mt-5" disabled={!me.verified} onClick={() => setOpen(true)}><Gavel size={16} /> {me.verified ? "Bid for this case" : "Bidding opens once you're approved"}</Button>
       )}
     </Card>
   );
@@ -134,7 +134,7 @@ function ProfileEditor({ me }: { me: Lawyer }) {
 }
 
 export default function LawyerDashboard() {
-  const { user, lawyers, allReports, bids, bookings } = useStore();
+  const { user, lawyers, allReports, bids, bookings, hiddenReports, lawyerState } = useStore();
   const [tab, setTab] = useState<(typeof TABS)[number]["id"]>("cases");
   const [area, setArea] = useState("");
   const me = lawyers.find((l) => l.id === user?.lawyerId);
@@ -146,7 +146,7 @@ export default function LawyerDashboard() {
       </div>
     );
 
-  const open = allReports.filter((r) => r.shareWithLawyers && (!area || r.category === area || r.setting === area));
+  const open = allReports.filter((r) => r.shareWithLawyers && !hiddenReports.includes(r.id) && (!area || r.category === area || r.setting === area));
   const myBids = bids.filter((b) => b.lawyerId === me.id);
   const myBookings = bookings.filter((b) => b.lawyerId === me.id);
   const gross = myBookings.reduce((n, b) => n + b.fee, 0);
@@ -169,7 +169,9 @@ export default function LawyerDashboard() {
 
         {!me.verified && (
           <p className="mt-6 rounded-3xl bg-tangerine-50 p-4 text-sm text-ink">
-            We're confirming your enrolment with the Bar (24–48 hrs). You can explore everything now — your offers will be delivered to clients the moment you're verified.
+            {lawyerState(me) === "rejected"
+              ? "We couldn't verify your enrolment yet, so your profile isn't visible to clients. Please email the Tyche team with your call-to-bar certificate to try again."
+              : "We're confirming your enrolment with the Bar (24–48 hrs). You can look around now — you'll be able to bid on cases and appear to clients as soon as you're approved."}
           </p>
         )}
 
