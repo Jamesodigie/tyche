@@ -48,7 +48,7 @@ export default function MySpace() {
 
   if (!user)
     return (
-      <div className="mx-auto max-w-xl px-5 py-20">
+      <div className="mx-auto max-w-xl px-4 sm:px-6 py-12 sm:py-20">
         <Empty icon={<FileLock2 />} title="Your private space" sub="Sign in to see your reports, offers from lawyers and bookings." action={<div className="flex justify-center gap-2"><Button to="/signin?next=/me">Sign in</Button><Button variant="outline" to="/report">Start a report</Button></div>} />
       </div>
     );
@@ -59,11 +59,11 @@ export default function MySpace() {
   return (
     <section className="relative overflow-hidden">
       <Blobs />
-      <div className="relative mx-auto max-w-6xl px-5 py-12">
+      <div className="relative mx-auto max-w-6xl 2xl:max-w-7xl px-4 sm:px-6 py-8 sm:py-12">
         <div className="flex flex-wrap items-end justify-between gap-4">
           <div>
             <p className="font-script text-3xl text-tangerine-500">hi {user.name.split(" ")[0].toLowerCase()}, welcome home</p>
-            <h1 className="font-display text-4xl font-semibold text-ink">My space</h1>
+            <h1 className="h-page font-display font-semibold text-ink">My space</h1>
           </div>
           <div className="flex gap-2">
             <Button variant="outline" to="/lawyers"><Gavel size={18} /> Find a lawyer</Button>
@@ -71,15 +71,15 @@ export default function MySpace() {
           </div>
         </div>
 
-        <div className="mt-8 grid gap-4 sm:grid-cols-4">
+        <div className="mt-6 grid grid-cols-2 gap-3 sm:mt-8 sm:gap-4 lg:grid-cols-4">
           {[
             { t: "Offers waiting", v: counts.Offers, i: Gavel, c: "bg-tangerine-100 text-tangerine-600" },
             { t: "Bookings", v: counts.Bookings, i: CalendarHeart, c: "bg-plum-100 text-plum-600" },
             { t: "Reports saved", v: counts["My reports"], i: FileLock2, c: "bg-lagoon-100 text-lagoon-600" },
             { t: "Evidence files", v: reports.reduce((n, r) => n + r.evidence.length, 0), i: FileText, c: "bg-blush-200 text-plum-700" },
           ].map((s) => (
-            <div key={s.t} className="flex items-center gap-4 rounded-4xl bg-white p-5 shadow-soft ring-1 ring-plum-100">
-              <span className={cx("grid h-12 w-12 place-items-center rounded-2xl", s.c)}><s.i size={22} /></span>
+            <div key={s.t} className="flex flex-col items-start gap-2 rounded-3xl bg-white p-4 shadow-soft ring-1 ring-plum-100 sm:flex-row sm:items-center sm:gap-4 sm:rounded-4xl sm:p-5">
+              <span className={cx("grid h-10 w-10 shrink-0 place-items-center rounded-2xl sm:h-12 sm:w-12", s.c)}><s.i size={22} /></span>
               <span><span className="block font-display text-3xl font-semibold text-ink">{s.v}</span><span className="text-sm text-plum-500">{s.t}</span></span>
             </div>
           ))}

@@ -26,10 +26,10 @@ export default function Community() {
     <>
       <section className="relative overflow-hidden">
         <Blobs />
-        <div className="relative mx-auto grid max-w-6xl items-center gap-10 px-5 py-14 lg:grid-cols-2">
+        <div className="relative mx-auto grid max-w-6xl 2xl:max-w-7xl items-center gap-8 px-4 sm:gap-10 sm:px-6 py-8 sm:py-14 lg:grid-cols-2">
           <div>
             <p className="font-script text-3xl text-tangerine-500">your girls, your people</p>
-            <h1 className="font-display text-5xl font-semibold leading-[1.05] text-ink sm:text-6xl">The circle you <em className="font-normal text-lagoon-600">deserve.</em></h1>
+            <h1 className="h-hero font-display font-semibold text-ink">The circle you <em className="font-normal text-lagoon-600">deserve.</em></h1>
             <p className="mt-5 max-w-lg text-lg text-plum-700/85">
               A private, paid WhatsApp community for women — capped at {COMMUNITY_CAP.toLocaleString()} so it stays close, safe and
               actually supportive.
@@ -39,7 +39,7 @@ export default function Community() {
               <span className="text-plum-600"><b className="font-display text-2xl text-ink">{naira(COMMUNITY_PRICE)}</b> / year</span>
             </div>
           </div>
-          <div className="relative rounded-5xl bg-gradient-to-br from-lagoon-500 to-lagoon-600 p-8 text-white shadow-soft">
+          <div className="relative rounded-[2rem] bg-gradient-to-br from-lagoon-500 to-lagoon-600 p-6 text-white shadow-soft sm:rounded-5xl sm:p-8">
             <Sparkle className="absolute right-8 top-8 text-white/40" size={34} />
             <Users size={32} />
             <p className="mt-4 font-display text-6xl font-semibold">{COMMUNITY_MEMBERS.toLocaleString()}</p>
@@ -60,9 +60,9 @@ export default function Community() {
         </div>
       </section>
 
-      <section className="mx-auto max-w-6xl px-5">
-        <h2 className="text-center font-display text-4xl font-semibold text-ink">What's inside</h2>
-        <div className="mt-8 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+      <section className="mx-auto max-w-6xl 2xl:max-w-7xl px-4 sm:px-6">
+        <h2 className="h-section text-center font-display font-semibold text-ink">What's inside</h2>
+        <div className="rail mt-6 sm:mt-8 md:grid-cols-2 md:gap-5 lg:grid-cols-3">
           {perks.map((p) => (
             <div key={p.t} className="rounded-4xl bg-white p-6 shadow-soft ring-1 ring-plum-100">
               <span className="grid h-12 w-12 place-items-center rounded-2xl bg-lagoon-50 text-lagoon-600"><p.i size={22} /></span>
@@ -73,8 +73,8 @@ export default function Community() {
         </div>
       </section>
 
-      <section className="mx-auto mt-20 grid max-w-6xl gap-6 px-5 md:grid-cols-2">
-        <div className="rounded-5xl bg-blush-100 p-8">
+      <section className="section mx-auto grid max-w-6xl 2xl:max-w-7xl gap-4 px-4 sm:gap-6 sm:px-6 md:grid-cols-2">
+        <div className="rounded-[2rem] bg-blush-100 p-6 sm:rounded-5xl sm:p-8">
           <HeartHandshake className="text-tangerine-500" size={30} />
           <h3 className="mt-3 font-display text-3xl font-semibold text-ink">Our house rules</h3>
           <ul className="mt-5 space-y-3">
@@ -83,7 +83,7 @@ export default function Community() {
             ))}
           </ul>
         </div>
-        <div className="flex flex-col justify-between rounded-5xl bg-plum-700 p-8 text-white">
+        <div className="flex flex-col justify-between rounded-[2rem] bg-plum-700 p-6 text-white sm:rounded-5xl sm:p-8">
           <div>
             <p className="font-script text-2xl text-tangerine-200">one simple price</p>
             <p className="mt-2 font-display text-6xl font-semibold">{naira(COMMUNITY_PRICE)}</p>

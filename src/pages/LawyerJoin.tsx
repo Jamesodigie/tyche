@@ -83,10 +83,10 @@ export default function LawyerJoin() {
     return (
       <section className="relative overflow-hidden">
         <Blobs />
-        <div className="relative mx-auto max-w-xl px-5 py-20 text-center">
+        <div className="relative mx-auto max-w-xl px-4 sm:px-6 py-12 sm:py-20 text-center">
           <div className="mx-auto grid h-20 w-20 place-items-center rounded-full bg-lagoon-100 text-lagoon-600 animate-rise"><BadgeCheck size={40} /></div>
           <p className="mt-6 font-script text-3xl text-tangerine-500">welcome aboard, Counsel</p>
-          <h1 className="font-display text-4xl font-semibold text-ink">Your profile is in, {f.name.split(" ")[0]}!</h1>
+          <h1 className="h-page font-display font-semibold text-ink">Your profile is in, {f.name.split(" ")[0]}!</h1>
           <p className="mt-4 text-lg text-plum-700/80">
             Our team will confirm your enrolment with the Bar within 24–48 hours. While you wait, have a look around your
             case board — you'll be able to send offers as soon as you're verified.
@@ -102,10 +102,10 @@ export default function LawyerJoin() {
   return (
     <section className="relative overflow-hidden">
       <Blobs />
-      <div className="relative mx-auto grid max-w-6xl gap-10 px-5 py-12 lg:grid-cols-[1fr_340px]">
+      <div className="relative mx-auto grid max-w-6xl 2xl:max-w-7xl gap-10 px-4 sm:px-6 py-8 sm:py-12 lg:grid-cols-[1fr_340px]">
         <div>
           <p className="font-script text-3xl text-tangerine-500">hello, Counsel</p>
-          <h1 className="font-display text-4xl font-semibold text-ink">Join Tyche as a lawyer</h1>
+          <h1 className="h-page font-display font-semibold text-ink">Join Tyche as a lawyer</h1>
           <p className="mt-2 max-w-xl text-plum-700/80">Set your own fees and hours. Get matched with women who need you. Get paid through Tyche — no chasing anyone.</p>
           <Card className="mt-8 p-6 sm:p-8">
             <Stepper steps={STEPS} current={step} />

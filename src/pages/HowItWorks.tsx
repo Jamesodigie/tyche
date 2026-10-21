@@ -46,7 +46,7 @@ export default function HowItWorks() {
   return (
     <>
       <PageHero eyebrow="simple, gentle, clear" title="How Tyche works" sub="Four ways in. Pick the one you need today — they all connect." />
-      <section className="mx-auto grid max-w-6xl gap-6 px-5 md:grid-cols-2">
+      <section className="mx-auto grid max-w-6xl 2xl:max-w-7xl gap-4 px-4 sm:gap-6 sm:px-6 md:grid-cols-2">
         {journeys.map((j) => (
           <div key={j.title} className={cx("rounded-5xl bg-gradient-to-br p-8", j.tone)}>
             <span className="grid h-14 w-14 place-items-center rounded-full bg-white text-plum-700 shadow-sm"><j.icon size={26} /></span>
@@ -56,12 +56,12 @@ export default function HowItWorks() {
                 <li key={s} className="flex gap-3 text-ink"><span className="grid h-7 w-7 shrink-0 place-items-center rounded-full bg-white text-sm font-bold text-plum-600">{i + 1}</span><span className="pt-0.5">{s}</span></li>
               ))}
             </ol>
-            <Button className="mt-7" to={j.cta[0]}>{j.cta[1]} <ArrowRight size={16} /></Button>
+            <Button className="mt-7 w-full sm:w-auto" to={j.cta[0]}>{j.cta[1]} <ArrowRight size={16} /></Button>
           </div>
         ))}
       </section>
-      <section className="mx-auto mt-16 max-w-4xl px-5">
-        <div className="rounded-5xl bg-white p-8 shadow-soft ring-1 ring-plum-100">
+      <section className="mx-auto mt-12 sm:mt-16 max-w-4xl px-4 sm:px-6">
+        <div className="rounded-[2rem] bg-white p-6 shadow-soft ring-1 ring-plum-100 sm:rounded-5xl sm:p-8">
           <h2 className="font-display text-3xl font-semibold text-ink">About fees, in plain words</h2>
           <div className="mt-6 grid gap-4 sm:grid-cols-3">
             {[

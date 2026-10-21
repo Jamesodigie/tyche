@@ -14,7 +14,7 @@ export default function ForLawyers() {
           <Button size="lg" variant="outline" to="/signin?as=lawyer">I already have one</Button>
         </div>
       </PageHero>
-      <section className="mx-auto grid max-w-6xl gap-5 px-5 sm:grid-cols-2 lg:grid-cols-3">
+      <section className="mx-auto max-w-6xl 2xl:max-w-7xl px-4 sm:px-6"><div className="rail md:grid-cols-2 md:gap-5 lg:grid-cols-3">
         {[
           { i: Eye, t: "See the case before you commit", d: "Read anonymised reports and review uploaded evidence before you bid." },
           { i: Gavel, t: "Bid on cases you want", d: "Send an offer with your fee — or offer it free — plus a personal note." },
@@ -29,9 +29,9 @@ export default function ForLawyers() {
             <p className="mt-1 text-plum-700/80">{x.d}</p>
           </div>
         ))}
-      </section>
-      <section className="mx-auto mt-16 max-w-4xl px-5">
-        <div className="rounded-5xl bg-plum-700 p-8 text-white sm:p-10">
+      </div></section>
+      <section className="mx-auto mt-12 sm:mt-16 max-w-4xl px-4 sm:px-6">
+        <div className="rounded-[2rem] bg-plum-700 p-6 text-white sm:rounded-5xl sm:p-10">
           <p className="font-script text-2xl text-tangerine-200">earnings calculator</p>
           <h2 className="font-display text-3xl font-semibold">What could you earn on Tyche?</h2>
           <div className="mt-6 grid gap-4 sm:grid-cols-2">
@@ -39,7 +39,7 @@ export default function ForLawyers() {
             <label className="block text-sm">Paid sessions per month<Input type="number" value={n} onChange={(e) => setN(+e.target.value)} className="mt-1.5 border-plum-500 bg-plum-600 text-white" /></label>
           </div>
           <div className="mt-6 flex flex-wrap items-end gap-6">
-            <div><p className="text-sm text-plum-200">You take home monthly</p><p className="font-display text-5xl font-semibold text-tangerine-200">{naira(lawyerTake(fee * n))}</p></div>
+            <div><p className="text-sm text-plum-200">You take home monthly</p><p className="font-display text-4xl font-semibold text-tangerine-200 sm:text-5xl">{naira(lawyerTake(fee * n))}</p></div>
             <p className="pb-2 text-sm text-plum-200">after Tyche's {TYCHE_FEE * 100}% service fee ({naira(fee * n * TYCHE_FEE)})</p>
           </div>
         </div>

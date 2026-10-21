@@ -32,10 +32,10 @@ export default function Book() {
   const slots = useMemo(() => (l ? timeSlots(l.from, l.to, l.sessionMins) : []), [l]);
   const myReports = reports;
 
-  if (!l) return <div className="mx-auto max-w-xl px-5 py-20"><Empty icon={<MessageCircleHeart />} title="Lawyer not found" action={<Button to="/lawyers">Browse lawyers</Button>} /></div>;
+  if (!l) return <div className="mx-auto max-w-xl px-4 sm:px-6 py-12 sm:py-20"><Empty icon={<MessageCircleHeart />} title="Lawyer not found" action={<Button to="/lawyers">Browse lawyers</Button>} /></div>;
 
   if (!l.verified)
-    return <div className="mx-auto max-w-xl px-5 py-20"><Empty icon={<MessageCircleHeart />} title={`${l.name.split(" ")[0]} isn't taking bookings yet`} sub="This lawyer is still being verified by our team." action={<Button to="/lawyers">See verified lawyers</Button>} /></div>;
+    return <div className="mx-auto max-w-xl px-4 sm:px-6 py-12 sm:py-20"><Empty icon={<MessageCircleHeart />} title={`${l.name.split(" ")[0]} isn't taking bookings yet`} sub="This lawyer is still being verified by our team." action={<Button to="/lawyers">See verified lawyers</Button>} /></div>;
 
   const fee = bid ? (bid.free ? 0 : bid.fee) : kind === "consultation" ? (l.consultFree ? 0 : l.consultFee) : l.bookingFree ? 0 : l.bookingFee;
   const STEPS = ["What you need", "Pick a time", "About you", fee ? "Pay" : "Confirm"];
@@ -72,10 +72,10 @@ export default function Book() {
     return (
       <section className="relative overflow-hidden">
         <Blobs />
-        <div className="relative mx-auto max-w-xl px-5 py-16 text-center">
+        <div className="relative mx-auto max-w-xl px-4 sm:px-6 py-8 sm:py-16 text-center">
           <div className="mx-auto grid h-20 w-20 animate-rise place-items-center rounded-full bg-lagoon-100 text-lagoon-600"><CalendarCheck2 size={38} /></div>
           <p className="mt-6 font-script text-3xl text-tangerine-500">you did a brave thing today</p>
-          <h1 className="font-display text-4xl font-semibold text-ink">You're booked with {l.name.split(" ")[0]} 💜</h1>
+          <h1 className="h-page font-display font-semibold text-ink">You're booked with {l.name.split(" ")[0]} 💜</h1>
           <Card className="mt-8 p-6 text-left">
             <div className="flex items-center gap-4">
               <Avatar name={l.name} hue={l.hue} size={56} />
@@ -102,10 +102,10 @@ export default function Book() {
   return (
     <section className="relative overflow-hidden">
       <Blobs />
-      <div className="relative mx-auto grid max-w-6xl gap-8 px-5 py-10 lg:grid-cols-[1fr_340px]">
+      <div className="relative mx-auto grid max-w-6xl 2xl:max-w-7xl gap-8 px-4 sm:px-6 py-8 sm:py-10 lg:grid-cols-[1fr_340px]">
         <div>
-          <Link to={`/lawyers/${l.id}`} className="inline-flex items-center gap-1 text-sm font-semibold text-plum-600"><ArrowLeft size={16} /> Back to profile</Link>
-          <h1 className="mt-4 font-display text-4xl font-semibold text-ink">Book {l.name}</h1>
+          <Link to={`/lawyers/${l.id}`} className="-my-2 inline-flex items-center gap-1 py-2 text-sm font-semibold text-plum-600"><ArrowLeft size={16} /> Back to profile</Link>
+          <h1 className="h-page mt-4 font-display font-semibold text-ink">Book {l.name}</h1>
           {bid && <p className="mt-2 inline-block rounded-full bg-lagoon-50 px-4 py-1.5 text-sm font-semibold text-lagoon-600">Accepting {l.name.split(" ")[0]}'s offer on your report</p>}
           <Card className="mt-6 p-6 sm:p-8">
             <Stepper steps={STEPS} current={step} />

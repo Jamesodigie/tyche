@@ -23,7 +23,7 @@ export default function Session() {
   }, []);
 
   if (!b)
-    return <div className="mx-auto max-w-xl px-5 py-20"><Empty icon={<Video />} title="Session not found" action={<Button to="/me">Back to my space</Button>} /></div>;
+    return <div className="mx-auto max-w-xl px-4 sm:px-6 py-12 sm:py-20"><Empty icon={<Video />} title="Session not found" action={<Button to="/me">Back to my space</Button>} /></div>;
 
   const mode = (params.get("mode") as Channel) || b.channel;
   if (mode === "chat") return <Navigate to={`/messages/${b.id}`} replace />;

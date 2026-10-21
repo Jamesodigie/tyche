@@ -5,7 +5,7 @@ export function About() {
   return (
     <>
       <PageHero eyebrow="who we are" title={<>Named after the goddess of <em className="font-normal text-plum-600">fortune</em> — because you deserve better luck than this.</>} sub="Tyche is a Nigerian company building the safest, kindest way for women to get legal help after harassment." />
-      <section className="mx-auto max-w-3xl space-y-6 px-5 text-lg leading-relaxed text-plum-700/90">
+      <section className="mx-auto max-w-3xl space-y-5 px-4 text-base leading-relaxed text-plum-700/90 sm:space-y-6 sm:px-6 sm:text-lg">
         <p>Too many women in Nigeria go through harassment and have nowhere to start. Police stations feel intimidating, lawyers feel expensive and far away, and evidence ends up lost in a phone gallery.</p>
         <p>So we built Tyche: one soft, private place to keep your evidence safe, talk to a verified lawyer who actually gets it, report when you're ready, and find a circle of women who'll hold you up.</p>
         <p>We're not an NGO and we don't ask for donations. Lawyers set their own prices (many offer free consultations), and Tyche earns a small service fee when you book. That keeps us independent, fast, and focused on you.</p>
@@ -32,7 +32,7 @@ export function Safety() {
   return (
     <>
       <PageHero eyebrow="your safety comes first" title="Safety & privacy" sub="Here's exactly how we protect you — no fine print." />
-      <section className="mx-auto grid max-w-5xl gap-5 px-5 sm:grid-cols-2 lg:grid-cols-3">
+      <section className="mx-auto grid max-w-5xl gap-4 px-4 sm:grid-cols-2 sm:gap-5 sm:px-6 lg:grid-cols-3">
         {items.map((x) => (
           <div key={x.t} className="rounded-4xl bg-white p-6 shadow-soft ring-1 ring-plum-100">
             <span className="grid h-12 w-12 place-items-center rounded-2xl bg-lagoon-50 text-lagoon-600"><x.i size={22} /></span>
@@ -41,7 +41,7 @@ export function Safety() {
           </div>
         ))}
       </section>
-      <section className="mx-auto mt-12 max-w-3xl px-5">
+      <section className="mx-auto mt-12 max-w-3xl px-4 sm:px-6">
         <div className="flex items-start gap-4 rounded-4xl bg-ink p-6 text-white">
           <ShieldCheck className="mt-1 shrink-0 text-tangerine-400" />
           <p>If you're in immediate danger, please call <b>112</b> — Nigeria's free emergency number. Tyche is here for everything that comes after.</p>

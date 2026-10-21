@@ -40,7 +40,7 @@ function CaseCard({ r, me }: { r: Report; me: Lawyer }) {
   };
 
   return (
-    <Card className="p-6">
+    <Card className="p-5 sm:p-6">
       <div className="flex flex-wrap items-center gap-2">
         <span className="font-display text-xl font-semibold text-ink">“{r.alias}”</span>
         <Badge tone="blush">{r.setting}</Badge>
@@ -141,7 +141,7 @@ export default function LawyerDashboard() {
 
   if (!user || user.role !== "lawyer" || !me)
     return (
-      <div className="mx-auto max-w-xl px-5 py-20">
+      <div className="mx-auto max-w-xl px-4 sm:px-6 py-12 sm:py-20">
         <Empty icon={<Gavel />} title="This space is for Tyche lawyers" sub="Sign in with your lawyer account, or create one in a few minutes." action={<div className="flex justify-center gap-2"><Button to="/signin?as=lawyer&next=/lawyer/dashboard">Sign in as a lawyer</Button><Button variant="outline" to="/join/lawyer">Join Tyche</Button></div>} />
       </div>
     );
@@ -154,12 +154,12 @@ export default function LawyerDashboard() {
   return (
     <section className="relative overflow-hidden">
       <Blobs />
-      <div className="relative mx-auto max-w-6xl px-5 py-12">
-        <div className="flex flex-wrap items-center gap-5">
-          <Avatar name={me.name} hue={me.hue} size={72} />
+      <div className="relative mx-auto max-w-6xl 2xl:max-w-7xl px-4 sm:px-6 py-8 sm:py-12">
+        <div className="flex flex-wrap items-center gap-4 sm:gap-5">
+          <Avatar name={me.name} hue={me.hue} size={60} />
           <div className="flex-1">
             <p className="font-script text-2xl text-tangerine-500">good to see you, Counsel</p>
-            <h1 className="flex flex-wrap items-center gap-2 font-display text-4xl font-semibold text-ink">
+            <h1 className="h-page flex flex-wrap items-center gap-2 font-display font-semibold text-ink">
               {me.name}
               {me.verified ? <Badge tone="teal"><BadgeCheck size={14} /> Verified</Badge> : <Badge tone="warm"><Clock size={14} /> Verification pending</Badge>}
             </h1>
@@ -175,15 +175,15 @@ export default function LawyerDashboard() {
           </p>
         )}
 
-        <div className="mt-8 grid gap-4 sm:grid-cols-4">
+        <div className="mt-6 grid grid-cols-2 gap-3 sm:mt-8 sm:gap-4 lg:grid-cols-4">
           {[
             { t: "Open cases", v: open.length, c: "bg-tangerine-100 text-tangerine-600", i: Briefcase },
             { t: "Offers sent", v: myBids.length, c: "bg-plum-100 text-plum-600", i: Send },
             { t: "Bookings", v: myBookings.length, c: "bg-lagoon-100 text-lagoon-600", i: CalendarHeart },
             { t: "You've earned", v: naira(lawyerTake(gross)), c: "bg-blush-200 text-plum-700", i: Wallet },
           ].map((s) => (
-            <div key={s.t} className="flex items-center gap-4 rounded-4xl bg-white p-5 shadow-soft ring-1 ring-plum-100">
-              <span className={cx("grid h-12 w-12 place-items-center rounded-2xl", s.c)}><s.i size={22} /></span>
+            <div key={s.t} className="flex flex-col items-start gap-2 rounded-3xl bg-white p-4 shadow-soft ring-1 ring-plum-100 sm:flex-row sm:items-center sm:gap-4 sm:rounded-4xl sm:p-5">
+              <span className={cx("grid h-10 w-10 shrink-0 place-items-center rounded-2xl sm:h-12 sm:w-12", s.c)}><s.i size={22} /></span>
               <span><span className="block font-display text-2xl font-semibold text-ink">{s.v}</span><span className="text-sm text-plum-500">{s.t}</span></span>
             </div>
           ))}
@@ -200,9 +200,9 @@ export default function LawyerDashboard() {
         <div className="mt-6">
           {tab === "cases" && (
             <>
-              <div className="mb-4 flex flex-wrap items-center gap-3">
-                <p className="text-plum-600">Women who chose to share their story with verified lawyers. Names stay hidden until they book you.</p>
-                <Select value={area} onChange={(e) => setArea(e.target.value)} className="ml-auto w-auto">
+              <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center">
+                <p className="text-sm text-plum-600 sm:text-base">Women who chose to share their story with verified lawyers. Names stay hidden until they book you.</p>
+                <Select value={area} onChange={(e) => setArea(e.target.value)} className="w-full sm:ml-auto sm:w-auto">
                   <option value="">All cases</option>
                   {["Work", "School / campus", "Online", "Public place / transport", "Home"].map((s) => <option key={s}>{s}</option>)}
                 </Select>
@@ -258,13 +258,14 @@ export default function LawyerDashboard() {
 
           {tab === "earnings" && (
             <div className="space-y-5">
-              <div className="grid gap-4 sm:grid-cols-3">
-                <Card className="p-6"><p className="text-sm text-plum-500">Clients paid</p><p className="font-display text-3xl font-semibold text-ink">{naira(gross)}</p></Card>
+              <div className="grid gap-3 sm:grid-cols-3 sm:gap-4">
+                <Card className="p-5 sm:p-6"><p className="text-sm text-plum-500">Clients paid</p><p className="font-display text-3xl font-semibold text-ink">{naira(gross)}</p></Card>
                 <Card className="p-6"><p className="text-sm text-plum-500">Tyche service fee ({TYCHE_FEE * 100}%)</p><p className="font-display text-3xl font-semibold text-ink">{naira(tycheTake(gross))}</p></Card>
                 <Card className="bg-lagoon-50 p-6 ring-lagoon-200"><p className="text-sm text-lagoon-600">Your earnings</p><p className="font-display text-3xl font-semibold text-lagoon-600">{naira(lawyerTake(gross))}</p></Card>
               </div>
               <Card className="overflow-hidden">
-                <table className="w-full text-left text-sm">
+                <div className="overflow-x-auto">
+                <table className="w-full min-w-[520px] text-left text-sm">
                   <thead className="bg-plum-50 text-plum-500"><tr><th className="px-5 py-3">Client</th><th className="px-5 py-3">Type</th><th className="px-5 py-3">Paid</th><th className="px-5 py-3">Tyche</th><th className="px-5 py-3">You</th></tr></thead>
                   <tbody>
                     {myBookings.length ? myBookings.map((b) => (
@@ -278,6 +279,7 @@ export default function LawyerDashboard() {
                     )) : <tr><td colSpan={5} className="px-5 py-8 text-center text-plum-400">No payments yet</td></tr>}
                   </tbody>
                 </table>
+                </div>
               </Card>
               <p className="text-sm text-plum-500">Payouts go to your bank account within 48 hours of each completed session.</p>
             </div>

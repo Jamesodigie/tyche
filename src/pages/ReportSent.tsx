@@ -13,11 +13,11 @@ export default function ReportSent() {
   return (
     <section className="relative overflow-hidden">
       <Blobs />
-      <div className="relative mx-auto max-w-3xl px-5 py-14">
+      <div className="relative mx-auto max-w-3xl px-4 sm:px-6 py-8 sm:py-14">
         <div className="text-center">
           <div className="mx-auto grid h-20 w-20 animate-rise place-items-center rounded-full bg-lagoon-100 text-lagoon-600"><ShieldCheck size={38} /></div>
           <p className="mt-6 font-script text-3xl text-tangerine-500">we've got you</p>
-          <h1 className="font-display text-4xl font-semibold text-ink sm:text-5xl">Your report is safely saved.</h1>
+          <h1 className="h-page font-display font-semibold text-ink">Your report is safely saved.</h1>
           <p className="mx-auto mt-3 max-w-lg text-lg text-plum-700/80">
             Reference <b className="text-ink">{id}</b>. {r?.shareWithLawyers ? "Verified lawyers can now see it anonymously and send you offers." : "It's private — only you can see it."}
           </p>

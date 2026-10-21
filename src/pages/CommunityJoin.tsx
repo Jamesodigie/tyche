@@ -23,10 +23,10 @@ export default function CommunityJoin() {
     return (
       <section className="relative overflow-hidden">
         <Blobs />
-        <div className="relative mx-auto max-w-xl px-5 py-16 text-center">
+        <div className="relative mx-auto max-w-xl px-4 sm:px-6 py-8 sm:py-16 text-center">
           <div className="mx-auto grid h-20 w-20 animate-rise place-items-center rounded-full bg-lagoon-100 text-lagoon-600"><HeartHandshake size={38} /></div>
           <p className="mt-6 font-script text-3xl text-tangerine-500">welcome to the circle, {community.name.split(" ")[0].toLowerCase()}</p>
-          <h1 className="font-display text-4xl font-semibold text-ink">You're in! 💜</h1>
+          <h1 className="h-page font-display font-semibold text-ink">You're in! 💜</h1>
           <p className="mt-3 text-lg text-plum-700/80">
             We've sent your private invite to <b>{community.phone}</b> on WhatsApp. It's a one-time link just for you — please don't share it.
           </p>
@@ -57,9 +57,9 @@ export default function CommunityJoin() {
   return (
     <section className="relative overflow-hidden">
       <Blobs />
-      <div className="relative mx-auto max-w-2xl px-5 py-12">
+      <div className="relative mx-auto max-w-2xl px-4 sm:px-6 py-8 sm:py-12">
         <p className="font-script text-3xl text-tangerine-500">come on in, love</p>
-        <h1 className="font-display text-4xl font-semibold text-ink">Join the Tyche circle</h1>
+        <h1 className="h-page font-display font-semibold text-ink">Join the Tyche circle</h1>
         <p className="mt-2 text-plum-700/80">{(COMMUNITY_CAP - COMMUNITY_MEMBERS).toLocaleString()} of {COMMUNITY_CAP.toLocaleString()} spots left.</p>
         <Card className="mt-8 p-6 sm:p-8">
           <Stepper steps={STEPS} current={step} />

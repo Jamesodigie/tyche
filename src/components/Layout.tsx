@@ -12,7 +12,7 @@ export function quickExit() {
   window.location.replace("https://www.google.com/search?q=weather+today");
 }
 
-function QuickExit() {
+function QuickExit({ floatingOnPhones = false }: { floatingOnPhones?: boolean }) {
   useEffect(() => {
     let presses = 0, t: number | undefined;
     const onKey = (e: KeyboardEvent) => {
@@ -29,7 +29,10 @@ function QuickExit() {
     <button
       onClick={quickExit}
       title="Leave this site fast (or press Esc 3 times)"
-      className="fixed bottom-[calc(5.5rem+env(safe-area-inset-bottom))] right-4 z-50 inline-flex lg:bottom-5 lg:right-5 items-center gap-2 rounded-full bg-ink px-5 py-3 text-sm font-semibold text-white shadow-xl transition hover:scale-105"
+      className={cx(
+        "fixed bottom-5 right-5 z-50 items-center gap-2 rounded-full bg-ink px-5 py-3 text-sm font-semibold text-white shadow-xl transition hover:scale-105",
+        floatingOnPhones ? "inline-flex" : "hidden lg:inline-flex",
+      )}
     >
       <X size={16} strokeWidth={3} /> Quick exit
     </button>
@@ -56,9 +59,9 @@ function Header() {
 
   return (
     <header className="safe-top sticky top-0 z-40 border-b border-plum-100/60 bg-cream/85 backdrop-blur-md">
-      <div className="mx-auto flex h-[72px] max-w-6xl items-center justify-between px-5">
+      <div className="mx-auto flex h-16 max-w-6xl items-center justify-between gap-3 px-4 sm:h-[72px] sm:px-6 2xl:max-w-7xl">
         <Link to="/" className="flex items-center" aria-label="Tyche home">
-          <img src="/tyche-logo.png" alt="Tyche" className="h-10 w-auto" />
+          <img src="/tyche-logo.png" alt="Tyche" className="h-8 w-auto sm:h-10" />
         </Link>
         <nav className="hidden items-center gap-1 lg:flex">
           {nav.map((n) => (
@@ -91,12 +94,21 @@ function Header() {
             </>
           )}
         </div>
-        <button className="rounded-full p-2 text-plum-700 lg:hidden" onClick={() => setOpen(!open)} aria-label="Menu">
-          {open ? <X /> : <Menu />}
-        </button>
+        <div className="flex items-center gap-1.5 lg:hidden">
+          <button
+            onClick={quickExit}
+            className="inline-flex h-10 items-center gap-1.5 rounded-full bg-ink px-3.5 text-[13px] font-semibold text-white active:scale-95"
+            aria-label="Quick exit — leave this site now"
+          >
+            <X size={15} strokeWidth={3} /> Exit
+          </button>
+          <button className="grid h-10 w-10 place-items-center rounded-full text-plum-700 hover:bg-plum-50" onClick={() => setOpen(!open)} aria-label="Menu" aria-expanded={open}>
+            {open ? <X /> : <Menu />}
+          </button>
+        </div>
       </div>
       {open && (
-        <div className="border-t border-plum-100 bg-cream px-5 pb-6 pt-3 lg:hidden">
+        <div className="max-h-[calc(100dvh-4rem)] overflow-y-auto border-t border-plum-100 bg-cream px-4 pb-6 pt-3 sm:px-6 lg:hidden">
           {nav.map((n) => (
             <NavLink key={n.to} to={n.to} className="block rounded-2xl px-4 py-3 font-medium text-ink hover:bg-plum-50">
               {n.label}
@@ -125,9 +137,9 @@ function Header() {
 
 function Footer() {
   return (
-    <footer className="mt-24 bg-plum-900 pb-20 text-plum-100 lg:pb-0">
-      <div className="mx-auto grid max-w-6xl gap-10 px-5 py-14 md:grid-cols-[1.4fr_1fr_1fr_1fr]">
-        <div>
+    <footer className="section bg-plum-900 pb-[calc(5rem+env(safe-area-inset-bottom))] text-plum-100 lg:pb-0">
+      <div className="mx-auto grid max-w-6xl grid-cols-2 gap-x-6 gap-y-10 px-4 py-12 sm:px-6 sm:py-14 md:grid-cols-[1.4fr_1fr_1fr_1fr] 2xl:max-w-7xl">
+        <div className="col-span-2 md:col-span-1">
           <div className="inline-block rounded-2xl bg-white px-3 py-2"><img src="/tyche-logo.png" alt="Tyche" className="h-8" /></div>
           <p className="mt-4 max-w-xs text-sm leading-relaxed text-plum-200">
             Your safety matters. Your voice matters. Justice matters. Built in Nigeria, for us.
@@ -147,13 +159,13 @@ function Footer() {
             <p className="font-display text-lg text-white">{c.h}</p>
             <ul className="mt-3 space-y-2 text-sm">
               {c.l.map(([to, label]) => (
-                <li key={to}><Link to={to} className="text-plum-200 hover:text-white">{label}</Link></li>
+                <li key={to}><Link to={to} className="inline-block py-1 text-plum-200 hover:text-white">{label}</Link></li>
               ))}
             </ul>
           </div>
         ))}
       </div>
-      <div className="border-t border-white/10 py-6 text-center text-xs text-plum-300">
+      <div className="border-t border-white/10 px-4 py-6 text-center text-xs leading-relaxed text-plum-300">
         © {new Date().getFullYear()} Tyche. Lawyers on Tyche are independent practitioners verified by our team. · <Link to="/admin" className="text-plum-400 hover:text-white">Team</Link>
       </div>
     </footer>
@@ -180,14 +192,14 @@ function WelcomeBubbles() {
   useEffect(() => { if (loc.pathname !== "/") setShow(false); }, [loc.pathname]);
   if (!show) return null;
   return (
-    <div className="fixed inset-0 z-[60] grid place-items-center overflow-y-auto bg-plum-900/40 p-4 backdrop-blur-sm animate-rise" onClick={close}>
-      <div className="relative w-full max-w-3xl rounded-5xl bg-cream p-6 shadow-2xl sm:p-10" onClick={(e) => e.stopPropagation()}>
+    <div className="fixed inset-0 z-[60] flex items-end justify-center overflow-y-auto bg-plum-900/40 backdrop-blur-sm animate-rise sm:items-center sm:p-4" onClick={close}>
+      <div className="safe-bottom relative max-h-[92dvh] w-full max-w-3xl overflow-y-auto rounded-t-[2rem] bg-cream px-4 pb-6 pt-5 shadow-2xl sm:rounded-5xl sm:p-10" onClick={(e) => e.stopPropagation()}>
         <button onClick={close} className="absolute right-5 top-5 rounded-full p-2 text-plum-500 hover:bg-plum-50" aria-label="Close"><X /></button>
-        <img src="/tyche-mark.png" alt="" className="mx-auto h-14" />
-        <p className="mt-3 text-center font-script text-3xl text-tangerine-500">Hi love, welcome</p>
-        <h2 className="text-center font-display text-3xl font-semibold text-ink sm:text-4xl">What brings you to Tyche today?</h2>
+        <img src="/tyche-mark.png" alt="" className="mx-auto h-11 sm:h-14" />
+        <p className="mt-2 text-center font-script text-2xl text-tangerine-500 sm:mt-3 sm:text-3xl">Hi love, welcome</p>
+        <h2 className="text-center font-display text-[1.6rem] font-semibold leading-tight text-ink sm:text-4xl">What brings you to Tyche today?</h2>
         <p className="mx-auto mt-2 max-w-md text-center text-plum-600">Pick one — you can always come back for the others.</p>
-        <div className="mt-8"><PathBubbles onPick={close} compact /></div>
+        <div className="mt-5 sm:mt-8"><PathBubbles onPick={close} compact /></div>
         <p className="mt-6 text-center text-sm text-plum-500">
           Already have an account? <Link to="/signin" onClick={close} className="font-semibold text-plum-700 underline decoration-tangerine-400 underline-offset-4">Sign in</Link>
         </p>
@@ -209,13 +221,13 @@ export function Layout() {
     <div className="min-h-screen bg-cream font-sans text-ink">
       {!bare && <Header />}
       {user && isSuspended(user.email) && (
-        <div className="bg-tangerine-100 px-5 py-3 text-center text-sm text-ink">
+        <div className="bg-tangerine-100 px-4 py-3 text-center text-sm text-ink">
           Your account is paused while our team reviews it. You can still read your saved reports. Questions? Reach the Tyche team.
         </div>
       )}
       <main><Outlet /></main>
       {!bare && <Footer />}
-      <QuickExit />
+      <QuickExit floatingOnPhones={bare} />
       <WelcomeBubbles />
       {!bare && <BottomTabs />}
       <InstallSheet />

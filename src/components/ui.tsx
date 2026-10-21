@@ -16,7 +16,7 @@ const btnVariants: Record<BtnVariant, string> = {
   outline: "border-2 border-plum-200 text-plum-700 hover:border-plum-400 bg-white/70",
   ghost: "text-plum-700 hover:bg-plum-50",
 };
-const btnSizes = { sm: "px-4 py-2 text-sm", md: "px-6 py-3 text-[15px]", lg: "px-8 py-4 text-base" };
+const btnSizes = { sm: "min-h-[40px] px-4 py-2 text-sm", md: "min-h-[48px] px-6 py-3 text-[15px]", lg: "min-h-[52px] px-7 py-3.5 text-base sm:px-8 sm:py-4" };
 
 type BtnProps = ButtonHTMLAttributes<HTMLButtonElement> & { variant?: BtnVariant; size?: keyof typeof btnSizes; to?: string };
 
@@ -44,7 +44,7 @@ export function Field({ label, hint, children, optional }: { label: string; hint
 }
 
 const inputCls =
-  "w-full rounded-2xl border-2 border-plum-100 bg-cream px-4 py-3 text-[15px] text-ink placeholder:text-plum-300 outline-none transition focus:border-plum-400 focus:bg-white focus:ring-4 focus:ring-plum-100";
+  "w-full rounded-2xl border-2 border-plum-100 bg-cream px-4 py-3 text-base text-ink sm:text-[15px] placeholder:text-plum-300 outline-none transition focus:border-plum-400 focus:bg-white focus:ring-4 focus:ring-plum-100";
 
 export const Input = forwardRef<HTMLInputElement, InputHTMLAttributes<HTMLInputElement>>(({ className, ...p }, ref) => (
   <input ref={ref} className={cx(inputCls, className)} {...p} />
@@ -67,7 +67,7 @@ export function Chip({ active, onClick, children, tone = "plum" }: { active?: bo
       type="button"
       onClick={onClick}
       className={cx(
-        "inline-flex items-center gap-1.5 rounded-full border-2 px-4 py-2 text-sm font-medium transition",
+        "inline-flex min-h-[40px] shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full border-2 px-3.5 py-2 text-sm font-medium transition sm:px-4",
         active ? on : "border-plum-100 bg-white text-plum-700 hover:border-plum-300",
       )}
     >
@@ -79,7 +79,7 @@ export function Chip({ active, onClick, children, tone = "plum" }: { active?: bo
 
 export function Toggle({ on, onChange, label, sub }: { on: boolean; onChange: (v: boolean) => void; label: ReactNode; sub?: ReactNode }) {
   return (
-    <button type="button" onClick={() => onChange(!on)} className="flex w-full items-start gap-4 rounded-3xl border-2 border-plum-100 bg-white p-4 text-left transition hover:border-plum-200">
+    <button type="button" onClick={() => onChange(!on)} aria-pressed={on} className="flex w-full items-start gap-3 rounded-3xl border-2 border-plum-100 bg-white p-4 text-left transition hover:border-plum-200 sm:gap-4">
       <span className={cx("mt-0.5 flex h-7 w-12 shrink-0 items-center rounded-full p-1 transition", on ? "bg-lagoon-500" : "bg-plum-100")}>
         <span className={cx("h-5 w-5 rounded-full bg-white shadow transition", on && "translate-x-5")} />
       </span>
@@ -114,13 +114,13 @@ export function Avatar({ name, hue = 285, size = 56, className }: { name: string
 
 export function Stepper({ steps, current }: { steps: string[]; current: number }) {
   return (
-    <div className="mb-8">
-      <div className="flex items-center gap-2">
+    <div className="mb-6 sm:mb-8">
+      <div className="flex items-center gap-1.5 sm:gap-2">
         {steps.map((s, i) => (
           <div key={s} className="flex flex-1 items-center gap-2">
             <span
               className={cx(
-                "grid h-8 w-8 shrink-0 place-items-center rounded-full text-sm font-bold transition",
+                "grid h-7 w-7 shrink-0 text-xs sm:h-8 sm:w-8 sm:text-sm place-items-center rounded-full text-sm font-bold transition",
                 i < current ? "bg-lagoon-500 text-white" : i === current ? "bg-plum-600 text-white ring-4 ring-plum-100" : "bg-plum-50 text-plum-300",
               )}
             >
@@ -149,10 +149,10 @@ export function PageHero({ eyebrow, title, sub, children }: { eyebrow?: string; 
   return (
     <section className="relative overflow-hidden">
       <Blobs />
-      <div className="relative mx-auto max-w-5xl px-5 pb-10 pt-12 text-center sm:pt-16">
-        {eyebrow && <p className="font-script text-2xl text-tangerine-500">{eyebrow}</p>}
-        <h1 className="mx-auto mt-1 max-w-3xl font-display text-4xl font-semibold leading-[1.08] text-ink sm:text-5xl">{title}</h1>
-        {sub && <p className="mx-auto mt-4 max-w-2xl text-lg text-plum-700/80">{sub}</p>}
+      <div className="relative mx-auto max-w-5xl px-4 pb-8 pt-8 text-center sm:px-6 sm:pb-10 sm:pt-16">
+        {eyebrow && <p className="font-script text-xl text-tangerine-500 sm:text-2xl">{eyebrow}</p>}
+        <h1 className="h-page mx-auto mt-1 max-w-3xl font-display font-semibold leading-[1.08] text-ink">{title}</h1>
+        {sub && <p className="mx-auto mt-3 max-w-2xl text-base text-plum-700/80 sm:mt-4 sm:text-lg">{sub}</p>}
         {children}
       </div>
     </section>
@@ -171,7 +171,7 @@ export function Blobs() {
 
 export function Empty({ icon, title, sub, action }: { icon: ReactNode; title: string; sub?: string; action?: ReactNode }) {
   return (
-    <div className="rounded-4xl border-2 border-dashed border-plum-100 bg-white/60 px-6 py-12 text-center">
+    <div className="rounded-4xl border-2 border-dashed border-plum-100 bg-white/60 px-5 py-10 text-center sm:px-6 sm:py-12">
       <div className="mx-auto grid h-14 w-14 place-items-center rounded-full bg-blush-100 text-plum-600">{icon}</div>
       <p className="mt-4 font-display text-xl font-semibold text-ink">{title}</p>
       {sub && <p className="mx-auto mt-1 max-w-sm text-sm text-plum-500">{sub}</p>}

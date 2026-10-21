@@ -28,34 +28,36 @@ const fmtDate = (iso: string) => new Date(iso).toLocaleDateString("en-GB", { day
 
 function Stat({ label, value, sub, icon: I, tone }: { label: string; value: ReactNode; sub?: ReactNode; icon: typeof Users; tone: string }) {
   return (
-    <div className="rounded-4xl bg-white p-5 shadow-soft ring-1 ring-plum-100">
-      <div className="flex items-start justify-between">
-        <p className="text-sm font-medium text-plum-500">{label}</p>
-        <span className={cx("grid h-10 w-10 place-items-center rounded-2xl", tone)}><I size={19} /></span>
+    <div className="min-w-0 rounded-3xl bg-white p-4 shadow-soft ring-1 ring-plum-100 sm:rounded-4xl sm:p-5">
+      <div className="flex items-start justify-between gap-2">
+        <p className="text-[13px] font-medium leading-snug text-plum-500 sm:text-sm">{label}</p>
+        <span className={cx("grid h-8 w-8 shrink-0 place-items-center rounded-xl sm:h-10 sm:w-10 sm:rounded-2xl", tone)}><I size={17} /></span>
       </div>
-      <p className="mt-2 font-display text-3xl font-semibold text-ink">{value}</p>
-      {sub && <p className="mt-1 text-xs text-plum-400">{sub}</p>}
+      <p className="mt-2 truncate font-display text-2xl font-semibold text-ink sm:text-3xl">{value}</p>
+      {sub && <p className="mt-1 text-xs leading-snug text-plum-400">{sub}</p>}
     </div>
   );
 }
 
 function SectionTitle({ title, sub, children }: { title: string; sub?: string; children?: ReactNode }) {
   return (
-    <div className="mb-6 flex flex-wrap items-end justify-between gap-3">
-      <div>
-        <h1 className="font-display text-3xl font-semibold text-ink">{title}</h1>
-        {sub && <p className="mt-1 text-plum-500">{sub}</p>}
+    <div className="mb-5 flex flex-wrap items-end justify-between gap-3 sm:mb-6">
+      <div className="min-w-0">
+        <h1 className="font-display text-2xl font-semibold text-ink sm:text-3xl">{title}</h1>
+        {sub && <p className="mt-1 text-sm text-plum-500 sm:text-base">{sub}</p>}
       </div>
       {children && <div className="flex flex-wrap gap-2">{children}</div>}
     </div>
   );
 }
 
-function Table({ head, children, empty }: { head: string[]; children: ReactNode; empty?: boolean }) {
+function Table({ head, children, empty, mobile }: { head: string[]; children: ReactNode; empty?: boolean; mobile?: ReactNode }) {
   return (
-    <Card className="overflow-hidden">
+    <>
+    {mobile && <div className="grid gap-3 sm:grid-cols-2 xl:hidden [&>*]:min-w-0">{mobile}{empty && <Card className="p-8 text-center text-plum-400">Nothing here yet</Card>}</div>}
+    <Card className={cx("overflow-hidden", !!mobile && "hidden xl:block")}>
       <div className="overflow-x-auto">
-        <table className="w-full min-w-[720px] text-left text-sm">
+        <table className="w-full min-w-[720px] text-left text-sm [&_td]:align-middle">
           <thead className="bg-plum-50 text-xs uppercase tracking-wide text-plum-500">
             <tr>{head.map((h) => <th key={h} className="px-5 py-3 font-semibold">{h}</th>)}</tr>
           </thead>
@@ -64,6 +66,7 @@ function Table({ head, children, empty }: { head: string[]; children: ReactNode;
       </div>
       {empty && <p className="px-5 py-10 text-center text-plum-400">Nothing here yet</p>}
     </Card>
+    </>
   );
 }
 
@@ -122,7 +125,7 @@ function Overview() {
   return (
     <>
       <SectionTitle title="Overview" sub={`Good ${new Date().getHours() < 12 ? "morning" : new Date().getHours() < 17 ? "afternoon" : "evening"}, team. Here's Tyche today.`} />
-      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+      <div className="grid grid-cols-2 gap-3 sm:gap-4 xl:grid-cols-4">
         <Stat label="Total users" value={allAccounts.length.toLocaleString()} sub={`${clients.length} clients · ${allAccounts.length - clients.length} lawyers`} icon={Users} tone="bg-plum-100 text-plum-600" />
         <Stat label="Lawyers awaiting approval" value={pending.length} sub={`${approved.length} approved and live`} icon={Gavel} tone="bg-tangerine-100 text-tangerine-600" />
         <Stat label="Reports" value={allReports.length} sub={`${hiddenReports.length} hidden by moderators`} icon={FileWarning} tone="bg-blush-200 text-plum-700" />
@@ -133,13 +136,13 @@ function Overview() {
         <Stat label="Suspended accounts" value={suspended.length} icon={Ban} tone="bg-blush-200 text-plum-700" />
       </div>
 
-      <div className="mt-6 grid gap-6 xl:grid-cols-[1.6fr_1fr]">
+      <div className="mt-5 grid gap-5 sm:mt-6 sm:gap-6 xl:grid-cols-[1.6fr_1fr] [&>*]:min-w-0">
         <Card className="p-6">
           <div className="flex items-center justify-between">
             <p className="font-display text-xl font-semibold text-ink">New sign-ups</p>
             <span className="text-sm text-plum-400">last 14 days</span>
           </div>
-          <div className="mt-6 flex h-48 items-end gap-2">
+          <div className="mt-6 flex h-48 items-end gap-1 sm:gap-2">
             {days.map((d, i) => (
               <div key={i} className="flex flex-1 flex-col items-center gap-2">
                 <span className="text-xs font-semibold text-plum-500">{d.n || ""}</span>
@@ -168,7 +171,7 @@ function Overview() {
         </Card>
       </div>
 
-      <div className="mt-6 grid gap-6 xl:grid-cols-2">
+      <div className="mt-5 grid gap-5 sm:mt-6 sm:gap-6 xl:grid-cols-2 [&>*]:min-w-0">
         <Card className="p-6">
           <p className="font-display text-xl font-semibold text-ink">Latest reports</p>
           <div className="mt-4 space-y-2">
@@ -213,8 +216,8 @@ function LawyerRow({ l }: { l: Lawyer }) {
           </div>
           <p className="text-sm text-plum-500">{l.city}, {l.state} · Called {l.yearCalled} · {l.areas.slice(0, 2).join(", ")}</p>
         </div>
-        <div className="flex flex-wrap items-center gap-2">
-          <button onClick={() => setOpen(!open)} className="rounded-full px-3 py-2 text-sm font-semibold text-plum-600 hover:bg-plum-50">{open ? "Hide" : "Details"}</button>
+        <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto">
+          <button onClick={() => setOpen(!open)} className="min-h-[40px] rounded-full px-3 py-2 text-sm font-semibold text-plum-600 hover:bg-plum-50">{open ? "Hide" : "Details"}</button>
           {st !== "approved" && <Button size="sm" variant="teal" onClick={() => reviewLawyer(l.id, "approved")}><Check size={16} /> Approve</Button>}
           {st !== "rejected" && <Button size="sm" variant="outline" onClick={() => reviewLawyer(l.id, "rejected")}><X size={16} /> {st === "approved" ? "Revoke" : "Reject"}</Button>}
         </div>
@@ -245,9 +248,9 @@ function Approvals() {
   return (
     <>
       <SectionTitle title="Lawyer approvals" sub="Only approved lawyers appear to clients and can see the case board." />
-      <div className="mb-5 flex gap-2">
+      <div className="no-scrollbar -mx-4 mb-5 flex gap-2 overflow-x-auto px-4 sm:mx-0 sm:px-0">
         {(["pending", "approved", "rejected"] as const).map((t) => (
-          <button key={t} onClick={() => setTab(t)} className={cx("rounded-full px-5 py-2 text-sm font-semibold capitalize", tab === t ? "bg-plum-600 text-white" : "bg-white text-plum-600 ring-1 ring-plum-100")}>
+          <button key={t} onClick={() => setTab(t)} className={cx("shrink-0 whitespace-nowrap rounded-full px-5 py-2.5 text-sm font-semibold capitalize", tab === t ? "bg-plum-600 text-white" : "bg-white text-plum-600 ring-1 ring-plum-100")}>
             {t} <span className="ml-1 opacity-70">{counts[t]}</span>
           </button>
         ))}
@@ -282,12 +285,39 @@ function UsersView() {
           <Download size={16} /> Export CSV
         </Button>
       </SectionTitle>
-      <div className="mb-4 grid gap-3 md:grid-cols-[1.5fr_1fr_1fr]">
-        <div className="relative"><Search className="absolute left-4 top-1/2 -translate-y-1/2 text-plum-300" size={18} /><Input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search name or email" className="pl-11" /></div>
+      <div className="mb-4 grid grid-cols-2 gap-3 md:grid-cols-[1.5fr_1fr_1fr]">
+        <div className="relative col-span-2 md:col-span-1"><Search className="absolute left-4 top-1/2 -translate-y-1/2 text-plum-300" size={18} /><Input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search name or email" className="pl-11" /></div>
         <Select value={role} onChange={(e) => setRole(e.target.value)}><option value="">All roles</option><option value="client">Clients</option><option value="lawyer">Lawyers</option></Select>
         <Select value={status} onChange={(e) => setStatus(e.target.value)}><option value="">Any status</option><option value="active">Active</option><option value="suspended">Suspended</option></Select>
       </div>
-      <Table head={["User", "Role", "State", "Joined", "Status", ""]} empty={!list.length}>
+      <Table
+        head={["User", "Role", "State", "Joined", "Status", ""]}
+        empty={!list.length}
+        mobile={list.map((a) => {
+          const susp = isSuspended(a.email);
+          const l = a.lawyerId ? lawyers.find((x) => x.id === a.lawyerId) : undefined;
+          return (
+            <Card key={a.id} className={cx("p-4", susp && "bg-blush-50")}>
+              <div className="flex items-center gap-3">
+                <Avatar name={a.name} hue={a.role === "lawyer" ? l?.hue ?? 185 : 330} size={44} className="ring-2" />
+                <div className="min-w-0 flex-1">
+                  <p className="truncate font-semibold text-ink">{a.name}</p>
+                  <p className="truncate text-xs text-plum-400">{a.email}</p>
+                </div>
+                {susp ? <Badge tone="warm">Suspended</Badge> : <Badge tone="teal">Active</Badge>}
+              </div>
+              <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-plum-500">
+                <Badge tone={a.role === "lawyer" ? "teal" : "blush"}>{a.role}{l && lawyerState(l) !== "approved" ? ` · ${lawyerState(l)}` : ""}</Badge>
+                <span>{a.state}</span>
+                <span>Joined {fmtDate(a.joinedAt)}</span>
+              </div>
+              <button onClick={() => setSuspended(a.email, !susp)} className={cx("mt-3 inline-flex min-h-[40px] w-full items-center justify-center gap-1.5 rounded-full text-sm font-semibold", susp ? "bg-lagoon-50 text-lagoon-600" : "bg-blush-100 text-plum-700")}>
+                {susp ? <><Undo2 size={15} /> Restore account</> : <><Ban size={15} /> Suspend account</>}
+              </button>
+            </Card>
+          );
+        })}
+      >
         {list.map((a) => {
           const susp = isSuspended(a.email);
           const l = a.lawyerId ? lawyers.find((x) => x.id === a.lawyerId) : undefined;
@@ -307,7 +337,7 @@ function UsersView() {
               <td className="px-5 py-3 text-plum-600">{fmtDate(a.joinedAt)}</td>
               <td className="px-5 py-3">{susp ? <Badge tone="warm">Suspended</Badge> : <Badge tone="teal">Active</Badge>}</td>
               <td className="px-5 py-3 text-right">
-                <button onClick={() => setSuspended(a.email, !susp)} className={cx("inline-flex items-center gap-1 rounded-full px-3 py-1.5 text-xs font-semibold", susp ? "bg-lagoon-50 text-lagoon-600" : "bg-blush-100 text-plum-700 hover:bg-blush-200")}>
+                <button onClick={() => setSuspended(a.email, !susp)} className={cx("inline-flex items-center gap-1 rounded-full px-3.5 py-2 text-xs font-semibold", susp ? "bg-lagoon-50 text-lagoon-600" : "bg-blush-100 text-plum-700 hover:bg-blush-200")}>
                   {susp ? <><Undo2 size={13} /> Restore</> : <><Ban size={13} /> Suspend</>}
                 </button>
               </td>
@@ -330,7 +360,35 @@ function ReportsView() {
   return (
     <>
       <SectionTitle title="Reports" sub="Hide a report to remove it from the lawyer case board (e.g. spam or unsafe content). The person who filed it can still see it." />
-      <Table head={["Report", "Type", "Where", "Evidence", "Offers", "Visibility", ""]} empty={!allReports.length}>
+      <Table
+        head={["Report", "Type", "Where", "Evidence", "Offers", "Visibility", ""]}
+        empty={!allReports.length}
+        mobile={allReports.map((r) => {
+          const hidden = hiddenReports.includes(r.id);
+          return (
+            <Card key={r.id} className={cx("p-4", hidden && "opacity-70")}>
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <p className="font-semibold text-ink">{r.id} <span className="font-normal text-plum-400">· “{r.alias}”</span></p>
+                  <p className="text-xs text-plum-400">{r.setting} · {r.state} · {timeAgo(r.createdAt)}</p>
+                </div>
+                {!r.shareWithLawyers ? <Badge tone="plum">Private</Badge> : hidden ? <Badge tone="warm">Hidden</Badge> : <Badge tone="teal">Live</Badge>}
+              </div>
+              <p className="mt-2 text-sm font-medium text-plum-700">{r.category}</p>
+              {open === r.id && <p className="mt-2 rounded-2xl bg-cream p-3 text-sm text-ink">{r.description}</p>}
+              <p className="mt-2 text-xs text-plum-500">{r.evidence.length} evidence file(s) · {bids.filter((b) => b.reportId === r.id).length} offer(s)</p>
+              <div className="mt-3 grid grid-cols-2 gap-2">
+                <button onClick={() => setOpen(open === r.id ? null : r.id)} className="min-h-[40px] rounded-full bg-plum-50 text-sm font-semibold text-plum-700">{open === r.id ? "Close" : "Read"}</button>
+                {r.shareWithLawyers ? (
+                  <button onClick={() => setReportHidden(r.id, !hidden)} className="inline-flex min-h-[40px] items-center justify-center gap-1.5 rounded-full bg-blush-100 text-sm font-semibold text-plum-700">
+                    {hidden ? <><Eye size={15} /> Restore</> : <><EyeOff size={15} /> Hide</>}
+                  </button>
+                ) : <span />}
+              </div>
+            </Card>
+          );
+        })}
+      >
         {allReports.map((r) => {
           const hidden = hiddenReports.includes(r.id);
           return (
@@ -343,7 +401,7 @@ function ReportsView() {
                 <td className="px-5 py-3 text-plum-600">{bids.filter((b) => b.reportId === r.id).length}</td>
                 <td className="px-5 py-3">{!r.shareWithLawyers ? <Badge tone="plum">Private</Badge> : hidden ? <Badge tone="warm">Hidden</Badge> : <Badge tone="teal">On case board</Badge>}</td>
                 <td className="whitespace-nowrap px-5 py-3 text-right">
-                  <button onClick={() => setOpen(open === r.id ? null : r.id)} className="rounded-full px-3 py-1.5 text-xs font-semibold text-plum-600 hover:bg-plum-50">{open === r.id ? "Close" : "Read"}</button>
+                  <button onClick={() => setOpen(open === r.id ? null : r.id)} className="rounded-full px-3.5 py-2 text-xs font-semibold text-plum-600 hover:bg-plum-50">{open === r.id ? "Close" : "Read"}</button>
                   {r.shareWithLawyers && (
                     <button onClick={() => setReportHidden(r.id, !hidden)} className="ml-1 inline-flex items-center gap-1 rounded-full bg-plum-50 px-3 py-1.5 text-xs font-semibold text-plum-700 hover:bg-plum-100">
                       {hidden ? <><Eye size={13} /> Restore</> : <><EyeOff size={13} /> Hide</>}
@@ -380,17 +438,36 @@ function Payments() {
   return (
     <>
       <SectionTitle title="Bookings & payments" sub="Every consultation and booking paid through Tyche.">
-        <Select value={kind} onChange={(e) => setKind(e.target.value)} className="w-auto py-2"><option value="">All types</option><option value="consultation">Consultations</option><option value="booking">Bookings</option></Select>
+        <Select value={kind} onChange={(e) => setKind(e.target.value)} className="!w-44 py-2"><option value="">All types</option><option value="consultation">Consultations</option><option value="booking">Bookings</option></Select>
         <Button variant="outline" size="sm" onClick={() => downloadCsv("tyche-payments.csv", [["Ref", "Date", "Client", "Lawyer", "Type", "Paid", "Tyche", "Lawyer payout", "Status"], ...list.map((b) => [b.id, b.date, b.clientName, name(b.lawyerId), b.kind, b.fee, tycheTake(b.fee), lawyerTake(b.fee), b.status])])}>
           <Download size={16} /> Export CSV
         </Button>
       </SectionTitle>
-      <div className="mb-5 grid gap-4 sm:grid-cols-3">
+      <div className="mb-5 grid grid-cols-1 gap-3 min-[420px]:grid-cols-3 sm:gap-4">
         <Stat label="Clients paid" value={naira(gross)} icon={Wallet} tone="bg-plum-100 text-plum-600" />
         <Stat label={`Tyche (${TYCHE_FEE * 100}%)`} value={naira(tycheTake(gross))} icon={Wallet} tone="bg-tangerine-100 text-tangerine-600" />
         <Stat label="Owed to lawyers" value={naira(lawyerTake(gross))} icon={Wallet} tone="bg-lagoon-100 text-lagoon-600" />
       </div>
-      <Table head={["Ref", "Date", "Client", "Lawyer", "Type", "Paid", "Tyche", "Lawyer", "Status"]} empty={!list.length}>
+      <Table
+        head={["Ref", "Date", "Client", "Lawyer", "Type", "Paid", "Tyche", "Lawyer", "Status"]}
+        empty={!list.length}
+        mobile={list.map((b) => (
+          <Card key={b.id} className="p-4">
+            <div className="flex items-start justify-between gap-2">
+              <div className="min-w-0">
+                <p className="truncate font-semibold text-ink">{b.clientName} → {name(b.lawyerId)}</p>
+                <p className="text-xs text-plum-400">{KIND_COPY[b.kind].title} · {new Date(b.date).toLocaleDateString("en-GB", { day: "numeric", month: "short" })} · <span className="font-mono">{b.id}</span></p>
+              </div>
+              <Badge tone={b.status === "done" ? "teal" : "warm"}>{b.status === "done" ? "Completed" : "Upcoming"}</Badge>
+            </div>
+            <div className="mt-3 grid grid-cols-3 gap-1.5 text-center text-xs [&>*]:min-w-0">
+              <div className="rounded-2xl bg-cream p-2"><p className="text-plum-400">Paid</p><p className="truncate text-[13px] font-semibold text-ink">{b.fee ? naira(b.fee) : "Free"}</p></div>
+              <div className="rounded-2xl bg-tangerine-50 p-2"><p className="text-plum-400">Tyche</p><p className="truncate text-[13px] font-semibold text-tangerine-600">{naira(tycheTake(b.fee))}</p></div>
+              <div className="rounded-2xl bg-lagoon-50 p-2"><p className="text-plum-400">Lawyer</p><p className="truncate text-[13px] font-semibold text-lagoon-600">{naira(lawyerTake(b.fee))}</p></div>
+            </div>
+          </Card>
+        ))}
+      >
         {list.map((b) => (
           <tr key={b.id}>
             <td className="px-5 py-3 font-mono text-xs text-plum-500">{b.id}</td>
@@ -419,7 +496,7 @@ function CommunityView() {
   return (
     <>
       <SectionTitle title="Community" sub="The paid WhatsApp circle." />
-      <div className="grid gap-4 sm:grid-cols-3">
+      <div className="grid grid-cols-1 gap-3 min-[420px]:grid-cols-3 sm:gap-4">
         <Stat label="Members" value={COMMUNITY_MEMBERS.toLocaleString()} sub={`${pct.toFixed(1)}% of capacity`} icon={HeartHandshake} tone="bg-lagoon-100 text-lagoon-600" />
         <Stat label="Spots left" value={(COMMUNITY_CAP - COMMUNITY_MEMBERS).toLocaleString()} sub={`Cap ${COMMUNITY_CAP.toLocaleString()}`} icon={Users} tone="bg-plum-100 text-plum-600" />
         <Stat label="Yearly revenue (est.)" value={naira(COMMUNITY_MEMBERS * COMMUNITY_PRICE)} sub={`${naira(COMMUNITY_PRICE)} × members`} icon={Wallet} tone="bg-tangerine-100 text-tangerine-600" />
@@ -510,12 +587,12 @@ export default function Admin() {
   return (
     <div className="min-h-screen bg-cream font-sans text-ink lg:grid lg:grid-cols-[260px_1fr]">
       <aside className="sticky top-0 z-30 border-b border-plum-100 bg-white lg:h-screen lg:border-b-0 lg:border-r">
-        <div className="flex items-center justify-between px-5 py-4 lg:block lg:px-6 lg:py-6">
+        <div className="flex items-center justify-between px-4 py-3 sm:px-5 lg:block lg:px-6 lg:py-6">
           <Link to="/admin" className="flex items-center gap-2">
             <img src="/tyche-logo.png" alt="Tyche" className="h-8" />
-            <span className="rounded-full bg-plum-600 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-white">Admin</span>
+            <span className="rounded-full bg-plum-600 px-2 py-0.5 text-[11px] font-bold uppercase tracking-wider text-white">Admin</span>
           </Link>
-          <button onClick={() => { adminSignOut(); navigate("/"); }} className="rounded-full p-2 text-plum-500 lg:hidden" title="Sign out"><LogOut size={18} /></button>
+          <button onClick={() => { adminSignOut(); navigate("/"); }} className="grid h-10 w-10 place-items-center rounded-full text-plum-500 hover:bg-plum-50 lg:hidden" aria-label="Sign out"><LogOut size={18} /></button>
         </div>
         <nav className="no-scrollbar flex gap-1 overflow-x-auto px-3 pb-3 lg:flex-col lg:px-4">
           {nav.map((n) => (
@@ -523,7 +600,7 @@ export default function Admin() {
               key={n.to}
               to={n.to}
               end={n.end}
-              className={({ isActive }) => cx("flex items-center gap-3 whitespace-nowrap rounded-2xl px-4 py-2.5 text-sm font-semibold transition", isActive ? "bg-plum-600 text-white" : "text-plum-700 hover:bg-plum-50")}
+              className={({ isActive }) => cx("flex shrink-0 items-center gap-2.5 whitespace-nowrap rounded-2xl px-3.5 py-2.5 text-sm font-semibold transition lg:gap-3 lg:px-4", isActive ? "bg-plum-600 text-white" : "text-plum-700 hover:bg-plum-50")}
             >
               <n.icon size={18} /> <span className="flex-1">{n.label}</span>
               {!!n.count && <span className="rounded-full bg-tangerine-500 px-2 py-0.5 text-xs text-white">{n.count}</span>}
@@ -535,7 +612,7 @@ export default function Admin() {
           <button onClick={() => { adminSignOut(); navigate("/"); }} className="flex w-full items-center gap-2 rounded-2xl px-4 py-2.5 text-sm text-plum-500 hover:bg-plum-50"><LogOut size={16} /> Sign out</button>
         </div>
       </aside>
-      <main className="mx-auto w-full max-w-7xl px-5 py-8 lg:px-10">
+      <main className="mx-auto w-full min-w-0 max-w-7xl px-4 pb-16 pt-5 sm:px-6 sm:pt-8 lg:px-10">
         <Routes>
           <Route index element={<Overview />} />
           <Route path="approvals" element={<Approvals />} />

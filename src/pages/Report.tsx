@@ -120,10 +120,10 @@ export default function Report() {
   return (
     <section className="relative overflow-hidden">
       <Blobs />
-      <div className="relative mx-auto grid max-w-6xl gap-8 px-5 py-12 lg:grid-cols-[1fr_320px]">
+      <div className="relative mx-auto grid max-w-6xl 2xl:max-w-7xl gap-8 px-4 sm:px-6 py-8 sm:py-12 lg:grid-cols-[1fr_320px]">
         <div>
           <p className="font-script text-3xl text-tangerine-500">take your time, love</p>
-          <h1 className="font-display text-4xl font-semibold text-ink sm:text-5xl">Tell us what happened</h1>
+          <h1 className="h-page font-display font-semibold text-ink">Tell us what happened</h1>
           <p className="mt-2 max-w-xl text-plum-700/80">There are no wrong answers and nothing is sent anywhere until you say so. Skip anything you're not ready to share.</p>
 
           <Card className="mt-8 p-6 sm:p-8">

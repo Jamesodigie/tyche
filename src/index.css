@@ -22,3 +22,23 @@ body { -webkit-tap-highlight-color: transparent; }
   body { -webkit-user-select: none; user-select: none; }
   input, textarea, [contenteditable] { -webkit-user-select: text; user-select: text; }
 }
+
+/* --- responsive helpers --- */
+@layer components {
+  /* Horizontal swipe rail on phones, normal grid from md up */
+  .rail {
+    @apply -mx-4 flex snap-x snap-mandatory gap-4 overflow-x-auto scroll-px-4 px-4 pb-3;
+    scrollbar-width: none;
+  }
+  .rail::-webkit-scrollbar { display: none; }
+  .rail > * { @apply w-[86%] max-w-[340px] shrink-0 snap-start sm:w-[60%]; }
+  @screen md {
+    .rail { @apply mx-0 grid snap-none overflow-visible px-0 pb-0; }
+    .rail > * { @apply w-auto max-w-none; }
+  }
+  .h-hero { font-size: clamp(2.15rem, 8.2vw, 3.75rem); line-height: 1.04; }
+  .h-page { font-size: clamp(1.85rem, 6.4vw, 3rem); line-height: 1.08; }
+  .h-section { font-size: clamp(1.7rem, 5.6vw, 3rem); line-height: 1.1; }
+  .section { @apply mt-16 sm:mt-20 lg:mt-24; }
+  .container-x { @apply mx-auto w-full px-4 sm:px-6 lg:px-8; }
+}

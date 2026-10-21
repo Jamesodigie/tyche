@@ -16,25 +16,25 @@ export default function LawyerProfile() {
   const { lawyers } = useStore();
   const l = lawyers.find((x) => x.id === id);
   if (!l)
-    return <div className="mx-auto max-w-xl px-5 py-20"><Empty icon={<MessageCircleHeart />} title="We couldn't find that lawyer" action={<Button to="/lawyers">See all lawyers</Button>} /></div>;
+    return <div className="mx-auto max-w-xl px-4 sm:px-6 py-12 sm:py-20"><Empty icon={<MessageCircleHeart />} title="We couldn't find that lawyer" action={<Button to="/lawyers">See all lawyers</Button>} /></div>;
 
   return (
     <section className="relative overflow-hidden">
       <Blobs />
-      <div className="relative mx-auto max-w-6xl px-5 py-10">
-        <Link to="/lawyers" className="inline-flex items-center gap-1 text-sm font-semibold text-plum-600"><ArrowLeft size={16} /> All lawyers</Link>
-        <div className="mt-6 grid gap-8 lg:grid-cols-[1fr_380px]">
+      <div className="relative mx-auto max-w-6xl 2xl:max-w-7xl px-4 sm:px-6 py-8 sm:py-10">
+        <Link to="/lawyers" className="-my-2 inline-flex items-center gap-1 py-2 text-sm font-semibold text-plum-600"><ArrowLeft size={16} /> All lawyers</Link>
+        <div className="mt-4 grid gap-5 sm:mt-6 sm:gap-8 lg:grid-cols-[1fr_340px] xl:grid-cols-[1fr_380px]">
           <div className="space-y-6">
             <Card className="p-6 sm:p-8">
-              <div className="flex flex-col gap-6 sm:flex-row sm:items-center">
-                <Avatar name={l.name} hue={l.hue} size={112} />
+              <div className="flex flex-col items-center gap-4 text-center sm:flex-row sm:items-center sm:gap-6 sm:text-left">
+                <Avatar name={l.name} hue={l.hue} size={96} />
                 <div>
-                  <div className="flex flex-wrap items-center gap-2">
-                    <h1 className="font-display text-4xl font-semibold text-ink">{l.name}</h1>
+                  <div className="flex flex-wrap items-center justify-center gap-2 sm:justify-start">
+                    <h1 className="h-page font-display font-semibold text-ink">{l.name}</h1>
                     {l.verified ? <Badge tone="teal"><BadgeCheck size={14} /> Verified by Tyche</Badge> : <Badge tone="warm">Verification pending</Badge>}
                   </div>
                   <p className="mt-1 text-plum-600">{l.title} · Called to bar {l.yearCalled}</p>
-                  <div className="mt-3 flex flex-wrap gap-4 text-sm text-plum-600">
+                  <div className="mt-3 flex flex-wrap justify-center gap-x-4 gap-y-1.5 text-sm text-plum-600 sm:justify-start">
                     <span className="flex items-center gap-1"><MapPin size={15} /> {l.city}, {l.state}</span>
                     <span className="flex items-center gap-1"><Star size={15} className="fill-tangerine-400 text-tangerine-400" /> <b className="text-ink">{l.rating.toFixed(1)}</b> ({l.reviews} reviews)</span>
                     <span className="flex items-center gap-1"><Clock size={15} /> Replies {l.responds}</span>
@@ -46,7 +46,7 @@ export default function LawyerProfile() {
 
             <Card className="p-6 sm:p-8">
               <h2 className="font-display text-2xl font-semibold text-ink">About {l.name.split(" ")[0]}</h2>
-              <p className="mt-3 text-lg leading-relaxed text-plum-700/90">{l.bio}</p>
+              <p className="mt-3 text-base leading-relaxed text-plum-700/90 sm:text-lg">{l.bio}</p>
               <div className="mt-5 flex flex-wrap gap-2">{l.areas.map((a) => <Badge key={a} tone="blush" className="px-4 py-1.5 text-sm">{a}</Badge>)}</div>
             </Card>
 
@@ -100,7 +100,7 @@ export default function LawyerProfile() {
             <div className="rounded-4xl bg-plum-50 p-5 text-sm text-plum-700">
               <p className="font-semibold text-ink">Want {l.name.split(" ")[0]} to see your evidence first?</p>
               <p className="mt-1">Share your report with verified lawyers — {l.name.split(" ")[0]} can review it and send you an offer.</p>
-              <Link to="/report" className="mt-3 inline-block font-semibold text-plum-700 underline decoration-tangerine-400 underline-offset-4">Share my report</Link>
+              <Link to="/report" className="mt-2 inline-block py-2 font-semibold text-plum-700 underline decoration-tangerine-400 underline-offset-4">Share my report</Link>
             </div>
           </aside>
         </div>

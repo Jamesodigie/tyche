@@ -27,21 +27,21 @@ export default function Hire() {
   return (
     <section className="relative overflow-hidden">
       <Blobs />
-      <div className="relative mx-auto max-w-5xl px-5 py-14">
+      <div className="relative mx-auto max-w-5xl px-4 sm:px-6 py-8 sm:py-14">
         {step === 0 ? (
           <>
             <div className="text-center">
               <p className="font-script text-3xl text-tangerine-500">let's find your person</p>
-              <h1 className="font-display text-4xl font-semibold text-ink sm:text-5xl">How would you like to start?</h1>
+              <h1 className="h-page font-display font-semibold text-ink">How would you like to start?</h1>
               <p className="mx-auto mt-3 max-w-xl text-lg text-plum-700/80">Every lawyer on Tyche is verified. You'll talk inside Tyche — by call, chat or Google Meet — and pay safely through us.</p>
             </div>
-            <div className="mt-10 grid gap-5 md:grid-cols-2">
+            <div className="mt-8 grid gap-4 sm:mt-10 sm:gap-5 md:grid-cols-2">
               {([
                 ["consultation", Coffee, "from-lagoon-50 to-plum-50", "text-lagoon-600", "Many are free"],
                 ["booking", Briefcase, "from-tangerine-50 to-blush-100", "text-tangerine-600", "For your case"],
               ] as const).map(([k, Icon, bg, tone, tag]) => (
                 <button key={k} onClick={() => go(k)} className={cx("group relative overflow-hidden rounded-5xl bg-gradient-to-br p-8 text-left ring-2 ring-transparent transition hover:-translate-y-1 hover:shadow-soft hover:ring-plum-200 sm:p-10", bg)}>
-                  <Sparkle className="absolute right-8 top-8 text-white" size={40} />
+                  <Sparkle className="absolute right-6 top-6 text-white sm:right-8 sm:top-8" size={36} />
                   <span className={cx("grid h-16 w-16 place-items-center rounded-full bg-white shadow-sm", tone)}><Icon size={30} /></span>
                   <span className="mt-6 inline-block rounded-full bg-white/80 px-3 py-1 text-xs font-semibold text-plum-600">{tag}</span>
                   <span className="mt-3 block font-display text-3xl font-semibold text-ink">{KIND_COPY[k].title}</span>
@@ -68,7 +68,7 @@ export default function Hire() {
           <div className="mx-auto max-w-lg">
             <button onClick={() => setStep(0)} className="mb-6 inline-flex items-center gap-1 text-sm font-semibold text-plum-600"><ArrowLeft size={16} /> Back</button>
             <p className="font-script text-3xl text-tangerine-500">almost there, love</p>
-            <h1 className="font-display text-4xl font-semibold text-ink">Create your private space</h1>
+            <h1 className="h-page font-display font-semibold text-ink">Create your private space</h1>
             <p className="mt-2 text-plum-700/80">So your bookings, chats and payments stay in one safe place. A nickname is totally fine.</p>
             <Card className="mt-6 p-6 sm:p-8">
               <form onSubmit={create} className="space-y-4">

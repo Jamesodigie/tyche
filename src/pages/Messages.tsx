@@ -24,7 +24,7 @@ export default function Messages() {
   }, [thread.length, threadId]);
 
   if (!user)
-    return <div className="mx-auto max-w-xl px-5 py-20"><Empty icon={<MessageCircleHeart />} title="Your private messages" sub="Sign in to chat with your lawyer." action={<Button to="/signin?next=/messages">Sign in</Button>} /></div>;
+    return <div className="mx-auto max-w-xl px-4 sm:px-6 py-12 sm:py-20"><Empty icon={<MessageCircleHeart />} title="Your private messages" sub="Sign in to chat with your lawyer." action={<Button to="/signin?next=/messages">Sign in</Button>} /></div>;
 
   const send = (e: React.FormEvent) => {
     e.preventDefault();
@@ -40,7 +40,7 @@ export default function Messages() {
   const otherHue = (b: (typeof threads)[number]) => (isLawyer ? 330 : lawyers.find((l) => l.id === b.lawyerId)?.hue || 285);
 
   return (
-    <section className="mx-auto max-w-6xl px-5 py-8">
+    <section className="mx-auto max-w-6xl 2xl:max-w-7xl px-4 sm:px-6 py-8">
       <div className="grid h-[calc(100dvh-210px)] min-h-[440px] lg:h-[calc(100vh-150px)] lg:min-h-[520px] overflow-hidden rounded-5xl bg-white shadow-soft ring-1 ring-plum-100 md:grid-cols-[320px_1fr]">
         <aside className={cx("flex flex-col border-r border-plum-100", active && "hidden md:flex")}>
           <div className="border-b border-plum-100 p-5">
