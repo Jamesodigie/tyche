@@ -29,7 +29,6 @@ React 18 + Vite + TypeScript + Tailwind. Deploys as a static site (Vercel / Netl
 | `/me` | Client space: offers, bookings, reports & evidence vault, community status |
 | `/messages`, `/session/:id` | In-app chat, voice call and Meet rooms |
 | `/how-it-works`, `/for-lawyers`, `/safety`, `/about`, `/signin` | Supporting pages |
-
 | `/admin` | **Admin dashboard** (passcode `tyche-admin`): overview & sign-up chart, lawyer approvals, users (search, suspend, CSV export), report moderation, bookings & payments with the 20% split, community capacity, settings |
 
 Plus a **Quick exit** button on every page (or press Esc 3×).
