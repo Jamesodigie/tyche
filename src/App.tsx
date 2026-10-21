@@ -19,9 +19,12 @@ import HowItWorks from "./pages/HowItWorks";
 import ForLawyers from "./pages/ForLawyers";
 import { About, Safety, NotFound } from "./pages/Static";
 import Admin from "./pages/Admin";
+import { AppStatus } from "./components/AppChrome";
 
 export default function App() {
   return (
+    <>
+    <AppStatus />
     <Routes>
       <Route path="admin/*" element={<Admin />} />
       <Route element={<Layout />}>
@@ -48,5 +51,6 @@ export default function App() {
         <Route path="*" element={<NotFound />} />
       </Route>
     </Routes>
+    </>
   );
 }

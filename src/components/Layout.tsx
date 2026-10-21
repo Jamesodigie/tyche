@@ -4,6 +4,7 @@ import { Link, NavLink, Outlet, useLocation, useNavigate } from "react-router-do
 import { useStore } from "../lib/store";
 import { Avatar, Button, cx } from "./ui";
 import { PathBubbles } from "./PathBubbles";
+import { BottomTabs, InstallButton, InstallSheet } from "./AppChrome";
 
 /** Leaves Tyche instantly and removes it from the back button. */
 export function quickExit() {
@@ -28,7 +29,7 @@ function QuickExit() {
     <button
       onClick={quickExit}
       title="Leave this site fast (or press Esc 3 times)"
-      className="fixed bottom-5 right-5 z-50 inline-flex items-center gap-2 rounded-full bg-ink px-5 py-3 text-sm font-semibold text-white shadow-xl transition hover:scale-105"
+      className="fixed bottom-[calc(5.5rem+env(safe-area-inset-bottom))] right-4 z-50 inline-flex lg:bottom-5 lg:right-5 items-center gap-2 rounded-full bg-ink px-5 py-3 text-sm font-semibold text-white shadow-xl transition hover:scale-105"
     >
       <X size={16} strokeWidth={3} /> Quick exit
     </button>
@@ -52,7 +53,7 @@ function Header() {
   const dash = user?.role === "lawyer" ? "/lawyer/dashboard" : "/me";
 
   return (
-    <header className="sticky top-0 z-40 border-b border-plum-100/60 bg-cream/85 backdrop-blur-md">
+    <header className="safe-top sticky top-0 z-40 border-b border-plum-100/60 bg-cream/85 backdrop-blur-md">
       <div className="mx-auto flex h-[72px] max-w-6xl items-center justify-between px-5">
         <Link to="/" className="flex items-center" aria-label="Tyche home">
           <img src="/tyche-logo.png" alt="Tyche" className="h-10 w-auto" />
@@ -112,6 +113,7 @@ function Header() {
                 <Button to="/report">Get support</Button>
               </>
             )}
+            <InstallButton className="justify-center rounded-full py-3 text-sm font-semibold text-plum-600" label="Install the Tyche app" />
           </div>
         </div>
       )}
@@ -121,13 +123,14 @@ function Header() {
 
 function Footer() {
   return (
-    <footer className="mt-24 bg-plum-900 text-plum-100">
+    <footer className="mt-24 bg-plum-900 pb-20 text-plum-100 lg:pb-0">
       <div className="mx-auto grid max-w-6xl gap-10 px-5 py-14 md:grid-cols-[1.4fr_1fr_1fr_1fr]">
         <div>
           <div className="inline-block rounded-2xl bg-white px-3 py-2"><img src="/tyche-logo.png" alt="Tyche" className="h-8" /></div>
           <p className="mt-4 max-w-xs text-sm leading-relaxed text-plum-200">
             Your safety matters. Your voice matters. Justice matters. Built in Nigeria, for us.
           </p>
+          <InstallButton className="mt-4 rounded-full bg-white/10 px-4 py-2 text-sm font-semibold text-white hover:bg-white/20" label="Install the app" />
           <p className="mt-6 flex items-start gap-2 rounded-2xl bg-white/5 p-4 text-sm text-plum-100">
             <ShieldAlert size={18} className="mt-0.5 shrink-0 text-tangerine-400" />
             <span>In danger right now? Call <b className="text-white">112</b> — Nigeria's free emergency line.</span>
@@ -208,6 +211,8 @@ export function Layout() {
       {!bare && <Footer />}
       <QuickExit />
       <WelcomeBubbles />
+      {!bare && <BottomTabs />}
+      <InstallSheet />
     </div>
   );
 }

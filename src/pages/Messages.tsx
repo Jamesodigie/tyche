@@ -41,7 +41,7 @@ export default function Messages() {
 
   return (
     <section className="mx-auto max-w-6xl px-5 py-8">
-      <div className="grid h-[calc(100vh-150px)] min-h-[520px] overflow-hidden rounded-5xl bg-white shadow-soft ring-1 ring-plum-100 md:grid-cols-[320px_1fr]">
+      <div className="grid h-[calc(100dvh-210px)] min-h-[440px] lg:h-[calc(100vh-150px)] lg:min-h-[520px] overflow-hidden rounded-5xl bg-white shadow-soft ring-1 ring-plum-100 md:grid-cols-[320px_1fr]">
         <aside className={cx("flex flex-col border-r border-plum-100", active && "hidden md:flex")}>
           <div className="border-b border-plum-100 p-5">
             <h1 className="font-display text-2xl font-semibold text-ink">Messages</h1>

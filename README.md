@@ -33,6 +33,18 @@ React 18 + Vite + TypeScript + Tailwind. Deploys as a static site (Vercel / Netl
 
 Plus a **Quick exit** button on every page (or press Esc 3×).
 
+## Installable app (PWA)
+
+Tyche installs to the home screen on Android, iPhone and desktop:
+
+- Manifest, icons (incl. maskable) and shortcuts (Report, Hire a lawyer, Messages, My space) are set in `vite.config.ts`; icons live in `public/icons/`.
+- A service worker caches only the app shell and static assets, so Tyche opens offline. It never caches user data.
+- An install sheet appears once (snoozed 14 days) — native prompt on Android/Chrome, step-by-step on iPhone. "Get the app" also lives in the mobile menu and footer.
+- When a new version deploys, users see a "Refresh" toast.
+- On phones there's a bottom tab bar; the layout respects notches/safe areas when installed.
+
+The site must be served over **HTTPS** to be installable (Vercel/Netlify do this automatically).
+
 ## Business rules (in `src/lib/data.ts`)
 
 - `TYCHE_FEE = 0.2` — Tyche keeps 20% of consultation and booking fees; lawyers get 80%.

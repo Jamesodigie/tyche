@@ -12,3 +12,13 @@ body { -webkit-font-smoothing: antialiased; }
 }
 .no-scrollbar::-webkit-scrollbar { display: none; }
 .no-scrollbar { scrollbar-width: none; }
+
+/* --- installed-app (PWA) polish --- */
+html, body { overscroll-behavior-y: none; }
+body { -webkit-tap-highlight-color: transparent; }
+.safe-top { padding-top: env(safe-area-inset-top); }
+.safe-bottom { padding-bottom: env(safe-area-inset-bottom); }
+@media (display-mode: standalone) {
+  body { -webkit-user-select: none; user-select: none; }
+  input, textarea, [contenteditable] { -webkit-user-select: text; user-select: text; }
+}
