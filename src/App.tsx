@@ -1,7 +1,8 @@
 import { Route, Routes } from "react-router-dom";
 import { Layout } from "./components/Layout";
 import Home from "./pages/Home";
-import SignIn from "./pages/SignIn";
+import SignIn, { ResetPassword } from "./pages/SignIn";
+import PayCallback from "./pages/PayCallback";
 import LawyerJoin from "./pages/LawyerJoin";
 import Hire from "./pages/Hire";
 import Lawyers from "./pages/Lawyers";
@@ -30,6 +31,8 @@ export default function App() {
       <Route element={<Layout />}>
         <Route index element={<Home />} />
         <Route path="signin" element={<SignIn />} />
+        <Route path="reset-password" element={<ResetPassword />} />
+        <Route path="pay/callback" element={<PayCallback />} />
         <Route path="join/lawyer" element={<LawyerJoin />} />
         <Route path="hire" element={<Hire />} />
         <Route path="lawyers" element={<Lawyers />} />

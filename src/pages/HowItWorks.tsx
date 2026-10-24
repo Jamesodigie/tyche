@@ -19,7 +19,7 @@ const journeys = [
       "Choose a consultation (a first chat) or a booking (engage them for your case).",
       "Browse verified lawyers by case type, location, language and fee.",
       "Pick a time and how you want to talk: call, chat or Google Meet — all inside Tyche.",
-      "Pay Tyche securely. We release payment to the lawyer only after your session.",
+      "Pay securely through Tyche with Paystack (card, transfer or USSD).",
     ],
   },
   {
@@ -67,7 +67,7 @@ export default function HowItWorks() {
             {[
               ["Consultation fee", "Set by each lawyer for a first conversation. Many offer it free."],
               ["Booking fee", "Set by each lawyer for working on your case. Separate from the consultation."],
-              ["Where your money goes", "You pay Tyche. After the session, the lawyer receives their share and Tyche keeps 20% to run the platform."],
+              ["Where your money goes", "You pay through Tyche. Paystack splits it automatically: the lawyer receives 80% in their bank account and Tyche keeps 20% to run the platform."],
             ].map(([t, d]) => (
               <div key={t} className="rounded-3xl bg-cream p-5"><p className="font-semibold text-ink">{t}</p><p className="mt-1 text-sm text-plum-600">{d}</p></div>
             ))}

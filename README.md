@@ -29,7 +29,7 @@ React 18 + Vite + TypeScript + Tailwind. Deploys as a static site (Vercel / Netl
 | `/me` | Client space: offers, bookings, reports & evidence vault, community status |
 | `/messages`, `/session/:id` | In-app chat, voice call and Meet rooms |
 | `/how-it-works`, `/for-lawyers`, `/safety`, `/about`, `/signin` | Supporting pages |
-| `/admin` | **Admin dashboard** (passcode `tyche-admin`): overview & sign-up chart, lawyer approvals, users (search, suspend, CSV export), report moderation, bookings & payments with the 20% split, community capacity, settings |
+| `/admin` | **Admin dashboard** (admin accounts in live mode; passcode `tyche-admin` in preview): overview & sign-up chart, lawyer approvals, users (search, suspend, CSV export), report moderation, bookings & payments with the 20% split, community capacity, settings |
 
 Plus a **Quick exit** button on every page (or press Esc 3×).
 
@@ -51,13 +51,12 @@ The site must be served over **HTTPS** to be installable (Vercel/Netlify do this
 - Consultation fee and booking fee are separate; either can be set free by the lawyer.
 - `COMMUNITY_CAP = 10_000`, `COMMUNITY_PRICE = 5_000` (placeholder — set your real price), `COMMUNITY_MEMBERS` (demo count).
 
-## Still front-end only
+## Going live
 
-Data lives in the browser (`localStorage`, see `src/lib/store.tsx`) and the lawyers/cases are demo data. To go live, connect:
+Tyche runs in **preview mode** (sample data in the browser) until Supabase keys are set. Follow **[GO-LIVE.md](GO-LIVE.md)** to connect:
 
-- **Auth + database + file storage** (e.g. Supabase) — replace the store functions.
-- **Payments** — Paystack checkout for bookings and community, with split/subaccount payouts for the 80/20.
-- **Calls / Meet** — a voice/video SDK (e.g. Daily, Agora) and Google Calendar API to create Meet links per booking.
-- **WhatsApp invite** — send the group invite link after community payment.
-- **Admin auth** — the `/admin` passcode (`ADMIN_PASSCODE` in `src/lib/store.tsx`) is a front-end gate for the demo only. Before launch, protect admin with real accounts and roles on the server.
-- **Lawyer verification** — approvals in `/admin` currently live in the browser; persist them in the database.
+- **Supabase** — accounts, database, private evidence storage, realtime chat. Schema + security rules: `supabase/schema.sql` (tests: `supabase/tests/rls_test.py`).
+- **Paystack** — checkout for bookings and the community, with automatic 80/20 split via lawyer subaccounts (`api/`).
+- **Admin** — real admin accounts (`profiles.role = 'admin'`) instead of the preview passcode.
+
+Sessions run in a private in-app video/voice room (Jitsi) or on the lawyer's Google Meet link.

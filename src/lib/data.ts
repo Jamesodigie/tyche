@@ -81,6 +81,16 @@ export type Lawyer = {
   verified: boolean;
   responds: string;
   hue: number; // avatar colour
+  // live-only extras
+  slug?: string;
+  status?: "pending" | "approved" | "rejected";
+  meetLink?: string;
+  payoutReady?: boolean;
+  payoutBank?: string;
+  payoutAccountName?: string;
+  payoutLast4?: string;
+  hasLicence?: boolean;
+  userId?: string;
 };
 
 export type EvidenceKind = "image" | "audio" | "video" | "doc";
@@ -91,6 +101,7 @@ export type Evidence = {
   size: number;
   preview?: string; // small images only (data URL)
   note?: string;
+  path?: string; // storage path (live)
 };
 
 export type Report = {
@@ -109,6 +120,7 @@ export type Report = {
   hideName: boolean;
   authorities: string[];
   mine?: boolean;
+  hidden?: boolean;
 };
 
 export type Bid = {
@@ -132,9 +144,11 @@ export type Booking = {
   time: string;
   channel: Channel;
   fee: number;
-  status: "upcoming" | "done";
+  status: "pending_payment" | "upcoming" | "done" | "cancelled";
   reportId?: string;
   createdAt: string;
+  clientId?: string;
+  meetLink?: string;
 };
 
 export type Message = { id: string; threadId: string; from: "client" | "lawyer"; text: string; at: string };
@@ -462,11 +476,37 @@ export type Account = {
   name: string;
   email: string;
   phone?: string;
-  role: "client" | "lawyer";
+  role: "client" | "lawyer" | "admin";
   lawyerId?: string;
   state: string;
   joinedAt: string;
+  suspended?: boolean;
 };
+
+export type CommunityMember = {
+  name: string;
+  phone: string;
+  city: string;
+  joinedAt: string;
+  ref: string;
+  status?: "pending" | "active" | "expired";
+  expiresAt?: string;
+};
+
+export type Payment = {
+  reference: string;
+  purpose: "booking" | "community";
+  amount: number;
+  tycheShare: number;
+  lawyerShare: number;
+  status: "pending" | "success" | "failed";
+  bookingId?: string;
+  createdAt: string;
+};
+
+/** Shown instead of a tiny real number while the circle is young. */
+export const communityLine = (count: number) =>
+  count >= 100 ? `${count.toLocaleString()} women in the circle` : "Be one of the first in the circle";
 
 const daysAgo = (d: number, h = 0) => new Date(Date.now() - (d * 24 + h) * 3600_000).toISOString();
 

@@ -1,5 +1,5 @@
-import { Check } from "lucide-react";
-import { forwardRef, type ButtonHTMLAttributes, type InputHTMLAttributes, type ReactNode, type SelectHTMLAttributes, type TextareaHTMLAttributes } from "react";
+import { Check, Eye, EyeOff } from "lucide-react";
+import { forwardRef, useState, type ButtonHTMLAttributes, type InputHTMLAttributes, type ReactNode, type SelectHTMLAttributes, type TextareaHTMLAttributes } from "react";
 import { Link } from "react-router-dom";
 import { initials } from "../lib/data";
 
@@ -176,6 +176,33 @@ export function Empty({ icon, title, sub, action }: { icon: ReactNode; title: st
       <p className="mt-4 font-display text-xl font-semibold text-ink">{title}</p>
       {sub && <p className="mx-auto mt-1 max-w-sm text-sm text-plum-500">{sub}</p>}
       {action && <div className="mt-5">{action}</div>}
+    </div>
+  );
+}
+
+/** Inline message for form errors / confirmations. */
+export function Notice({ tone = "error", children }: { tone?: "error" | "info" | "success"; children: ReactNode }) {
+  const t = {
+    error: "bg-blush-100 text-plum-800 ring-blush-300",
+    info: "bg-plum-50 text-plum-700 ring-plum-100",
+    success: "bg-lagoon-50 text-lagoon-600 ring-lagoon-200",
+  }[tone];
+  return (
+    <p role={tone === "error" ? "alert" : "status"} className={cx("rounded-2xl px-4 py-3 text-sm ring-1", t)}>
+      {children}
+    </p>
+  );
+}
+
+/** Password field with show/hide. */
+export function PasswordInput(props: InputHTMLAttributes<HTMLInputElement>) {
+  const [show, setShow] = useState(false);
+  return (
+    <div className="relative">
+      <Input {...props} type={show ? "text" : "password"} className={cx("pr-12", props.className)} />
+      <button type="button" onClick={() => setShow(!show)} className="absolute right-1.5 top-1/2 grid h-10 w-10 -translate-y-1/2 place-items-center rounded-full text-plum-400 hover:bg-plum-50" aria-label={show ? "Hide password" : "Show password"}>
+        {show ? <EyeOff size={18} /> : <Eye size={18} />}
+      </button>
     </div>
   );
 }

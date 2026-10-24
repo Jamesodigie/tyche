@@ -4,6 +4,7 @@ import { Link } from "react-router-dom";
 import { channelIcon } from "../components/LawyerCard";
 import { Avatar, Badge, Blobs, Button, Card, Empty, cx } from "../components/ui";
 import { CHANNEL_LABEL, KIND_COPY, naira, prettySize, timeAgo, type Bid } from "../lib/data";
+import { EvidenceChip } from "../components/EvidenceChip";
 import { useStore } from "../lib/store";
 
 export function BidCard({ b }: { b: Bid }) {
@@ -53,8 +54,12 @@ export default function MySpace() {
       </div>
     );
 
-  const myBookings = bookings;
-  const counts = { Offers: bids.filter((b) => b.status === "pending").length, Bookings: myBookings.length, "My reports": reports.length, Community: community ? 1 : 0 };
+  // As a client: offers on my reports, and sessions I booked (a lawyer can also be a client).
+  const myReportIds = new Set(reports.map((r) => r.id));
+  const offers = bids.filter((b) => myReportIds.has(b.reportId));
+  const myBookings = bookings.filter((b) => !b.clientId || b.clientId === user.id).filter((b) => b.status !== "cancelled");
+  const inCircle = !!community && community.status !== "pending" && community.status !== "expired";
+  const counts = { Offers: offers.filter((b) => b.status === "pending").length, Bookings: myBookings.length, "My reports": reports.length, Community: inCircle ? 1 : 0 };
 
   return (
     <section className="relative overflow-hidden">
@@ -95,8 +100,8 @@ export default function MySpace() {
 
         <div className="mt-6">
           {tab === "Offers" &&
-            (bids.length ? (
-              <div className="grid gap-4 lg:grid-cols-2">{bids.map((b) => <BidCard key={b.id} b={b} />)}</div>
+            (offers.length ? (
+              <div className="grid gap-4 lg:grid-cols-2">{offers.map((b) => <BidCard key={b.id} b={b} />)}</div>
             ) : (
               <Empty icon={<Gavel />} title="No offers yet" sub="Share a report with verified lawyers and their offers will show up here." action={<Button to="/report">Share a report</Button>} />
             ))}
@@ -105,23 +110,31 @@ export default function MySpace() {
             (myBookings.length ? (
               <div className="grid gap-4 md:grid-cols-2">
                 {myBookings.map((b) => {
-                  const l = lawyers.find((x) => x.id === b.lawyerId)!;
+                  const l = lawyers.find((x) => x.id === b.lawyerId) || { name: "Your lawyer", hue: 285, id: b.lawyerId };
                   const I = channelIcon[b.channel];
+                  const unpaid = b.status === "pending_payment";
                   return (
                     <Card key={b.id} className="p-5">
                       <div className="flex items-center gap-4">
                         <Avatar name={l.name} hue={l.hue} size={52} />
                         <div className="flex-1"><p className="font-semibold text-ink">{l.name}</p><p className="text-sm text-plum-500">{KIND_COPY[b.kind].title} · {b.fee ? naira(b.fee) : "Free"}</p></div>
-                        <Badge tone="teal">Upcoming</Badge>
+                        {unpaid ? <Badge tone="warm">Payment pending</Badge> : b.status === "done" ? <Badge tone="plum">Completed</Badge> : <Badge tone="teal">Upcoming</Badge>}
                       </div>
                       <div className="mt-4 flex items-center gap-3 rounded-3xl bg-cream p-3 text-sm">
                         <I size={18} className="text-plum-500" />
                         <span className="text-ink">{new Date(b.date).toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short" })} · {b.time} · {CHANNEL_LABEL[b.channel]}</span>
                       </div>
-                      <div className="mt-4 flex gap-2">
-                        <Button size="sm" to={`/session/${b.id}`}><Video size={16} /> Join session</Button>
-                        <Button size="sm" variant="outline" to={`/messages/${b.id}`}><MessageCircleHeart size={16} /> Message</Button>
-                      </div>
+                      {unpaid ? (
+                        <div className="mt-4 flex flex-wrap items-center gap-2">
+                          <p className="text-sm text-plum-600">This slot isn't confirmed until payment goes through.</p>
+                          <Button size="sm" variant="warm" to={`/book/${b.lawyerId}`}>Book again</Button>
+                        </div>
+                      ) : (
+                        <div className="mt-4 flex flex-wrap gap-2">
+                          <Button size="sm" to={`/session/${b.id}`}><Video size={16} /> Join session</Button>
+                          <Button size="sm" variant="outline" to={`/messages/${b.id}`}><MessageCircleHeart size={16} /> Message</Button>
+                        </div>
+                      )}
                     </Card>
                   );
                 })}
@@ -144,16 +157,10 @@ export default function MySpace() {
                     <p className="mt-3 line-clamp-3 text-plum-700/90">{r.description}</p>
                     {r.evidence.length > 0 && (
                       <div className="mt-4 flex flex-wrap gap-2">
-                        {r.evidence.map((e) => (
-                          <span key={e.id} className="flex items-center gap-2 rounded-2xl bg-cream px-3 py-2 text-xs">
-                            {e.preview ? <img src={e.preview} className="h-6 w-6 rounded-md object-cover" alt="" /> : <FileLock2 size={14} className="text-plum-400" />}
-                            <span className="max-w-[160px] truncate font-medium text-ink">{e.name}</span>
-                            <span className="text-plum-400">{prettySize(e.size)}</span>
-                          </span>
-                        ))}
+                        {r.evidence.map((e) => <EvidenceChip key={e.id} e={e} />)}
                       </div>
                     )}
-                    <p className="mt-4 text-sm text-plum-500">{bids.filter((b) => b.reportId === r.id).length} lawyer offer(s)</p>
+                    <p className="mt-4 text-sm text-plum-500">{r.hidden ? "Paused by our team · " : ""}{offers.filter((b) => b.reportId === r.id).length} lawyer offer(s)</p>
                   </Card>
                 ))}
               </div>
@@ -162,10 +169,10 @@ export default function MySpace() {
             ))}
 
           {tab === "Community" &&
-            (community ? (
+            (inCircle && community ? (
               <Card className="flex flex-wrap items-center gap-5 p-6">
                 <span className="grid h-14 w-14 place-items-center rounded-full bg-lagoon-100 text-lagoon-600"><HeartHandshake /></span>
-                <div className="flex-1"><p className="font-display text-xl font-semibold text-ink">You're in the circle 💜</p><p className="text-sm text-plum-500">Joined {new Date(community.joinedAt).toLocaleDateString("en-GB")} · Invite sent to {community.phone}</p></div>
+                <div className="flex-1"><p className="font-display text-xl font-semibold text-ink">You're in the circle 💜</p><p className="text-sm text-plum-500">Joined {new Date(community.joinedAt).toLocaleDateString("en-GB")} · {community.phone}</p></div>
                 <Button variant="teal" to="/community/join">See my invite</Button>
               </Card>
             ) : (

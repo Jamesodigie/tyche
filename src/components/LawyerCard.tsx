@@ -24,10 +24,14 @@ export function LawyerCard({ l, kind }: { l: Lawyer; kind?: SessionKind }) {
           <p className="mt-0.5 flex items-center gap-1 text-sm text-plum-500">
             <MapPin size={14} /> {l.city}, {l.state} · Called {l.yearCalled}
           </p>
-          <p className="mt-1 flex items-center gap-1 text-sm font-semibold text-ink">
-            <Star size={14} className="fill-tangerine-400 text-tangerine-400" /> {l.rating.toFixed(1)}
-            <span className="font-normal text-plum-400">({l.reviews})</span>
-          </p>
+          {l.reviews > 0 ? (
+            <p className="mt-1 flex items-center gap-1 text-sm font-semibold text-ink">
+              <Star size={14} className="fill-tangerine-400 text-tangerine-400" /> {l.rating.toFixed(1)}
+              <span className="font-normal text-plum-400">({l.reviews})</span>
+            </p>
+          ) : (
+            <p className="mt-1 flex items-center gap-1 text-sm font-medium text-plum-500"><Star size={14} className="text-tangerine-400" /> New on Tyche</p>
+          )}
         </div>
       </div>
       <div className="mt-4 flex flex-wrap gap-1.5">

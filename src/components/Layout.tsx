@@ -82,10 +82,16 @@ function Header() {
               <Link to="/messages" className="rounded-full p-2.5 text-plum-600 hover:bg-plum-50" title="Messages">
                 <MessageCircleHeart size={22} />
               </Link>
+              {user.role === "admin" && (
+                <Link to="/admin" className="rounded-full px-3 py-2 text-sm font-semibold text-plum-600 hover:bg-plum-50">Admin</Link>
+              )}
               <Link to={dash} className="flex items-center gap-2 rounded-full bg-white py-1 pl-1 pr-4 shadow-sm ring-1 ring-plum-100 hover:ring-plum-300">
                 <Avatar name={user.name} size={34} hue={user.role === "lawyer" ? 185 : 285} className="ring-0" />
-                <span className="text-sm font-semibold text-ink">{user.name.split(" ")[0]}</span>
+                <span className="text-sm font-semibold text-ink">{user.name.replace(/^(barr|dr|mrs?|ms)\.?\s+/i, "").split(" ")[0]}</span>
               </Link>
+              <button onClick={async () => { await signOut(); navigate("/"); }} className="grid h-10 w-10 place-items-center rounded-full text-plum-500 hover:bg-plum-50" title="Sign out" aria-label="Sign out">
+                <LogOut size={18} />
+              </button>
             </>
           ) : (
             <>
@@ -119,7 +125,8 @@ function Header() {
               <>
                 <Button variant="soft" to={dash}><LayoutDashboard size={18} /> My dashboard</Button>
                 <Button variant="soft" to="/messages"><MessageCircleHeart size={18} /> Messages</Button>
-                <Button variant="ghost" onClick={() => { signOut(); navigate("/"); }}><LogOut size={18} /> Sign out</Button>
+                {user.role === "admin" && <Button variant="soft" to="/admin">Admin dashboard</Button>}
+                <Button variant="ghost" onClick={async () => { await signOut(); navigate("/"); }}><LogOut size={18} /> Sign out</Button>
               </>
             ) : (
               <>
@@ -216,11 +223,16 @@ export function Layout() {
     try { window.scrollTo(0, 0); } catch { /* noop */ }
   }, [pathname]);
   const bare = pathname.startsWith("/session/");
-  const { user, isSuspended } = useStore();
+  const { user, mode } = useStore();
   return (
     <div className="min-h-screen bg-cream font-sans text-ink">
       {!bare && <Header />}
-      {user && isSuspended(user.email) && (
+      {mode === "preview" && !bare && (
+        <div className="bg-ink px-4 py-2 text-center text-xs text-plum-100">
+          Preview mode — sample data only, nothing is saved to a server. Add the Supabase keys in Vercel to go live.
+        </div>
+      )}
+      {user?.suspended && (
         <div className="bg-tangerine-100 px-4 py-3 text-center text-sm text-ink">
           Your account is paused while our team reviews it. You can still read your saved reports. Questions? Reach the Tyche team.
         </div>

@@ -1,13 +1,13 @@
-import { ArrowLeft, ArrowRight, BadgeCheck, FileCheck2, Gavel, Sparkles, Upload } from "lucide-react";
+import { ArrowLeft, ArrowRight, BadgeCheck, FileCheck2, Gavel, MailCheck, Sparkles, Upload } from "lucide-react";
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { channelIcon } from "../components/LawyerCard";
-import { Avatar, Blobs, Button, Card, Chip, Field, Input, Select, Stepper, Textarea, Toggle } from "../components/ui";
+import { Avatar, Blobs, Button, Card, Chip, Field, Input, Notice, PasswordInput, Select, Stepper, Textarea, Toggle } from "../components/ui";
 import {
   CHANNEL_LABEL, DAYS, PRACTICE_AREAS, STATES, TYCHE_FEE, lawyerTake, naira, tycheTake,
-  type Channel, type Lawyer,
+  type Channel,
 } from "../lib/data";
-import { useStore } from "../lib/store";
+import { useStore, type LawyerInput } from "../lib/store";
 
 const STEPS = ["About you", "Your practice", "Your fees", "Your availability", "Review"];
 const LANGS = ["English", "Pidgin", "Yoruba", "Igbo", "Hausa", "French", "Arabic"];
@@ -42,12 +42,15 @@ function FeeBlock({ label, sub, fee, free, onFee, onFree, freeLabel }: { label: 
 }
 
 export default function LawyerJoin() {
-  const { addLawyer, signIn } = useStore();
+  const { user, myLawyer, signUp, createLawyer, uploadLicence } = useStore();
   const navigate = useNavigate();
   const [step, setStep] = useState(0);
-  const [done, setDone] = useState(false);
+  const [done, setDone] = useState<"" | "created" | "confirm">("");
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState("");
+  const [licence, setLicence] = useState<File | null>(null);
   const [f, setF] = useState({
-    name: "", email: "", phone: "", password: "",
+    name: user?.name || "", email: user?.email || "", phone: "", password: "", meetLink: "",
     scn: "", branch: "", yearCalled: "", state: "Lagos", city: "",
     areas: [] as string[], languages: ["English"] as string[], bio: "", licence: "",
     consultFee: 10000, consultFree: false, bookingFee: 150000, bookingFree: false, sessionMins: 30,
@@ -57,27 +60,66 @@ export default function LawyerJoin() {
   const set = <K extends keyof typeof f>(k: K, v: (typeof f)[K]) => setF((p) => ({ ...p, [k]: v }));
 
   const valid = [
-    f.name.trim().length > 2 && /\S+@\S+/.test(f.email) && f.phone.length >= 7 && f.password.length >= 6,
+    f.name.trim().length > 2 && (!!user || (/\S+@\S+\.\S+/.test(f.email) && f.phone.replace(/\D/g, "").length >= 10 && f.password.length >= 6)),
     f.scn.trim() && f.yearCalled && f.city.trim() && f.areas.length > 0,
     (f.consultFree || f.consultFee > 0) && (f.bookingFree || f.bookingFee > 0),
-    f.days.length > 0 && f.channels.length > 0 && f.from < f.to,
+    f.days.length > 0 && f.channels.length > 0 && f.from < f.to && (!f.meetLink || /^https:\/\/meet\.google\.com\//.test(f.meetLink.trim())),
     true,
   ][step];
 
-  const finish = () => {
-    const id = f.name.toLowerCase().replace(/[^a-z]+/g, "-").replace(/^-|-$/g, "") + "-" + Math.random().toString(36).slice(2, 5);
-    const l: Lawyer = {
-      id, name: f.name.trim(), title: "Barrister & Solicitor", state: f.state, city: f.city, yearCalled: +f.yearCalled,
-      areas: f.areas, languages: f.languages, bio: f.bio || "Verified Tyche lawyer.", rating: 5, reviews: 0,
-      consultFee: f.consultFree ? 0 : f.consultFee, consultFree: f.consultFree,
-      bookingFee: f.bookingFree ? 0 : f.bookingFee, bookingFree: f.bookingFree,
-      sessionMins: f.sessionMins, days: f.days, from: f.from, to: f.to, channels: f.channels,
-      verified: false, responds: "within a day", hue: 200 + Math.floor(Math.random() * 120),
+  const finish = async () => {
+    setErr("");
+    setBusy(true);
+    const input: LawyerInput = {
+      name: f.name.trim(), state: f.state, city: f.city.trim(), yearCalled: +f.yearCalled, scn: f.scn.trim(), branch: f.branch.trim() || undefined,
+      areas: f.areas, languages: f.languages, bio: f.bio.trim(), consultFee: f.consultFee, consultFree: f.consultFree,
+      bookingFee: f.bookingFee, bookingFree: f.bookingFree, sessionMins: f.sessionMins, days: f.days, from: f.from, to: f.to,
+      channels: f.channels, meetLink: f.meetLink.trim() || undefined,
     };
-    addLawyer(l);
-    signIn({ name: l.name, email: f.email, phone: f.phone, role: "lawyer", lawyerId: id });
-    setDone(true);
+    if (user) {
+      const error = await createLawyer(input, licence);
+      setBusy(false);
+      return error ? setErr(error) : setDone("created");
+    }
+    const out = await signUp({ name: input.name, email: f.email.trim(), password: f.password, phone: f.phone, role: "lawyer", lawyer: input });
+    if (out.error) {
+      setBusy(false);
+      return setErr(out.error);
+    }
+    if (out.needsConfirm) {
+      setBusy(false);
+      return setDone("confirm");
+    }
+    // Account exists and the profile is created from the sign-up details; attach the licence if given.
+    if (licence) await uploadLicence(licence);
+    setBusy(false);
+    setDone("created");
   };
+
+  if (myLawyer && !done)
+    return (
+      <div className="mx-auto max-w-xl px-4 py-12 text-center sm:px-6 sm:py-20">
+        <BadgeCheck className="mx-auto text-lagoon-500" size={44} />
+        <h1 className="h-page mt-3 font-display font-semibold text-ink">You already have a lawyer profile</h1>
+        <Button className="mt-6" to="/lawyer/dashboard">Go to my dashboard <ArrowRight size={18} /></Button>
+      </div>
+    );
+
+  if (done === "confirm")
+    return (
+      <section className="relative overflow-hidden">
+        <Blobs />
+        <div className="relative mx-auto max-w-xl px-4 py-12 text-center sm:px-6 sm:py-20">
+          <div className="mx-auto grid h-20 w-20 place-items-center rounded-full bg-lagoon-100 text-lagoon-600"><MailCheck size={38} /></div>
+          <h1 className="h-page mt-6 font-display font-semibold text-ink">One last step — confirm your email</h1>
+          <p className="mt-4 text-lg text-plum-700/80">
+            We sent a link to <b>{f.email}</b>. Tap it, then sign in — your lawyer profile will be created automatically and sent to our team for verification.
+            {licence && " You can upload your licence from your dashboard."}
+          </p>
+          <Button className="mt-8" size="lg" to="/signin?as=lawyer">Go to sign in</Button>
+        </div>
+      </section>
+    );
 
   if (done)
     return (
@@ -113,9 +155,16 @@ export default function LawyerJoin() {
             {step === 0 && (
               <div className="grid gap-5 sm:grid-cols-2">
                 <div className="sm:col-span-2"><Field label="Full name (as on your call-to-bar certificate)"><Input value={f.name} onChange={(e) => set("name", e.target.value)} placeholder="Barr. Adaeze Okafor" /></Field></div>
-                <Field label="Email"><Input type="email" value={f.email} onChange={(e) => set("email", e.target.value)} placeholder="you@chambers.ng" /></Field>
-                <Field label="Phone"><Input type="tel" value={f.phone} onChange={(e) => set("phone", e.target.value)} placeholder="0803 000 0000" /></Field>
-                <div className="sm:col-span-2"><Field label="Create a password" hint="At least 6 characters"><Input type="password" value={f.password} onChange={(e) => set("password", e.target.value)} /></Field></div>
+                {user ? (
+                  <p className="rounded-3xl bg-lagoon-50 p-4 text-sm text-lagoon-600 sm:col-span-2">Signed in as <b>{user.email}</b> — we'll attach your lawyer profile to this account.</p>
+                ) : (
+                  <>
+                    <Field label="Email"><Input type="email" value={f.email} onChange={(e) => set("email", e.target.value)} placeholder="you@chambers.ng" autoComplete="email" /></Field>
+                    <Field label="Phone"><Input type="tel" value={f.phone} onChange={(e) => set("phone", e.target.value)} placeholder="0803 000 0000" autoComplete="tel" /></Field>
+                    <div className="sm:col-span-2"><Field label="Create a password" hint="At least 6 characters"><PasswordInput value={f.password} onChange={(e) => set("password", e.target.value)} autoComplete="new-password" /></Field></div>
+                    <p className="text-sm text-plum-500 sm:col-span-2">Already on Tyche? <Link to="/signin?as=lawyer&next=/join/lawyer" className="font-semibold text-plum-700 underline decoration-tangerine-400 underline-offset-4">Sign in first</Link></p>
+                  </>
+                )}
               </div>
             )}
 
@@ -138,9 +187,9 @@ export default function LawyerJoin() {
                 <div className="sm:col-span-2">
                   <p className="mb-2 text-sm font-semibold text-ink">Practising licence / call-to-bar certificate</p>
                   <label className="flex cursor-pointer items-center gap-4 rounded-3xl border-2 border-dashed border-plum-200 bg-cream p-5 hover:border-plum-400">
-                    <span className="grid h-12 w-12 place-items-center rounded-full bg-plum-100 text-plum-600">{f.licence ? <FileCheck2 /> : <Upload />}</span>
-                    <span className="text-sm"><span className="block font-semibold text-ink">{f.licence || "Upload a PDF or photo"}</span><span className="text-plum-500">Only our verification team sees this.</span></span>
-                    <input type="file" accept="image/*,.pdf" className="hidden" onChange={(e) => set("licence", e.target.files?.[0]?.name || "")} />
+                    <span className="grid h-12 w-12 place-items-center rounded-full bg-plum-100 text-plum-600">{licence ? <FileCheck2 /> : <Upload />}</span>
+                    <span className="text-sm"><span className="block font-semibold text-ink">{licence?.name || "Upload a PDF or photo"}</span><span className="text-plum-500">Only our verification team sees this.</span></span>
+                    <input type="file" accept="image/*,.pdf" className="hidden" onChange={(e) => setLicence(e.target.files?.[0] || null)} />
                   </label>
                 </div>
               </div>
@@ -149,8 +198,9 @@ export default function LawyerJoin() {
             {step === 2 && (
               <div className="space-y-5">
                 <p className="rounded-3xl bg-tangerine-50 p-4 text-sm text-ink">
-                  <b>How fees work:</b> clients pay Tyche when they book. After the session, we send you your earnings minus
-                  Tyche's {TYCHE_FEE * 100}% service fee. Consultation and booking are priced separately.
+                  <b>How fees work:</b> clients pay through Tyche when they book. Paystack splits each payment automatically —
+                  you receive {100 - TYCHE_FEE * 100}% in your bank account and Tyche keeps {TYCHE_FEE * 100}%. Consultation and booking are priced separately.
+                  You'll add your bank account from your dashboard.
                 </p>
                 <FeeBlock label="Consultation fee" sub="A first conversation to understand someone's situation." fee={f.consultFee} free={f.consultFree} onFee={(n) => set("consultFee", n)} onFree={(b) => set("consultFree", b)} freeLabel="Offer free consultations" />
                 <FeeBlock label="Booking fee" sub="When a client engages you to work on their case." fee={f.bookingFee} free={f.bookingFree} onFee={(n) => set("bookingFee", n)} onFree={(b) => set("bookingFree", b)} freeLabel="Take some cases pro bono (free booking)" />
@@ -170,6 +220,9 @@ export default function LawyerJoin() {
                   <Field label="From"><Input type="time" value={f.from} onChange={(e) => set("from", e.target.value)} /></Field>
                   <Field label="To"><Input type="time" value={f.to} onChange={(e) => set("to", e.target.value)} /></Field>
                 </div>
+                <Field label="Your Google Meet link" optional hint="Paste a standing Meet link (meet.google.com/…). Clients who book a Meet session get it automatically — you can change it per booking.">
+                  <Input value={f.meetLink} onChange={(e) => set("meetLink", e.target.value)} placeholder="https://meet.google.com/abc-defg-hij" inputMode="url" />
+                </Field>
                 <div>
                   <p className="mb-2 text-sm font-semibold text-ink">How can clients talk to you? <span className="font-normal text-plum-400">all happen inside Tyche</span></p>
                   <div className="grid gap-3 sm:grid-cols-3">
@@ -213,12 +266,13 @@ export default function LawyerJoin() {
               </div>
             )}
 
+            {err && <div className="mt-6"><Notice>{err}</Notice></div>}
             <div className="mt-8 flex items-center justify-between">
               {step > 0 ? <Button variant="ghost" onClick={() => setStep(step - 1)}><ArrowLeft size={18} /> Back</Button> : <span />}
               {step < STEPS.length - 1 ? (
                 <Button disabled={!valid} onClick={() => setStep(step + 1)}>Continue <ArrowRight size={18} /></Button>
               ) : (
-                <Button variant="warm" onClick={finish}><Sparkles size={18} /> Create my lawyer account</Button>
+                <Button variant="warm" onClick={finish} disabled={busy}><Sparkles size={18} /> {busy ? "Creating your account…" : "Create my lawyer account"}</Button>
               )}
             </div>
           </Card>
@@ -228,7 +282,7 @@ export default function LawyerJoin() {
           {[
             { icon: Gavel, t: "Cases come to you", d: "Women share anonymised reports. You see the evidence and send an offer." },
             { icon: BadgeCheck, t: "You set the terms", d: "Your fees, your hours, free or paid — change them any time." },
-            { icon: Sparkles, t: "Paid through Tyche", d: `Clients pay upfront. You keep ${100 - TYCHE_FEE * 100}%, paid out after each session.` },
+            { icon: Sparkles, t: "Paid through Tyche", d: `Clients pay upfront. You keep ${100 - TYCHE_FEE * 100}%, paid straight to your bank by Paystack.` },
           ].map((x) => (
             <div key={x.t} className="rounded-4xl bg-white/80 p-5 ring-1 ring-plum-100">
               <x.icon className="text-tangerine-500" />

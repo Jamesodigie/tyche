@@ -1,16 +1,16 @@
 import {
-  BadgeCheck, Briefcase, CalendarHeart, CheckCircle2, Clock, Eye, FileAudio, FileText, FileVideo, Gavel, ImageIcon, MessageCircleHeart, Save, Send, Settings2, Video, Wallet,
+  BadgeCheck, Banknote, Briefcase, CalendarHeart, CheckCircle2, Clock, Eye, FileCheck2, Gavel, Link2, MessageCircleHeart, Save, Send, Settings2, Upload, Video, Wallet,
 } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { EvidenceChip } from "../components/EvidenceChip";
 import { channelIcon } from "../components/LawyerCard";
-import { Avatar, Badge, Blobs, Button, Card, Chip, Empty, Field, Input, Select, Textarea, Toggle, cx } from "../components/ui";
+import { Avatar, Badge, Blobs, Button, Card, Chip, Empty, Field, Input, Notice, Select, Textarea, Toggle, cx } from "../components/ui";
 import {
-  CHANNEL_LABEL, DAYS, KIND_COPY, PRACTICE_AREAS, TYCHE_FEE, lawyerTake, naira, prettySize, timeAgo, tycheTake, uid,
-  type Channel, type Lawyer, type Report, type SessionKind,
+  CHANNEL_LABEL, DAYS, KIND_COPY, PRACTICE_AREAS, TYCHE_FEE, lawyerTake, naira, timeAgo, tycheTake,
+  type Booking, type Channel, type Lawyer, type Report, type SessionKind,
 } from "../lib/data";
 import { useStore } from "../lib/store";
 
-const kindIcon = { image: ImageIcon, audio: FileAudio, video: FileVideo, doc: FileText };
 const TABS = [
   { id: "cases", label: "Case board", icon: Gavel },
   { id: "offers", label: "My offers", icon: Send },
@@ -27,6 +27,8 @@ function CaseCard({ r, me }: { r: Report; me: Lawyer }) {
   const [free, setFree] = useState(me.consultFree);
   const [fee, setFee] = useState(me.consultFee || 10000);
   const [msg, setMsg] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState("");
 
   const pickKind = (k: SessionKind) => {
     setKind(k);
@@ -34,9 +36,13 @@ function CaseCard({ r, me }: { r: Report; me: Lawyer }) {
     setFee((k === "consultation" ? me.consultFee : me.bookingFee) || (k === "consultation" ? 10000 : 150000));
   };
 
-  const send = () => {
-    addBid({ id: uid("B-"), reportId: r.id, lawyerId: me.id, kind, free, fee: free ? 0 : fee, message: msg.trim(), createdAt: new Date().toISOString(), status: "pending" });
-    setOpen(false);
+  const send = async () => {
+    setBusy(true);
+    setErr("");
+    const error = await addBid({ reportId: r.id, lawyerId: me.id, kind, free, fee: free ? 0 : fee, message: msg.trim() });
+    setBusy(false);
+    if (error) setErr(error);
+    else setOpen(false);
   };
 
   return (
@@ -54,16 +60,7 @@ function CaseCard({ r, me }: { r: Report; me: Lawyer }) {
       <div className="mt-4">
         <p className="mb-2 flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-plum-400"><Eye size={13} /> Evidence ({r.evidence.length})</p>
         <div className="flex flex-wrap gap-2">
-          {r.evidence.length ? r.evidence.map((e) => {
-            const I = kindIcon[e.kind];
-            return (
-              <span key={e.id} className="flex items-center gap-2 rounded-2xl bg-cream px-3 py-2 text-xs">
-                {e.preview ? <img src={e.preview} alt="" className="h-8 w-8 rounded-lg object-cover" /> : <I size={16} className="text-plum-500" />}
-                <span className="max-w-[160px] truncate font-medium text-ink">{e.name}</span>
-                <span className="text-plum-400">{prettySize(e.size)}</span>
-              </span>
-            );
-          }) : <span className="text-sm text-plum-400">No files yet</span>}
+          {r.evidence.length ? r.evidence.map((e) => <EvidenceChip key={e.id} e={e} />) : <span className="text-sm text-plum-400">No files yet</span>}
         </div>
       </div>
 
@@ -85,8 +82,9 @@ function CaseCard({ r, me }: { r: Report; me: Lawyer }) {
           <Field label="A kind note" hint="This is the first thing they read. Be warm, be clear.">
             <Textarea value={msg} onChange={(e) => setMsg(e.target.value)} placeholder="I've read what you shared and I'm so sorry this happened…" />
           </Field>
+          {err && <Notice>{err}</Notice>}
           <div className="flex gap-2">
-            <Button variant="warm" disabled={msg.trim().length < 10} onClick={send}><Send size={16} /> Send offer</Button>
+            <Button variant="warm" disabled={msg.trim().length < 10 || busy} onClick={send}><Send size={16} /> {busy ? "Sending…" : "Send offer"}</Button>
             <Button variant="ghost" onClick={() => setOpen(false)}>Cancel</Button>
           </div>
         </div>
@@ -101,7 +99,18 @@ function ProfileEditor({ me }: { me: Lawyer }) {
   const { updateLawyer } = useStore();
   const [l, setL] = useState(me);
   const [saved, setSaved] = useState(false);
-  const set = <K extends keyof Lawyer>(k: K, v: Lawyer[K]) => { setSaved(false); setL((p) => ({ ...p, [k]: v })); };
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState("");
+  const set = <K extends keyof Lawyer>(k: K, v: Lawyer[K]) => { setSaved(false); setErr(""); setL((p) => ({ ...p, [k]: v })); };
+  const save = async () => {
+    if (l.meetLink && !/^https:\/\/meet\.google\.com\//.test(l.meetLink.trim())) return setErr("Your Meet link should start with https://meet.google.com/");
+    if (l.from >= l.to) return setErr("Your start time should be before your end time.");
+    setBusy(true);
+    const error = await updateLawyer({ ...l, meetLink: l.meetLink?.trim() || undefined });
+    setBusy(false);
+    if (error) setErr(error);
+    else setSaved(true);
+  };
   const tog = <T,>(a: T[], v: T) => (a.includes(v) ? a.filter((x) => x !== v) : [...a, v]);
   return (
     <div className="grid gap-5 lg:grid-cols-2">
@@ -122,33 +131,157 @@ function ProfileEditor({ me }: { me: Lawyer }) {
         </div>
         <p className="text-sm font-semibold text-ink">Channels</p>
         <div className="flex flex-wrap gap-2">{(Object.keys(CHANNEL_LABEL) as Channel[]).map((c) => <Chip tone="teal" key={c} active={l.channels.includes(c)} onClick={() => set("channels", tog(l.channels, c))}>{CHANNEL_LABEL[c]}</Chip>)}</div>
+        <Field label="Your Google Meet link" optional hint="Added automatically to Meet bookings.">
+          <Input value={l.meetLink || ""} onChange={(e) => set("meetLink", e.target.value)} placeholder="https://meet.google.com/abc-defg-hij" inputMode="url" />
+        </Field>
+        <Field label="About you">
+          <Textarea value={l.bio} onChange={(e) => set("bio", e.target.value)} />
+        </Field>
         <p className="text-sm font-semibold text-ink">Practice areas</p>
         <div className="flex flex-wrap gap-2">{PRACTICE_AREAS.map((a) => <Chip key={a} active={l.areas.includes(a)} onClick={() => set("areas", tog(l.areas, a))}>{a}</Chip>)}</div>
       </Card>
       <div className="flex items-center gap-3 lg:col-span-2">
-        <Button onClick={() => { updateLawyer(l); setSaved(true); }}><Save size={18} /> Save changes</Button>
+        <Button onClick={save} disabled={busy}><Save size={18} /> {busy ? "Saving…" : "Save changes"}</Button>
+        {err && <span className="text-sm font-semibold text-tangerine-600">{err}</span>}
         {saved && <span className="flex items-center gap-1 text-sm font-semibold text-lagoon-600"><CheckCircle2 size={16} /> Saved — your profile is updated</span>}
       </div>
     </div>
   );
 }
 
+function SetupCards({ me }: { me: Lawyer }) {
+  const { mode, banks, setupPayout, uploadLicence } = useStore();
+  const [bankList, setBankList] = useState<{ name: string; code: string }[]>([]);
+  const [bank, setBank] = useState("");
+  const [acct, setAcct] = useState("");
+  const [editing, setEditing] = useState(false);
+  const [busy, setBusy] = useState<"" | "payout" | "licence">("");
+  const [err, setErr] = useState("");
+  const showPayout = !me.payoutReady || editing;
+  useEffect(() => {
+    if (showPayout && !bankList.length) banks().then(setBankList).catch(() => {});
+  }, [showPayout, bankList.length, banks]);
+
+  const savePayout = async () => {
+    setBusy("payout");
+    setErr("");
+    const name = bankList.find((b) => b.code === bank)?.name || bank;
+    const error = await setupPayout(bank, name, acct);
+    setBusy("");
+    if (error) setErr(error);
+    else setEditing(false);
+  };
+  const onLicence = async (f?: File) => {
+    if (!f) return;
+    setBusy("licence");
+    const error = await uploadLicence(f);
+    setBusy("");
+    if (error) setErr(error);
+  };
+
+  const needsLicence = mode === "live" && !me.hasLicence && me.status !== "approved";
+  if (!showPayout && !needsLicence)
+    return (
+      <p className="mt-6 flex flex-wrap items-center gap-2 rounded-3xl bg-white p-4 text-sm text-plum-700 ring-1 ring-plum-100">
+        <Banknote size={18} className="text-lagoon-500" /> Payouts go to <b>{me.payoutBank}</b> ····{me.payoutLast4}{me.payoutAccountName ? ` (${me.payoutAccountName})` : ""}.
+        <button onClick={() => setEditing(true)} className="ml-auto py-1 font-semibold text-plum-600 underline">Change</button>
+      </p>
+    );
+
+  return (
+    <div className="mt-6 grid gap-4 lg:grid-cols-2">
+      {showPayout && (
+        <Card className="p-5 sm:p-6">
+          <p className="flex items-center gap-2 font-display text-xl font-semibold text-ink"><Banknote className="text-tangerine-500" /> {me.payoutReady ? "Change payout account" : "Add your payout account"}</p>
+          <p className="mt-1 text-sm text-plum-600">
+            Paystack pays your {100 - TYCHE_FEE * 100}% straight into this account. {!me.payoutReady && "Until you add it, paid bookings with you can't be split automatically."}
+          </p>
+          <div className="mt-4 grid gap-3 sm:grid-cols-2">
+            <Select value={bank} onChange={(e) => setBank(e.target.value)} aria-label="Bank">
+              <option value="">{bankList.length ? "Choose your bank" : "Loading banks…"}</option>
+              {bankList.map((b) => <option key={b.code} value={b.code}>{b.name}</option>)}
+            </Select>
+            <Input value={acct} onChange={(e) => setAcct(e.target.value.replace(/\D/g, "").slice(0, 10))} placeholder="10-digit account number" inputMode="numeric" aria-label="Account number" />
+          </div>
+          <div className="mt-4 flex flex-wrap items-center gap-2">
+            <Button size="sm" onClick={savePayout} disabled={!bank || acct.length !== 10 || busy === "payout"}>{busy === "payout" ? "Checking account…" : "Verify & save"}</Button>
+            {me.payoutReady && <Button size="sm" variant="ghost" onClick={() => setEditing(false)}>Cancel</Button>}
+          </div>
+        </Card>
+      )}
+      {needsLicence && (
+        <Card className="p-5 sm:p-6">
+          <p className="flex items-center gap-2 font-display text-xl font-semibold text-ink"><FileCheck2 className="text-tangerine-500" /> Upload your licence</p>
+          <p className="mt-1 text-sm text-plum-600">We need your call-to-bar certificate or practising licence to verify you. Only our team sees it.</p>
+          <label className="mt-4 inline-flex min-h-[40px] cursor-pointer items-center gap-2 rounded-full bg-plum-600 px-4 py-2 text-sm font-semibold text-white">
+            <Upload size={16} /> {busy === "licence" ? "Uploading…" : "Choose file"}
+            <input type="file" accept="image/*,.pdf" className="hidden" onChange={(e) => onLicence(e.target.files?.[0])} />
+          </label>
+        </Card>
+      )}
+      {err && <div className="lg:col-span-2"><Notice>{err}</Notice></div>}
+    </div>
+  );
+}
+
+function LawyerBookingCard({ b, report }: { b: Booking; report?: Report }) {
+  const { setMeetLink, completeBooking } = useStore();
+  const I = channelIcon[b.channel];
+  const [link, setLink] = useState(b.meetLink || "");
+  const [msg, setMsg] = useState("");
+  const saveLink = async () => {
+    if (link && !/^https:\/\/meet\.google\.com\//.test(link.trim())) return setMsg("Use a https://meet.google.com/ link");
+    const error = await setMeetLink(b.id, link.trim());
+    setMsg(error || "Saved ✓");
+  };
+  return (
+    <Card className="p-5">
+      <div className="flex items-center gap-3">
+        <Avatar name={b.clientName} hue={330} size={48} />
+        <div className="min-w-0 flex-1">
+          <p className="truncate font-semibold text-ink">{b.clientName}</p>
+          <p className="text-sm text-plum-500">{KIND_COPY[b.kind].title} · {b.fee ? naira(b.fee) : "Free"}</p>
+        </div>
+        <Badge tone={b.status === "done" ? "plum" : "teal"}>{b.status === "done" ? "Completed" : "Upcoming"}</Badge>
+      </div>
+      <p className="mt-4 flex items-center gap-2 rounded-3xl bg-cream p-3 text-sm text-ink"><I size={16} className="shrink-0 text-plum-500" /> {new Date(b.date).toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short" })} · {b.time} · {CHANNEL_LABEL[b.channel]}</p>
+      {report && <p className="mt-2 text-xs text-plum-500">Shared report: <b>{report.id}</b> · {report.category}</p>}
+      {b.channel === "meet" && b.status === "upcoming" && (
+        <div className="mt-3 flex gap-2">
+          <div className="relative flex-1">
+            <Link2 size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-plum-300" />
+            <Input value={link} onChange={(e) => { setLink(e.target.value); setMsg(""); }} placeholder="Google Meet link for this session" className="py-2 pl-9 text-sm" aria-label="Google Meet link" />
+          </div>
+          <Button size="sm" variant="soft" onClick={saveLink}>Save</Button>
+        </div>
+      )}
+      {msg && <p className="mt-1 text-xs font-semibold text-plum-600">{msg}</p>}
+      <div className="mt-4 flex flex-wrap gap-2">
+        <Button size="sm" to={`/session/${b.id}`}><Video size={16} /> Start session</Button>
+        <Button size="sm" variant="outline" to={`/messages/${b.id}`}><MessageCircleHeart size={16} /> Message</Button>
+        {b.status === "upcoming" && <Button size="sm" variant="ghost" onClick={() => completeBooking(b.id)}><CheckCircle2 size={16} /> Mark done</Button>}
+      </div>
+    </Card>
+  );
+}
+
 export default function LawyerDashboard() {
-  const { user, lawyers, allReports, bids, bookings, hiddenReports, lawyerState } = useStore();
+  const { user, myLawyer: me, caseBoard, bids, bookings, lawyerState, ready } = useStore();
   const [tab, setTab] = useState<(typeof TABS)[number]["id"]>("cases");
   const [area, setArea] = useState("");
-  const me = lawyers.find((l) => l.id === user?.lawyerId);
 
-  if (!user || user.role !== "lawyer" || !me)
+  if (!ready) return <div className="grid min-h-[50vh] place-items-center text-plum-400">Loading…</div>;
+  if (!user || !me)
     return (
       <div className="mx-auto max-w-xl px-4 sm:px-6 py-12 sm:py-20">
-        <Empty icon={<Gavel />} title="This space is for Tyche lawyers" sub="Sign in with your lawyer account, or create one in a few minutes." action={<div className="flex justify-center gap-2"><Button to="/signin?as=lawyer&next=/lawyer/dashboard">Sign in as a lawyer</Button><Button variant="outline" to="/join/lawyer">Join Tyche</Button></div>} />
+        <Empty icon={<Gavel />} title="This space is for Tyche lawyers" sub={user ? "Your account doesn't have a lawyer profile yet. It takes a few minutes." : "Sign in with your lawyer account, or create one in a few minutes."} action={<div className="flex flex-wrap justify-center gap-2">{!user && <Button to="/signin?as=lawyer&next=/lawyer/dashboard">Sign in as a lawyer</Button>}<Button variant={user ? "primary" : "outline"} to="/join/lawyer">{user ? "Create my lawyer profile" : "Join Tyche"}</Button></div>} />
       </div>
     );
 
-  const open = allReports.filter((r) => r.shareWithLawyers && !hiddenReports.includes(r.id) && (!area || r.category === area || r.setting === area));
+  const open = caseBoard.filter((r) => r.shareWithLawyers && (!area || r.category === area || r.setting === area));
   const myBids = bids.filter((b) => b.lawyerId === me.id);
-  const myBookings = bookings.filter((b) => b.lawyerId === me.id);
+  const myBookings = bookings.filter((b) => b.lawyerId === me.id && (b.status === "upcoming" || b.status === "done"));
+  const cases = new Map([...caseBoard].map((r) => [r.id, r]));
   const gross = myBookings.reduce((n, b) => n + b.fee, 0);
 
   return (
@@ -166,6 +299,8 @@ export default function LawyerDashboard() {
           </div>
           <Button variant="outline" to={`/lawyers/${me.id}`}>View public profile</Button>
         </div>
+
+        <SetupCards me={me} />
 
         {!me.verified && (
           <p className="mt-6 rounded-3xl bg-tangerine-50 p-4 text-sm text-ink">
@@ -216,11 +351,11 @@ export default function LawyerDashboard() {
             (myBids.length ? (
               <div className="space-y-3">
                 {myBids.map((b) => {
-                  const r = allReports.find((x) => x.id === b.reportId);
+                  const r = cases.get(b.reportId);
                   return (
                     <Card key={b.id} className="flex flex-wrap items-center gap-4 p-5">
                       <div className="flex-1">
-                        <p className="font-semibold text-ink">“{r?.alias}” · {r?.category}</p>
+                        <p className="font-semibold text-ink">{r ? <>“{r.alias}” · {r.category}</> : <>Case {b.reportId}</>}</p>
                         <p className="text-sm text-plum-500">{KIND_COPY[b.kind].title} · {b.free ? "Free" : naira(b.fee)} · sent {timeAgo(b.createdAt)}</p>
                       </div>
                       <Badge tone={b.status === "accepted" ? "teal" : b.status === "declined" ? "plum" : "warm"}>{b.status === "pending" ? "Waiting for reply" : b.status}</Badge>
@@ -235,22 +370,7 @@ export default function LawyerDashboard() {
           {tab === "bookings" &&
             (myBookings.length ? (
               <div className="grid gap-4 md:grid-cols-2">
-                {myBookings.map((b) => {
-                  const I = channelIcon[b.channel];
-                  return (
-                    <Card key={b.id} className="p-5">
-                      <div className="flex items-center gap-3">
-                        <Avatar name={b.clientName} hue={330} size={48} />
-                        <div className="flex-1"><p className="font-semibold text-ink">{b.clientName}</p><p className="text-sm text-plum-500">{KIND_COPY[b.kind].title} · {b.fee ? naira(b.fee) : "Free"}</p></div>
-                      </div>
-                      <p className="mt-4 flex items-center gap-2 rounded-3xl bg-cream p-3 text-sm text-ink"><I size={16} className="text-plum-500" /> {new Date(b.date).toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short" })} · {b.time} · {CHANNEL_LABEL[b.channel]}</p>
-                      <div className="mt-4 flex gap-2">
-                        <Button size="sm" to={`/session/${b.id}`}><Video size={16} /> Start session</Button>
-                        <Button size="sm" variant="outline" to={`/messages/${b.id}`}><MessageCircleHeart size={16} /> Message</Button>
-                      </div>
-                    </Card>
-                  );
-                })}
+                {myBookings.map((b) => <LawyerBookingCard key={b.id} b={b} report={b.reportId ? cases.get(b.reportId) : undefined} />)}
               </div>
             ) : (
               <Empty icon={<CalendarHeart />} title="No bookings yet" sub="When a client books you or accepts your offer, it'll show here." />
@@ -281,7 +401,7 @@ export default function LawyerDashboard() {
                 </table>
                 </div>
               </Card>
-              <p className="text-sm text-plum-500">Payouts go to your bank account within 48 hours of each completed session.</p>
+              <p className="text-sm text-plum-500">Paystack pays your 80% straight into your bank account on its normal settlement schedule (usually the next working day).</p>
             </div>
           )}
 

@@ -3,7 +3,8 @@ import {
 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { Blobs, Button, Card, Chip, Field, Input, Select, Stepper, Textarea, Toggle, cx } from "../components/ui";
+import { AccountForm } from "../components/AccountForm";
+import { Blobs, Button, Card, Chip, Field, Input, Notice, Select, Stepper, Textarea, Toggle, cx } from "../components/ui";
 import {
   AUTHORITIES, HARASSMENT_TYPES, SETTINGS, STATES, fileKind, prettySize, uid,
   type Evidence, type Report as R,
@@ -25,7 +26,7 @@ function readPreview(f: File): Promise<string | undefined> {
   });
 }
 
-function VoiceNote({ onDone }: { onDone: (e: Evidence) => void }) {
+function VoiceNote({ onDone }: { onDone: (e: Evidence, blob: Blob) => void }) {
   const [rec, setRec] = useState<MediaRecorder | null>(null);
   const [secs, setSecs] = useState(0);
   const [err, setErr] = useState("");
@@ -45,7 +46,7 @@ function VoiceNote({ onDone }: { onDone: (e: Evidence) => void }) {
       m.onstop = () => {
         stream.getTracks().forEach((t) => t.stop());
         const blob = new Blob(chunks.current, { type: "audio/webm" });
-        onDone({ id: uid("E"), name: `voice-note-${new Date().toLocaleTimeString("en-GB").replace(/:/g, "")}.webm`, kind: "audio", size: blob.size });
+        onDone({ id: uid("E"), name: `voice-note-${new Date().toLocaleTimeString("en-GB").replace(/:/g, "")}.webm`, kind: "audio", size: blob.size }, blob);
       };
       m.start();
       setSecs(0);
@@ -69,12 +70,14 @@ function VoiceNote({ onDone }: { onDone: (e: Evidence) => void }) {
 }
 
 export default function Report() {
-  const { user, signIn, addReport } = useStore();
+  const { user, addReport } = useStore();
   const navigate = useNavigate();
   const [step, setStep] = useState(0);
   const [drag, setDrag] = useState(false);
-  const [acct, setAcct] = useState({ contact: "", password: "" });
-  const [r, setR] = useState<Omit<R, "id" | "createdAt">>({
+  const blobs = useRef(new Map<string, Blob>()); // evidence id → file, uploaded on save
+  const [saving, setSaving] = useState(false);
+  const [err, setErr] = useState("");
+  const [r, setR] = useState<Omit<R, "id" | "createdAt" | "mine">>({
     alias: user?.name || "",
     category: "",
     setting: "",
@@ -87,34 +90,41 @@ export default function Report() {
     shareWithLawyers: true,
     hideName: true,
     authorities: [],
-    mine: true,
   });
   const set = <K extends keyof typeof r>(k: K, v: (typeof r)[K]) => setR((p) => ({ ...p, [k]: v }));
 
   const addFiles = async (files: FileList | null) => {
     if (!files) return;
     const list: Evidence[] = [];
-    for (const f of Array.from(files)) list.push({ id: uid("E"), name: f.name, kind: fileKind(f), size: f.size, preview: await readPreview(f) });
+    const tooBig: string[] = [];
+    for (const f of Array.from(files)) {
+      if (f.size > 50_000_000) { tooBig.push(f.name); continue; }
+      const id = uid("E");
+      blobs.current.set(id, f);
+      list.push({ id, name: f.name, kind: fileKind(f), size: f.size, preview: await readPreview(f) });
+    }
+    setErr(tooBig.length ? `These files are over 50 MB and weren't added: ${tooBig.join(", ")}` : "");
     setR((p) => ({ ...p, evidence: [...p.evidence, ...list] }));
   };
 
   const valid = [
-    r.alias.trim().length > 1 && (user || (acct.contact.trim() && acct.password.length >= 6)),
+    r.alias.trim().length > 1 && !!user,
     r.category && r.setting && r.description.trim().length >= 10,
     true,
     true,
     true,
   ][step];
 
-  const next = () => {
-    if (step === 0 && !user) signIn({ name: r.alias.trim(), email: acct.contact, role: "client" });
-    setStep(step + 1);
-  };
+  const next = () => setStep(step + 1);
 
-  const submit = () => {
-    const id = "TY-" + Math.floor(10000 + Math.random() * 89999);
-    addReport({ ...r, id, createdAt: new Date().toISOString() });
-    navigate(`/report/sent/${id}`);
+  const submit = async () => {
+    setSaving(true);
+    setErr("");
+    const { evidence, ...fields } = r;
+    const out = await addReport(fields, evidence.map((ev) => ({ ev, file: blobs.current.get(ev.id) })));
+    setSaving(false);
+    if (!out.id) return setErr(out.error || "We couldn't save your report. Please try again.");
+    navigate(`/report/sent/${out.id}${out.error ? `?warn=${encodeURIComponent(out.error)}` : ""}`);
   };
 
   return (
@@ -142,10 +152,15 @@ export default function Report() {
                   <Input value={r.alias} onChange={(e) => set("alias", e.target.value)} placeholder="e.g. Sunflower" />
                 </Field>
                 {!user ? (
-                  <div className="grid gap-4 sm:grid-cols-2">
-                    <Field label="Email or phone" hint="So you can get back in. Never shown to anyone."><Input value={acct.contact} onChange={(e) => setAcct({ ...acct, contact: e.target.value })} /></Field>
-                    <Field label="Password" hint="At least 6 characters"><Input type="password" value={acct.password} onChange={(e) => setAcct({ ...acct, password: e.target.value })} /></Field>
-                    <p className="text-sm text-plum-500 sm:col-span-2">Already have an account? <Link to="/signin?next=/report" className="font-semibold text-plum-700 underline decoration-tangerine-400 underline-offset-4">Sign in</Link></p>
+                  <div className="rounded-3xl bg-cream p-4 sm:p-5">
+                    <p className="mb-4 text-sm font-semibold text-ink">Create your private account <span className="font-normal text-plum-500">— so your report and evidence are saved safely</span></p>
+                    <AccountForm
+                      cta="Create & continue"
+                      nameLabel="Your name or a nickname"
+                      nameHint="Only you and a lawyer you choose to book will see this."
+                      defaultName={r.alias}
+                      onDone={() => r.alias.trim().length > 1 && setStep(1)}
+                    />
                   </div>
                 ) : (
                   <p className="rounded-3xl bg-lagoon-50 p-4 text-sm text-lagoon-600">You're signed in as <b>{user.name}</b> — this report will be saved to your space.</p>
@@ -196,7 +211,7 @@ export default function Report() {
                   <span className="mt-4 rounded-full bg-plum-600 px-5 py-2 text-sm font-semibold text-white">Choose files</span>
                   <input type="file" multiple className="hidden" accept="image/*,audio/*,video/*,.pdf,.doc,.docx,.txt,.zip" onChange={(e) => addFiles(e.target.files)} />
                 </label>
-                <VoiceNote onDone={(e) => set("evidence", [...r.evidence, e])} />
+                <VoiceNote onDone={(e, blob) => { blobs.current.set(e.id, blob); set("evidence", [...r.evidence, e]); }} />
                 {r.evidence.length > 0 && (
                   <ul className="grid gap-3 sm:grid-cols-2">
                     {r.evidence.map((e) => {
@@ -249,14 +264,19 @@ export default function Report() {
               </div>
             )}
 
-            <div className="mt-8 flex items-center justify-between">
-              {step > 0 ? <Button variant="ghost" onClick={() => setStep(step - 1)}><ArrowLeft size={18} /> Back</Button> : <span />}
-              {step < STEPS.length - 1 ? (
-                <Button disabled={!valid} onClick={next}>{step === 2 && !r.evidence.length ? "Skip for now" : "Continue"} <ArrowRight size={18} /></Button>
-              ) : (
-                <Button variant="warm" size="lg" onClick={submit}><ShieldCheck size={18} /> Save my report</Button>
-              )}
-            </div>
+            {err && <div className="mt-6"><Notice>{err}</Notice></div>}
+            {(user || step > 0) && (
+              <div className="mt-8 flex items-center justify-between">
+                {step > 0 ? <Button variant="ghost" onClick={() => setStep(step - 1)} disabled={saving}><ArrowLeft size={18} /> Back</Button> : <span />}
+                {step < STEPS.length - 1 ? (
+                  <Button disabled={!valid} onClick={next}>{step === 2 && !r.evidence.length ? "Skip for now" : "Continue"} <ArrowRight size={18} /></Button>
+                ) : (
+                  <Button variant="warm" size="lg" onClick={submit} disabled={saving}>
+                    <ShieldCheck size={18} /> {saving ? (r.evidence.length ? "Uploading evidence…" : "Saving…") : "Save my report"}
+                  </Button>
+                )}
+              </div>
+            )}
           </Card>
         </div>
 

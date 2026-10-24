@@ -4,9 +4,10 @@ import { Link } from "react-router-dom";
 import { LawyerCard } from "../components/LawyerCard";
 import { PathBubbles } from "../components/PathBubbles";
 import { Avatar, Blobs, Button, Sparkle, cx } from "../components/ui";
-import { COMMUNITY_MEMBERS, KIND_COPY, LAWYERS } from "../lib/data";
+import { KIND_COPY, communityLine } from "../lib/data";
+import { useStore } from "../lib/store";
 
-function HeroArt() {
+function HeroArt({ count }: { count: number }) {
   return (
     <div className="relative mx-auto aspect-square w-full max-w-[300px] sm:max-w-[400px] lg:max-w-[460px]">
       <div className="absolute inset-6 rounded-full bg-gradient-to-br from-tangerine-100 via-blush-100 to-plum-100" />
@@ -24,15 +25,15 @@ function HeroArt() {
         </span>
       </div>
       <div className="absolute -right-3 bottom-[24%] flex max-w-[220px] animate-float items-center gap-2 rounded-2xl bg-white px-3 py-2 shadow-soft [animation-delay:1.5s] sm:-right-10 sm:max-w-[240px] sm:gap-3 sm:rounded-3xl sm:px-4 sm:py-3">
-        <Avatar name="Adaeze Okafor" hue={285} size={34} className="ring-2" />
+        <Avatar name="Verified Lawyer" hue={285} size={34} className="ring-2" />
         <span className="text-left">
-          <span className="block text-[13px] font-semibold text-ink sm:text-sm">Adaeze offered help</span>
+          <span className="block text-[13px] font-semibold text-ink sm:text-sm">A lawyer offered help</span>
           <span className="block text-[11px] text-plum-500 sm:text-xs">Free first consultation 💜</span>
         </span>
       </div>
       <div className="absolute bottom-[2%] left-1/2 flex -translate-x-1/2 animate-float items-center gap-2 whitespace-nowrap rounded-full bg-plum-600 px-3.5 py-2 text-white shadow-soft [animation-delay:.7s] sm:left-[14%] sm:translate-x-0 sm:px-4 sm:py-2.5">
         <Users size={16} />
-        <span className="text-[13px] font-semibold sm:text-sm">{COMMUNITY_MEMBERS.toLocaleString()} women in the circle</span>
+        <span className="text-[13px] font-semibold sm:text-sm">{communityLine(count)}</span>
       </div>
     </div>
   );
@@ -42,7 +43,7 @@ const features = [
   { icon: Lock, title: "Your evidence, kept safe", text: "Screenshots, voice notes, videos, documents — upload them once and they stay in your private vault. Delete anything, anytime.", tone: "bg-lagoon-100 text-lagoon-600" },
   { icon: BadgeCheck, title: "Lawyers we've actually checked", text: "Every lawyer is verified with the Nigerian Bar before they can see a single case. No randoms, no time-wasters.", tone: "bg-plum-100 text-plum-700" },
   { icon: CalendarHeart, title: "Talk the way you're comfortable", text: "Voice call, private chat, or Google Meet — all inside Tyche. You never have to share your number.", tone: "bg-tangerine-100 text-tangerine-600" },
-  { icon: Wallet, title: "Pay safely, through Tyche", text: "You pay Tyche, not a stranger. Your money is only released to the lawyer once your session actually happens.", tone: "bg-blush-200 text-plum-700" },
+  { icon: Wallet, title: "Pay safely, through Tyche", text: "You pay through Tyche with Paystack — card, transfer or USSD — never into a stranger's personal account.", tone: "bg-blush-200 text-plum-700" },
 ];
 
 const faqs = [
@@ -55,6 +56,8 @@ const faqs = [
 
 export default function Home() {
   const [open, setOpen] = useState(0);
+  const { publicLawyers, communityCount, communityCap } = useStore();
+  const featured = publicLawyers.slice(0, 3);
   return (
     <>
       {/* HERO */}
@@ -78,7 +81,7 @@ export default function Home() {
               <EyeOff size={16} /> Nobody sees your report unless you say so.
             </p>
           </div>
-          <HeroArt />
+          <HeroArt count={communityCount} />
         </div>
       </section>
 
@@ -158,7 +161,7 @@ export default function Home() {
               <p className="mt-3 max-w-md text-plum-700/85">{KIND_COPY[k].blurb}</p>
               <ul className="mt-5 space-y-2 text-[15px] text-ink">
                 {(i
-                  ? ["Priced by the lawyer for your case", "Ongoing chat, calls & Meet in Tyche", "Payment held safely by Tyche"]
+                  ? ["Priced by the lawyer for your case", "Ongoing chat, calls & Meet in Tyche", "Pay securely through Tyche"]
                   : ["Usually 30–45 minutes", "Many lawyers offer it free", "Zero obligation to continue"]
                 ).map((x) => (
                   <li key={x} className="flex items-center gap-2"><span className="h-2 w-2 rounded-full bg-tangerine-400" />{x}</li>
@@ -173,7 +176,7 @@ export default function Home() {
       </section>
 
       {/* LAWYERS */}
-      <section className="section mx-auto max-w-6xl 2xl:max-w-7xl px-4 sm:px-6">
+      {featured.length > 0 && <section className="section mx-auto max-w-6xl 2xl:max-w-7xl px-4 sm:px-6">
         <div className="flex flex-wrap items-end justify-between gap-4">
           <div>
             <p className="font-script text-2xl text-tangerine-500">women-first, verified</p>
@@ -182,9 +185,9 @@ export default function Home() {
           <Link to="/lawyers" className="inline-flex items-center gap-1 py-2 font-semibold text-plum-600 transition-all hover:gap-2">See everyone <ArrowRight size={18} /></Link>
         </div>
         <div className="rail mt-6 sm:mt-8 md:grid-cols-2 md:gap-5 lg:grid-cols-3">
-          {LAWYERS.slice(0, 3).map((l) => <LawyerCard key={l.id} l={l} />)}
+          {featured.map((l) => <LawyerCard key={l.id} l={l} />)}
         </div>
-      </section>
+      </section>}
 
       {/* COMMUNITY */}
       <section className="section mx-auto max-w-6xl 2xl:max-w-7xl px-4 sm:px-6">
@@ -199,10 +202,19 @@ export default function Home() {
             <div className="flex -space-x-3">
               {["Ada", "Bisi", "Chi", "Dami", "Efe", "Funmi"].map((n, i) => <Avatar key={n} name={n} hue={[20, 285, 330, 185, 40, 260][i]} size={44} className="ring-lagoon-500" />)}
             </div>
-            <p className="mt-4 font-display text-4xl font-semibold">{COMMUNITY_MEMBERS.toLocaleString()}</p>
-            <p className="text-lagoon-50">women already inside</p>
-            <div className="mt-4 h-3 overflow-hidden rounded-full bg-white/20"><div className="h-full rounded-full bg-tangerine-400" style={{ width: `${(COMMUNITY_MEMBERS / 10000) * 100}%` }} /></div>
-            <p className="mt-2 text-sm text-lagoon-50">{(10000 - COMMUNITY_MEMBERS).toLocaleString()} spots left</p>
+            {communityCount >= 100 ? (
+              <>
+                <p className="mt-4 font-display text-4xl font-semibold">{communityCount.toLocaleString()}</p>
+                <p className="text-lagoon-50">women already inside</p>
+                <div className="mt-4 h-3 overflow-hidden rounded-full bg-white/20"><div className="h-full rounded-full bg-tangerine-400" style={{ width: `${Math.min(100, (communityCount / communityCap) * 100)}%` }} /></div>
+                <p className="mt-2 text-sm text-lagoon-50">{Math.max(0, communityCap - communityCount).toLocaleString()} spots left</p>
+              </>
+            ) : (
+              <>
+                <p className="mt-4 font-display text-3xl font-semibold">Doors are open</p>
+                <p className="mt-1 text-lagoon-50">Be one of the founding members — only {communityCap.toLocaleString()} spots, ever.</p>
+              </>
+            )}
           </div>
         </div>
       </section>

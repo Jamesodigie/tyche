@@ -2,11 +2,12 @@ import {
   Activity, BadgeCheck, Ban, CalendarHeart, Check, ChevronDown, Download, Eye, EyeOff, FileWarning, Gavel, HeartHandshake,
   LayoutDashboard, LogOut, RotateCcw, Search, Settings, ShieldCheck, Undo2, Users, Wallet, X,
 } from "lucide-react";
-import { Fragment, useMemo, useState, type ReactNode } from "react";
+import { Fragment, useEffect, useMemo, useState, type ReactNode } from "react";
 import { Link, NavLink, Navigate, Route, Routes, useNavigate } from "react-router-dom";
-import { Avatar, Badge, Button, Card, Field, Input, Select, cx } from "../components/ui";
+import { EvidenceChip } from "../components/EvidenceChip";
+import { Avatar, Badge, Button, Card, Field, Input, Notice, PasswordInput, Select, cx } from "../components/ui";
 import {
-  COMMUNITY_CAP, COMMUNITY_MEMBERS, COMMUNITY_PRICE, KIND_COPY, TYCHE_FEE, lawyerTake, naira, timeAgo, tycheTake,
+  KIND_COPY, TYCHE_FEE, naira, timeAgo,
   type Lawyer,
 } from "../lib/data";
 import { useStore } from "../lib/store";
@@ -14,6 +15,27 @@ import { useStore } from "../lib/store";
 // ---------------------------------------------------------------------------
 // helpers
 // ---------------------------------------------------------------------------
+
+/** Admin data from the store, in the shape the screens below use. */
+function useAdmin() {
+  const st = useStore();
+  const a = st.admin;
+  const accounts = a?.accounts || [];
+  const reports = a?.reports || [];
+  return {
+    ...st,
+    allAccounts: accounts,
+    lawyers: a?.lawyers || [],
+    allReports: reports,
+    allBookings: a?.bookings || [],
+    payments: a?.payments || [],
+    members: a?.members || [],
+    adminLog: a?.log || [],
+    hiddenReports: reports.filter((r) => r.hidden).map((r) => r.id),
+    suspended: accounts.filter((x) => x.suspended).map((x) => x.email),
+    isSuspended: (email: string) => !!accounts.find((x) => x.email === email)?.suspended,
+  };
+}
 
 function downloadCsv(name: string, rows: (string | number)[][]) {
   const csv = rows.map((r) => r.map((c) => `"${String(c).replace(/"/g, '""')}"`).join(",")).join("\n");
@@ -75,9 +97,48 @@ function Table({ head, children, empty, mobile }: { head: string[]; children: Re
 // ---------------------------------------------------------------------------
 
 function AdminLogin() {
-  const { adminSignIn } = useStore();
+  const { adminSignIn, mode, user, signIn, signOut } = useStore();
   const [code, setCode] = useState("");
   const [err, setErr] = useState(false);
+  const [email, setEmail] = useState("");
+  const [pw, setPw] = useState("");
+  const [msg, setMsg] = useState("");
+  const [busy, setBusy] = useState(false);
+
+  if (mode === "live")
+    return (
+      <div className="grid min-h-screen place-items-center bg-plum-900 px-4">
+        <div className="w-full max-w-sm rounded-[2rem] bg-cream p-6 shadow-2xl sm:rounded-5xl sm:p-8">
+          <img src="/tyche-logo.png" alt="Tyche" className="h-10" />
+          <p className="mt-6 font-script text-2xl text-tangerine-500">team only</p>
+          <h1 className="font-display text-3xl font-semibold text-ink">Tyche Admin</h1>
+          {user ? (
+            <div className="mt-6 space-y-4">
+              <Notice>You're signed in as <b>{user.email}</b>, which isn't an admin account.</Notice>
+              <Button className="w-full" variant="outline" onClick={() => signOut()}>Sign in with a different account</Button>
+            </div>
+          ) : (
+            <form
+              className="mt-6 space-y-4"
+              onSubmit={async (e) => {
+                e.preventDefault();
+                setBusy(true);
+                const error = await signIn(email, pw);
+                setBusy(false);
+                setMsg(error || "");
+              }}
+            >
+              <Field label="Email"><Input type="email" required value={email} onChange={(e) => setEmail(e.target.value)} autoComplete="email" /></Field>
+              <Field label="Password"><PasswordInput required value={pw} onChange={(e) => setPw(e.target.value)} autoComplete="current-password" /></Field>
+              {msg && <Notice>{msg}</Notice>}
+              <Button className="w-full" size="lg" disabled={busy}><ShieldCheck size={18} /> {busy ? "Signing in…" : "Sign in"}</Button>
+            </form>
+          )}
+          <Link to="/" className="mt-6 block text-center text-sm text-plum-500 hover:underline">Back to Tyche</Link>
+        </div>
+      </div>
+    );
+
   return (
     <div className="grid min-h-screen place-items-center bg-plum-900 px-5">
       <div className="w-full max-w-sm rounded-5xl bg-cream p-8 shadow-2xl">
@@ -86,7 +147,7 @@ function AdminLogin() {
         <h1 className="font-display text-3xl font-semibold text-ink">Tyche Admin</h1>
         <form
           className="mt-6 space-y-4"
-          onSubmit={(e) => { e.preventDefault(); setErr(!adminSignIn(code)); }}
+          onSubmit={(e) => { e.preventDefault(); setErr(!adminSignIn?.(code)); }}
         >
           <Field label="Admin passcode">
             <Input type="password" value={code} onChange={(e) => { setCode(e.target.value); setErr(false); }} autoFocus />
@@ -105,11 +166,13 @@ function AdminLogin() {
 // ---------------------------------------------------------------------------
 
 function Overview() {
-  const { allAccounts, lawyers, lawyerState, allReports, allBookings, adminLog, hiddenReports, suspended } = useStore();
+  const { allAccounts, lawyers, lawyerState, allReports, allBookings, adminLog, hiddenReports, suspended, payments, communityCount, communityCap } = useAdmin();
   const clients = allAccounts.filter((a) => a.role === "client");
   const pending = lawyers.filter((l) => lawyerState(l) === "pending");
   const approved = lawyers.filter((l) => lawyerState(l) === "approved");
-  const gmv = allBookings.reduce((n, b) => n + b.fee, 0);
+  const paid = payments.filter((p) => p.status === "success");
+  const gmv = paid.filter((p) => p.purpose === "booking").reduce((n, p) => n + p.amount, 0);
+  const tycheRev = paid.reduce((n, p) => n + p.tycheShare, 0);
 
   const days = useMemo(() => {
     const out: { label: string; n: number }[] = [];
@@ -130,9 +193,9 @@ function Overview() {
         <Stat label="Lawyers awaiting approval" value={pending.length} sub={`${approved.length} approved and live`} icon={Gavel} tone="bg-tangerine-100 text-tangerine-600" />
         <Stat label="Reports" value={allReports.length} sub={`${hiddenReports.length} hidden by moderators`} icon={FileWarning} tone="bg-blush-200 text-plum-700" />
         <Stat label="Bookings" value={allBookings.length} sub={`${allBookings.filter((b) => b.status === "upcoming").length} upcoming`} icon={CalendarHeart} tone="bg-lagoon-100 text-lagoon-600" />
-        <Stat label="Booking volume" value={naira(gmv)} sub="Total paid by clients" icon={Wallet} tone="bg-plum-100 text-plum-600" />
-        <Stat label="Tyche revenue (bookings)" value={naira(tycheTake(gmv))} sub={`${TYCHE_FEE * 100}% of booking volume`} icon={Wallet} tone="bg-tangerine-100 text-tangerine-600" />
-        <Stat label="Community members" value={COMMUNITY_MEMBERS.toLocaleString()} sub={`${(COMMUNITY_CAP - COMMUNITY_MEMBERS).toLocaleString()} of ${COMMUNITY_CAP.toLocaleString()} spots left`} icon={HeartHandshake} tone="bg-lagoon-100 text-lagoon-600" />
+        <Stat label="Booking volume" value={naira(gmv)} sub="Paid by clients for sessions" icon={Wallet} tone="bg-plum-100 text-plum-600" />
+        <Stat label="Tyche revenue" value={naira(tycheRev)} sub={`${TYCHE_FEE * 100}% of bookings + community fees`} icon={Wallet} tone="bg-tangerine-100 text-tangerine-600" />
+        <Stat label="Community members" value={communityCount.toLocaleString()} sub={`${Math.max(0, communityCap - communityCount).toLocaleString()} of ${communityCap.toLocaleString()} spots left`} icon={HeartHandshake} tone="bg-lagoon-100 text-lagoon-600" />
         <Stat label="Suspended accounts" value={suspended.length} icon={Ban} tone="bg-blush-200 text-plum-700" />
       </div>
 
@@ -201,8 +264,20 @@ function Overview() {
 // ---------------------------------------------------------------------------
 
 function LawyerRow({ l }: { l: Lawyer }) {
-  const { lawyerState, reviewLawyer, allAccounts } = useStore();
+  const { lawyerState, reviewLawyer, allAccounts, licenceUrl, mode } = useAdmin();
   const [open, setOpen] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const decide = async (d: "approved" | "rejected") => {
+    setBusy(true);
+    await reviewLawyer(l.id, d);
+    setBusy(false);
+  };
+  const viewLicence = async () => {
+    const w = window.open("", "_blank", "noopener");
+    const url = await licenceUrl(l.id);
+    if (url && w) w.location.href = url;
+    else { w?.close(); alert("No licence uploaded yet."); }
+  };
   const st = lawyerState(l);
   const acct = allAccounts.find((a) => a.lawyerId === l.id);
   return (
@@ -218,13 +293,13 @@ function LawyerRow({ l }: { l: Lawyer }) {
         </div>
         <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto">
           <button onClick={() => setOpen(!open)} className="min-h-[40px] rounded-full px-3 py-2 text-sm font-semibold text-plum-600 hover:bg-plum-50">{open ? "Hide" : "Details"}</button>
-          {st !== "approved" && <Button size="sm" variant="teal" onClick={() => reviewLawyer(l.id, "approved")}><Check size={16} /> Approve</Button>}
-          {st !== "rejected" && <Button size="sm" variant="outline" onClick={() => reviewLawyer(l.id, "rejected")}><X size={16} /> {st === "approved" ? "Revoke" : "Reject"}</Button>}
+          {st !== "approved" && <Button size="sm" variant="teal" disabled={busy} onClick={() => decide("approved")}><Check size={16} /> Approve</Button>}
+          {st !== "rejected" && <Button size="sm" variant="outline" disabled={busy} onClick={() => decide("rejected")}><X size={16} /> {st === "approved" ? "Revoke" : "Reject"}</Button>}
         </div>
       </div>
       {open && (
         <div className="mt-4 grid gap-3 rounded-3xl bg-cream p-4 text-sm sm:grid-cols-2 lg:grid-cols-4">
-          <div><p className="text-plum-400">Email</p><p className="font-medium text-ink">{acct?.email || "—"}</p></div>
+          <div><p className="text-plum-400">Email</p><p className="break-all font-medium text-ink">{acct?.email || "—"}</p></div>
           <div><p className="text-plum-400">Consultation</p><p className="font-medium text-ink">{l.consultFree ? "Free" : naira(l.consultFee)}</p></div>
           <div><p className="text-plum-400">Booking</p><p className="font-medium text-ink">{l.bookingFree ? "Free" : naira(l.bookingFee)}</p></div>
           <div><p className="text-plum-400">Availability</p><p className="font-medium text-ink">{l.days.join(", ")} · {l.from}–{l.to}</p></div>
@@ -232,7 +307,11 @@ function LawyerRow({ l }: { l: Lawyer }) {
           <div className="sm:col-span-2 lg:col-span-4 rounded-2xl bg-white p-3 text-plum-600">
             Before approving: confirm the enrolment number with the NBA / Supreme Court roll and check the uploaded call-to-bar certificate.
           </div>
-          <Link to={`/lawyers/${l.id}`} className="font-semibold text-plum-700 underline decoration-tangerine-400 underline-offset-4">Open public profile</Link>
+          <div className="flex flex-wrap gap-4 sm:col-span-2 lg:col-span-4">
+            {mode === "live" && <button onClick={viewLicence} className="font-semibold text-plum-700 underline decoration-tangerine-400 underline-offset-4">{l.hasLicence ? "View uploaded licence" : "No licence uploaded yet"}</button>}
+            {st === "approved" && <Link to={`/lawyers/${l.id}`} className="font-semibold text-plum-700 underline decoration-tangerine-400 underline-offset-4">Open public profile</Link>}
+            <span className="text-plum-500">Payouts: {l.payoutReady ? `${l.payoutBank || "bank"} ····${l.payoutLast4 || ""}` : "not set up"}</span>
+          </div>
         </div>
       )}
     </Card>
@@ -240,7 +319,7 @@ function LawyerRow({ l }: { l: Lawyer }) {
 }
 
 function Approvals() {
-  const { lawyers, lawyerState } = useStore();
+  const { lawyers, lawyerState } = useAdmin();
   const [tab, setTab] = useState<"pending" | "approved" | "rejected">("pending");
   const counts = { pending: 0, approved: 0, rejected: 0 };
   lawyers.forEach((l) => counts[lawyerState(l)]++);
@@ -268,7 +347,7 @@ function Approvals() {
 // ---------------------------------------------------------------------------
 
 function UsersView() {
-  const { allAccounts, isSuspended, setSuspended, lawyers, lawyerState } = useStore();
+  const { allAccounts, isSuspended, setSuspended, lawyers, lawyerState, user } = useAdmin();
   const [q, setQ] = useState("");
   const [role, setRole] = useState("");
   const [status, setStatus] = useState("");
@@ -311,7 +390,7 @@ function UsersView() {
                 <span>{a.state}</span>
                 <span>Joined {fmtDate(a.joinedAt)}</span>
               </div>
-              <button onClick={() => setSuspended(a.email, !susp)} className={cx("mt-3 inline-flex min-h-[40px] w-full items-center justify-center gap-1.5 rounded-full text-sm font-semibold", susp ? "bg-lagoon-50 text-lagoon-600" : "bg-blush-100 text-plum-700")}>
+              <button disabled={a.id === user?.id || a.role === "admin"} onClick={() => setSuspended(a, !susp)} className={cx("mt-3 inline-flex min-h-[40px] w-full items-center justify-center gap-1.5 rounded-full text-sm font-semibold", susp ? "bg-lagoon-50 text-lagoon-600" : "bg-blush-100 text-plum-700")}>
                 {susp ? <><Undo2 size={15} /> Restore account</> : <><Ban size={15} /> Suspend account</>}
               </button>
             </Card>
@@ -337,7 +416,7 @@ function UsersView() {
               <td className="px-5 py-3 text-plum-600">{fmtDate(a.joinedAt)}</td>
               <td className="px-5 py-3">{susp ? <Badge tone="warm">Suspended</Badge> : <Badge tone="teal">Active</Badge>}</td>
               <td className="px-5 py-3 text-right">
-                <button onClick={() => setSuspended(a.email, !susp)} className={cx("inline-flex items-center gap-1 rounded-full px-3.5 py-2 text-xs font-semibold", susp ? "bg-lagoon-50 text-lagoon-600" : "bg-blush-100 text-plum-700 hover:bg-blush-200")}>
+                <button disabled={a.id === user?.id || a.role === "admin"} onClick={() => setSuspended(a, !susp)} className={cx("inline-flex items-center gap-1 rounded-full px-3.5 py-2 text-xs font-semibold", susp ? "bg-lagoon-50 text-lagoon-600" : "bg-blush-100 text-plum-700 hover:bg-blush-200")}>
                   {susp ? <><Undo2 size={13} /> Restore</> : <><Ban size={13} /> Suspend</>}
                 </button>
               </td>
@@ -355,13 +434,13 @@ function UsersView() {
 // ---------------------------------------------------------------------------
 
 function ReportsView() {
-  const { allReports, hiddenReports, setReportHidden, bids } = useStore();
+  const { allReports, hiddenReports, setReportHidden } = useAdmin();
   const [open, setOpen] = useState<string | null>(null);
   return (
     <>
       <SectionTitle title="Reports" sub="Hide a report to remove it from the lawyer case board (e.g. spam or unsafe content). The person who filed it can still see it." />
       <Table
-        head={["Report", "Type", "Where", "Evidence", "Offers", "Visibility", ""]}
+        head={["Report", "Type", "Where", "Evidence", "Visibility", ""]}
         empty={!allReports.length}
         mobile={allReports.map((r) => {
           const hidden = hiddenReports.includes(r.id);
@@ -375,8 +454,13 @@ function ReportsView() {
                 {!r.shareWithLawyers ? <Badge tone="plum">Private</Badge> : hidden ? <Badge tone="warm">Hidden</Badge> : <Badge tone="teal">Live</Badge>}
               </div>
               <p className="mt-2 text-sm font-medium text-plum-700">{r.category}</p>
-              {open === r.id && <p className="mt-2 rounded-2xl bg-cream p-3 text-sm text-ink">{r.description}</p>}
-              <p className="mt-2 text-xs text-plum-500">{r.evidence.length} evidence file(s) · {bids.filter((b) => b.reportId === r.id).length} offer(s)</p>
+              {open === r.id && (
+                <div className="mt-2 rounded-2xl bg-cream p-3 text-sm text-ink">
+                  <p>{r.description}</p>
+                  {r.evidence.length > 0 && <div className="mt-2 flex flex-wrap gap-2">{r.evidence.map((e) => <EvidenceChip key={e.id} e={e} />)}</div>}
+                </div>
+              )}
+              <p className="mt-2 text-xs text-plum-500">{r.evidence.length} evidence file(s)</p>
               <div className="mt-3 grid grid-cols-2 gap-2">
                 <button onClick={() => setOpen(open === r.id ? null : r.id)} className="min-h-[40px] rounded-full bg-plum-50 text-sm font-semibold text-plum-700">{open === r.id ? "Close" : "Read"}</button>
                 {r.shareWithLawyers ? (
@@ -398,7 +482,6 @@ function ReportsView() {
                 <td className="max-w-[220px] px-5 py-3 text-plum-700"><span className="line-clamp-2">{r.category}</span></td>
                 <td className="px-5 py-3 text-plum-600">{r.setting}<br /><span className="text-xs">{r.state}</span></td>
                 <td className="px-5 py-3 text-plum-600">{r.evidence.length}</td>
-                <td className="px-5 py-3 text-plum-600">{bids.filter((b) => b.reportId === r.id).length}</td>
                 <td className="px-5 py-3">{!r.shareWithLawyers ? <Badge tone="plum">Private</Badge> : hidden ? <Badge tone="warm">Hidden</Badge> : <Badge tone="teal">On case board</Badge>}</td>
                 <td className="whitespace-nowrap px-5 py-3 text-right">
                   <button onClick={() => setOpen(open === r.id ? null : r.id)} className="rounded-full px-3.5 py-2 text-xs font-semibold text-plum-600 hover:bg-plum-50">{open === r.id ? "Close" : "Read"}</button>
@@ -411,9 +494,10 @@ function ReportsView() {
               </tr>
               {open === r.id && (
                 <tr>
-                  <td colSpan={7} className="bg-cream px-5 py-4 text-sm">
+                  <td colSpan={6} className="bg-cream px-5 py-4 text-sm">
                     <p className="text-ink">{r.description}</p>
-                    <p className="mt-2 text-plum-500">Wants: {r.wants.join(", ") || "—"} · Formal report: {r.authorities.join(", ") || "not requested"} · Evidence: {r.evidence.map((e) => e.name).join(", ") || "none"}</p>
+                    <p className="mt-2 text-plum-500">Wants: {r.wants.join(", ") || "—"} · Formal report: {r.authorities.join(", ") || "not requested"}</p>
+                    {r.evidence.length > 0 && <div className="mt-3 flex flex-wrap gap-2">{r.evidence.map((e) => <EvidenceChip key={e.id} e={e} />)}</div>}
                   </td>
                 </tr>
               )}
@@ -430,57 +514,72 @@ function ReportsView() {
 // ---------------------------------------------------------------------------
 
 function Payments() {
-  const { allBookings, lawyers } = useStore();
+  const { allBookings, lawyers, payments } = useAdmin();
   const [kind, setKind] = useState("");
+  const payByBooking = new Map(payments.filter((p) => p.bookingId).map((p) => [p.bookingId!, p]));
   const list = allBookings.filter((b) => !kind || b.kind === kind);
-  const gross = list.reduce((n, b) => n + b.fee, 0);
-  const name = (id: string) => lawyers.find((l) => l.id === id)?.name || id;
+  const ok = payments.filter((p) => p.status === "success");
+  const sessions = ok.filter((p) => p.purpose === "booking");
+  const gross = sessions.reduce((n, p) => n + p.amount, 0);
+  const tyche = sessions.reduce((n, p) => n + p.tycheShare, 0);
+  const lawyersShare = sessions.reduce((n, p) => n + p.lawyerShare, 0);
+  const community = ok.filter((p) => p.purpose === "community").reduce((n, p) => n + p.amount, 0);
+  const name = (id: string) => lawyers.find((l) => l.id === id)?.name || "—";
+  const statusOf = (b: (typeof list)[number]) =>
+    b.status === "pending_payment" ? "Awaiting payment" : b.status === "cancelled" ? "Cancelled" : b.status === "done" ? "Completed" : b.fee ? "Paid · upcoming" : "Free · upcoming";
   return (
     <>
-      <SectionTitle title="Bookings & payments" sub="Every consultation and booking paid through Tyche.">
+      <SectionTitle title="Bookings & payments" sub="Every session booked through Tyche, with the Paystack split.">
         <Select value={kind} onChange={(e) => setKind(e.target.value)} className="!w-44 py-2"><option value="">All types</option><option value="consultation">Consultations</option><option value="booking">Bookings</option></Select>
-        <Button variant="outline" size="sm" onClick={() => downloadCsv("tyche-payments.csv", [["Ref", "Date", "Client", "Lawyer", "Type", "Paid", "Tyche", "Lawyer payout", "Status"], ...list.map((b) => [b.id, b.date, b.clientName, name(b.lawyerId), b.kind, b.fee, tycheTake(b.fee), lawyerTake(b.fee), b.status])])}>
+        <Button variant="outline" size="sm" onClick={() => downloadCsv("tyche-payments.csv", [["Booking", "Date", "Client", "Lawyer", "Type", "Fee", "Tyche", "Lawyer share", "Status", "Paystack ref"], ...list.map((b) => { const p = payByBooking.get(b.id); return [b.id, b.date, b.clientName, name(b.lawyerId), b.kind, b.fee, p?.tycheShare ?? 0, p?.lawyerShare ?? 0, statusOf(b), p?.reference || ""]; })])}>
           <Download size={16} /> Export CSV
         </Button>
       </SectionTitle>
-      <div className="mb-5 grid grid-cols-1 gap-3 min-[420px]:grid-cols-3 sm:gap-4">
-        <Stat label="Clients paid" value={naira(gross)} icon={Wallet} tone="bg-plum-100 text-plum-600" />
-        <Stat label={`Tyche (${TYCHE_FEE * 100}%)`} value={naira(tycheTake(gross))} icon={Wallet} tone="bg-tangerine-100 text-tangerine-600" />
-        <Stat label="Owed to lawyers" value={naira(lawyerTake(gross))} icon={Wallet} tone="bg-lagoon-100 text-lagoon-600" />
+      <div className="mb-5 grid grid-cols-2 gap-3 sm:gap-4 xl:grid-cols-4">
+        <Stat label="Clients paid (sessions)" value={naira(gross)} icon={Wallet} tone="bg-plum-100 text-plum-600" />
+        <Stat label={`Tyche share (${TYCHE_FEE * 100}%)`} value={naira(tyche)} icon={Wallet} tone="bg-tangerine-100 text-tangerine-600" />
+        <Stat label="Lawyers' share" value={naira(lawyersShare)} sub="Sent by Paystack to lawyers with payout accounts" icon={Wallet} tone="bg-lagoon-100 text-lagoon-600" />
+        <Stat label="Community fees" value={naira(community)} icon={HeartHandshake} tone="bg-blush-200 text-plum-700" />
       </div>
       <Table
-        head={["Ref", "Date", "Client", "Lawyer", "Type", "Paid", "Tyche", "Lawyer", "Status"]}
+        head={["Booking", "Date", "Client", "Lawyer", "Type", "Fee", "Tyche", "Lawyer", "Status"]}
         empty={!list.length}
-        mobile={list.map((b) => (
-          <Card key={b.id} className="p-4">
-            <div className="flex items-start justify-between gap-2">
-              <div className="min-w-0">
-                <p className="truncate font-semibold text-ink">{b.clientName} → {name(b.lawyerId)}</p>
-                <p className="text-xs text-plum-400">{KIND_COPY[b.kind].title} · {new Date(b.date).toLocaleDateString("en-GB", { day: "numeric", month: "short" })} · <span className="font-mono">{b.id}</span></p>
+        mobile={list.map((b) => {
+          const p = payByBooking.get(b.id);
+          return (
+            <Card key={b.id} className="p-4">
+              <div className="flex items-start justify-between gap-2">
+                <div className="min-w-0">
+                  <p className="truncate font-semibold text-ink">{b.clientName} → {name(b.lawyerId)}</p>
+                  <p className="text-xs text-plum-400">{KIND_COPY[b.kind].title} · {new Date(b.date).toLocaleDateString("en-GB", { day: "numeric", month: "short" })} · <span className="font-mono">{b.id}</span></p>
+                </div>
+                <Badge tone={b.status === "pending_payment" ? "warm" : b.status === "done" ? "plum" : "teal"}>{statusOf(b)}</Badge>
               </div>
-              <Badge tone={b.status === "done" ? "teal" : "warm"}>{b.status === "done" ? "Completed" : "Upcoming"}</Badge>
-            </div>
-            <div className="mt-3 grid grid-cols-3 gap-1.5 text-center text-xs [&>*]:min-w-0">
-              <div className="rounded-2xl bg-cream p-2"><p className="text-plum-400">Paid</p><p className="truncate text-[13px] font-semibold text-ink">{b.fee ? naira(b.fee) : "Free"}</p></div>
-              <div className="rounded-2xl bg-tangerine-50 p-2"><p className="text-plum-400">Tyche</p><p className="truncate text-[13px] font-semibold text-tangerine-600">{naira(tycheTake(b.fee))}</p></div>
-              <div className="rounded-2xl bg-lagoon-50 p-2"><p className="text-plum-400">Lawyer</p><p className="truncate text-[13px] font-semibold text-lagoon-600">{naira(lawyerTake(b.fee))}</p></div>
-            </div>
-          </Card>
-        ))}
+              <div className="mt-3 grid grid-cols-3 gap-1.5 text-center text-xs [&>*]:min-w-0">
+                <div className="rounded-2xl bg-cream p-2"><p className="text-plum-400">Fee</p><p className="truncate text-[13px] font-semibold text-ink">{b.fee ? naira(b.fee) : "Free"}</p></div>
+                <div className="rounded-2xl bg-tangerine-50 p-2"><p className="text-plum-400">Tyche</p><p className="truncate text-[13px] font-semibold text-tangerine-600">{naira(p?.tycheShare ?? 0)}</p></div>
+                <div className="rounded-2xl bg-lagoon-50 p-2"><p className="text-plum-400">Lawyer</p><p className="truncate text-[13px] font-semibold text-lagoon-600">{naira(p?.lawyerShare ?? 0)}</p></div>
+              </div>
+            </Card>
+          );
+        })}
       >
-        {list.map((b) => (
-          <tr key={b.id}>
-            <td className="px-5 py-3 font-mono text-xs text-plum-500">{b.id}</td>
-            <td className="px-5 py-3 text-plum-600">{new Date(b.date).toLocaleDateString("en-GB", { day: "numeric", month: "short" })}</td>
-            <td className="px-5 py-3 font-medium text-ink">{b.clientName}</td>
-            <td className="px-5 py-3 text-plum-700">{name(b.lawyerId)}</td>
-            <td className="px-5 py-3"><Badge tone="blush">{KIND_COPY[b.kind].title}</Badge></td>
-            <td className="px-5 py-3 font-semibold text-ink">{b.fee ? naira(b.fee) : "Free"}</td>
-            <td className="px-5 py-3 text-tangerine-600">{naira(tycheTake(b.fee))}</td>
-            <td className="px-5 py-3 text-lagoon-600">{naira(lawyerTake(b.fee))}</td>
-            <td className="px-5 py-3"><Badge tone={b.status === "done" ? "teal" : "warm"}>{b.status === "done" ? "Completed" : "Upcoming"}</Badge></td>
-          </tr>
-        ))}
+        {list.map((b) => {
+          const p = payByBooking.get(b.id);
+          return (
+            <tr key={b.id}>
+              <td className="px-5 py-3 font-mono text-xs text-plum-500">{b.id}</td>
+              <td className="px-5 py-3 text-plum-600">{new Date(b.date).toLocaleDateString("en-GB", { day: "numeric", month: "short" })}</td>
+              <td className="px-5 py-3 font-medium text-ink">{b.clientName}</td>
+              <td className="px-5 py-3 text-plum-700">{name(b.lawyerId)}</td>
+              <td className="px-5 py-3"><Badge tone="blush">{KIND_COPY[b.kind].title}</Badge></td>
+              <td className="px-5 py-3 font-semibold text-ink">{b.fee ? naira(b.fee) : "Free"}</td>
+              <td className="px-5 py-3 text-tangerine-600">{naira(p?.tycheShare ?? 0)}</td>
+              <td className="px-5 py-3 text-lagoon-600">{naira(p?.lawyerShare ?? 0)}</td>
+              <td className="px-5 py-3"><Badge tone={b.status === "pending_payment" ? "warm" : b.status === "done" ? "plum" : "teal"}>{statusOf(b)}</Badge></td>
+            </tr>
+          );
+        })}
       </Table>
     </>
   );
@@ -491,31 +590,41 @@ function Payments() {
 // ---------------------------------------------------------------------------
 
 function CommunityView() {
-  const { community } = useStore();
-  const pct = (COMMUNITY_MEMBERS / COMMUNITY_CAP) * 100;
+  const { members, communityCount, communityCap, communityPrice } = useAdmin();
+  const pct = Math.min(100, (communityCount / Math.max(1, communityCap)) * 100);
+  const wa = (phone: string) => `https://wa.me/${phone.replace(/\D/g, "").replace(/^0/, "234")}`;
   return (
     <>
-      <SectionTitle title="Community" sub="The paid WhatsApp circle." />
+      <SectionTitle title="Community" sub="The paid WhatsApp circle. Add new members to the group from here.">
+        <Button variant="outline" size="sm" onClick={() => downloadCsv("tyche-community.csv", [["Name", "WhatsApp", "State", "Status", "Joined", "Expires"], ...members.map((m) => [m.name, m.phone, m.city, m.status || "", m.joinedAt ? fmtDate(m.joinedAt) : "", m.expiresAt ? fmtDate(m.expiresAt) : ""])])}>
+          <Download size={16} /> Export CSV
+        </Button>
+      </SectionTitle>
       <div className="grid grid-cols-1 gap-3 min-[420px]:grid-cols-3 sm:gap-4">
-        <Stat label="Members" value={COMMUNITY_MEMBERS.toLocaleString()} sub={`${pct.toFixed(1)}% of capacity`} icon={HeartHandshake} tone="bg-lagoon-100 text-lagoon-600" />
-        <Stat label="Spots left" value={(COMMUNITY_CAP - COMMUNITY_MEMBERS).toLocaleString()} sub={`Cap ${COMMUNITY_CAP.toLocaleString()}`} icon={Users} tone="bg-plum-100 text-plum-600" />
-        <Stat label="Yearly revenue (est.)" value={naira(COMMUNITY_MEMBERS * COMMUNITY_PRICE)} sub={`${naira(COMMUNITY_PRICE)} × members`} icon={Wallet} tone="bg-tangerine-100 text-tangerine-600" />
+        <Stat label="Active members" value={communityCount.toLocaleString()} sub={`${pct.toFixed(1)}% of capacity`} icon={HeartHandshake} tone="bg-lagoon-100 text-lagoon-600" />
+        <Stat label="Spots left" value={Math.max(0, communityCap - communityCount).toLocaleString()} sub={`Cap ${communityCap.toLocaleString()}`} icon={Users} tone="bg-plum-100 text-plum-600" />
+        <Stat label="Yearly revenue (est.)" value={naira(communityCount * communityPrice)} sub={`${naira(communityPrice)} × members`} icon={Wallet} tone="bg-tangerine-100 text-tangerine-600" />
       </div>
-      <Card className="mt-5 p-6">
+      <Card className="mt-5 p-5 sm:p-6">
         <p className="font-semibold text-ink">Capacity</p>
         <div className="mt-3 h-4 overflow-hidden rounded-full bg-plum-50"><div className="h-full rounded-full bg-gradient-to-r from-lagoon-500 to-tangerine-400" style={{ width: `${pct}%` }} /></div>
         {pct > 90 && <p className="mt-3 text-sm text-tangerine-600">Almost full — consider opening a waitlist or a second circle.</p>}
       </Card>
-      <Card className="mt-5 p-6">
-        <p className="font-semibold text-ink">Recent joins</p>
-        {community ? (
-          <div className="mt-3 flex items-center gap-3 rounded-3xl bg-cream p-3 text-sm">
-            <Avatar name={community.name} hue={185} size={40} className="ring-2" />
-            <span className="flex-1"><b className="text-ink">{community.name}</b> · {community.phone} · {community.city}</span>
-            <span className="text-plum-400">{timeAgo(community.joinedAt)} · {community.ref}</span>
+      <Card className="mt-5 p-5 sm:p-6">
+        <p className="font-semibold text-ink">Members</p>
+        {members.length ? (
+          <div className="mt-3 space-y-2">
+            {members.map((m) => (
+              <div key={m.userId} className="flex flex-wrap items-center gap-3 rounded-3xl bg-cream p-3 text-sm">
+                <Avatar name={m.name} hue={185} size={40} className="ring-2" />
+                <span className="min-w-0 flex-1"><b className="text-ink">{m.name}</b> · {m.phone}{m.city ? ` · ${m.city}` : ""}</span>
+                <Badge tone={m.status === "active" ? "teal" : "warm"}>{m.status === "active" ? `Active${m.expiresAt ? ` · until ${fmtDate(m.expiresAt)}` : ""}` : "Unpaid"}</Badge>
+                {m.status === "active" && <a href={wa(m.phone)} target="_blank" rel="noreferrer" className="rounded-full bg-lagoon-500 px-3.5 py-2 text-xs font-semibold text-white">WhatsApp</a>}
+              </div>
+            ))}
           </div>
         ) : (
-          <p className="mt-2 text-sm text-plum-400">New members will appear here with their WhatsApp number so you can send the invite.</p>
+          <p className="mt-2 text-sm text-plum-400">New members will appear here with their WhatsApp number.</p>
         )}
       </Card>
     </>
@@ -527,7 +636,9 @@ function CommunityView() {
 // ---------------------------------------------------------------------------
 
 function SettingsView() {
-  const { reset, adminSignOut } = useStore();
+  const { reset, adminSignOut, signOut, mode, communityPrice, communityCap, refresh, loadAdmin } = useAdmin();
+  const navigate = useNavigate();
+  const leave = async () => { if (adminSignOut) adminSignOut(); else await signOut(); navigate("/"); };
   const [confirm, setConfirm] = useState(false);
   return (
     <>
@@ -538,28 +649,46 @@ function SettingsView() {
           <dl className="mt-4 space-y-3 text-sm">
             {[
               ["Tyche service fee", `${TYCHE_FEE * 100}% of every consultation and booking`],
-              ["Lawyer payout", `${100 - TYCHE_FEE * 100}% after each session`],
-              ["Community price", `${naira(COMMUNITY_PRICE)} per year`],
-              ["Community cap", `${COMMUNITY_CAP.toLocaleString()} members`],
+              ["Lawyer payout", `${100 - TYCHE_FEE * 100}%, split automatically by Paystack`],
+              ["Community price", `${naira(communityPrice)} per year`],
+              ["Community cap", `${communityCap.toLocaleString()} members`],
             ].map(([k, v]) => (
               <div key={k} className="flex justify-between gap-4 rounded-2xl bg-cream px-4 py-3"><dt className="text-plum-500">{k}</dt><dd className="text-right font-semibold text-ink">{v}</dd></div>
             ))}
           </dl>
-          <p className="mt-3 text-xs text-plum-400">Change these in <code>src/lib/data.ts</code> for now; they'll move to the database with the backend.</p>
+          <p className="mt-3 text-xs text-plum-400">
+            The {TYCHE_FEE * 100}% fee is set in code (<code>TYCHE_FEE</code> and <code>TYCHE_PERCENT</code>). Community price and cap come from the
+            <code> COMMUNITY_PRICE</code> / <code>COMMUNITY_CAP</code> settings in Vercel.
+          </p>
         </Card>
         <Card className="p-6">
+          {mode === "live" ? (
+            <>
+              <p className="font-display text-xl font-semibold text-ink">Make someone an admin</p>
+              <p className="mt-2 text-sm text-plum-600">
+                For safety this is done in Supabase → SQL Editor. Ask them to sign up first, then run:
+              </p>
+              <pre className="mt-3 overflow-x-auto rounded-2xl bg-ink p-3 text-xs text-plum-100">update public.profiles set role = 'admin' where email = 'them@example.com';</pre>
+              <Button className="mt-4" variant="outline" size="sm" onClick={() => { refresh(); loadAdmin(); }}><RotateCcw size={16} /> Refresh data</Button>
+              <hr className="my-6 border-plum-100" />
+              <Button variant="soft" size="sm" onClick={leave}><LogOut size={16} /> Sign out</Button>
+            </>
+          ) : (
+          <>
           <p className="font-display text-xl font-semibold text-ink">Demo data</p>
           <p className="mt-2 text-sm text-plum-600">Clears everything created on this browser — sign-ups, reports, bookings, approvals and suspensions.</p>
           {confirm ? (
             <div className="mt-4 flex gap-2">
-              <Button variant="warm" size="sm" onClick={() => { reset(); setConfirm(false); }}><RotateCcw size={16} /> Yes, reset</Button>
+              <Button variant="warm" size="sm" onClick={() => { reset?.(); setConfirm(false); }}><RotateCcw size={16} /> Yes, reset</Button>
               <Button variant="ghost" size="sm" onClick={() => setConfirm(false)}>Cancel</Button>
             </div>
           ) : (
             <Button className="mt-4" variant="outline" size="sm" onClick={() => setConfirm(true)}><RotateCcw size={16} /> Reset demo data</Button>
           )}
           <hr className="my-6 border-plum-100" />
-          <Button variant="soft" size="sm" onClick={adminSignOut}><LogOut size={16} /> Sign out of admin</Button>
+          <Button variant="soft" size="sm" onClick={leave}><LogOut size={16} /> Sign out of admin</Button>
+          </>
+          )}
         </Card>
       </div>
     </>
@@ -571,9 +700,15 @@ function SettingsView() {
 // ---------------------------------------------------------------------------
 
 export default function Admin() {
-  const { admin, lawyers, lawyerState, adminSignOut } = useStore();
+  const { admin, lawyers, lawyerState, adminSignOut, signOut, isAdmin, loadAdmin, ready } = useAdmin();
   const navigate = useNavigate();
-  if (!admin) return <AdminLogin />;
+  useEffect(() => {
+    if (isAdmin) loadAdmin();
+  }, [isAdmin, loadAdmin]);
+  if (!ready) return <div className="grid min-h-screen place-items-center bg-plum-900 text-plum-200">Loading…</div>;
+  if (!isAdmin) return <AdminLogin />;
+  if (!admin) return <div className="grid min-h-screen place-items-center bg-cream text-plum-400">Loading admin data…</div>;
+  const leave = async () => { if (adminSignOut) adminSignOut(); else await signOut(); navigate("/"); };
   const pending = lawyers.filter((l) => lawyerState(l) === "pending").length;
   const nav = [
     { to: "/admin", label: "Overview", icon: LayoutDashboard, end: true },
@@ -592,7 +727,7 @@ export default function Admin() {
             <img src="/tyche-logo.png" alt="Tyche" className="h-8" />
             <span className="rounded-full bg-plum-600 px-2 py-0.5 text-[11px] font-bold uppercase tracking-wider text-white">Admin</span>
           </Link>
-          <button onClick={() => { adminSignOut(); navigate("/"); }} className="grid h-10 w-10 place-items-center rounded-full text-plum-500 hover:bg-plum-50 lg:hidden" aria-label="Sign out"><LogOut size={18} /></button>
+          <button onClick={leave} className="grid h-10 w-10 place-items-center rounded-full text-plum-500 hover:bg-plum-50 lg:hidden" aria-label="Sign out"><LogOut size={18} /></button>
         </div>
         <nav className="no-scrollbar flex gap-1 overflow-x-auto px-3 pb-3 lg:flex-col lg:px-4">
           {nav.map((n) => (
@@ -609,7 +744,7 @@ export default function Admin() {
         </nav>
         <div className="hidden px-4 lg:absolute lg:bottom-6 lg:block lg:w-full">
           <Link to="/" className="block rounded-2xl px-4 py-2.5 text-sm text-plum-500 hover:bg-plum-50">← Back to site</Link>
-          <button onClick={() => { adminSignOut(); navigate("/"); }} className="flex w-full items-center gap-2 rounded-2xl px-4 py-2.5 text-sm text-plum-500 hover:bg-plum-50"><LogOut size={16} /> Sign out</button>
+          <button onClick={leave} className="flex w-full items-center gap-2 rounded-2xl px-4 py-2.5 text-sm text-plum-500 hover:bg-plum-50"><LogOut size={16} /> Sign out</button>
         </div>
       </aside>
       <main className="mx-auto w-full min-w-0 max-w-7xl px-4 pb-16 pt-5 sm:px-6 sm:pt-8 lg:px-10">

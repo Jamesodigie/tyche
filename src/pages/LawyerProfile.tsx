@@ -13,8 +13,9 @@ const REVIEWS = [
 
 export default function LawyerProfile() {
   const { id } = useParams();
-  const { lawyers } = useStore();
-  const l = lawyers.find((x) => x.id === id);
+  const { findLawyer, mode, ready } = useStore();
+  const l = findLawyer(id);
+  if (!l && !ready) return <div className="grid min-h-[50vh] place-items-center text-plum-400">Loading…</div>;
   if (!l)
     return <div className="mx-auto max-w-xl px-4 sm:px-6 py-12 sm:py-20"><Empty icon={<MessageCircleHeart />} title="We couldn't find that lawyer" action={<Button to="/lawyers">See all lawyers</Button>} /></div>;
 
@@ -36,7 +37,11 @@ export default function LawyerProfile() {
                   <p className="mt-1 text-plum-600">{l.title} · Called to bar {l.yearCalled}</p>
                   <div className="mt-3 flex flex-wrap justify-center gap-x-4 gap-y-1.5 text-sm text-plum-600 sm:justify-start">
                     <span className="flex items-center gap-1"><MapPin size={15} /> {l.city}, {l.state}</span>
-                    <span className="flex items-center gap-1"><Star size={15} className="fill-tangerine-400 text-tangerine-400" /> <b className="text-ink">{l.rating.toFixed(1)}</b> ({l.reviews} reviews)</span>
+                    {l.reviews > 0 ? (
+                      <span className="flex items-center gap-1"><Star size={15} className="fill-tangerine-400 text-tangerine-400" /> <b className="text-ink">{l.rating.toFixed(1)}</b> ({l.reviews} reviews)</span>
+                    ) : (
+                      <span className="flex items-center gap-1"><Star size={15} className="text-tangerine-400" /> New on Tyche</span>
+                    )}
                     <span className="flex items-center gap-1"><Clock size={15} /> Replies {l.responds}</span>
                     <span className="flex items-center gap-1"><Globe2 size={15} /> {l.languages.join(", ")}</span>
                   </div>
@@ -71,7 +76,7 @@ export default function LawyerProfile() {
               </div>
             </Card>
 
-            <Card className="p-6 sm:p-8">
+            {mode === "preview" && <Card className="p-6 sm:p-8">
               <h2 className="font-display text-2xl font-semibold text-ink">What women say</h2>
               <div className="mt-5 grid gap-4 md:grid-cols-3">
                 {REVIEWS.map((r) => (
@@ -82,7 +87,7 @@ export default function LawyerProfile() {
                   </div>
                 ))}
               </div>
-            </Card>
+            </Card>}
           </div>
 
           <aside className="space-y-4 lg:sticky lg:top-24 lg:self-start">

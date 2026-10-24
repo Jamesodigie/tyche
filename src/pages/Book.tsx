@@ -1,20 +1,21 @@
 import { ArrowLeft, ArrowRight, CalendarCheck2, CheckCircle2, CreditCard, Lock, MessageCircleHeart, ShieldCheck } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { channelIcon } from "../components/LawyerCard";
-import { Avatar, Blobs, Button, Card, Empty, Field, Input, Stepper, Textarea, cx } from "../components/ui";
+import { AccountForm } from "../components/AccountForm";
+import { Avatar, Blobs, Button, Card, Empty, Field, Notice, Stepper, Textarea, cx } from "../components/ui";
 import {
-  CHANNEL_LABEL, KIND_COPY, naira, nextDates, timeSlots, uid,
-  type Booking, type Channel, type SessionKind,
+  CHANNEL_LABEL, KIND_COPY, naira, nextDates, timeSlots,
+  type Channel, type SessionKind,
 } from "../lib/data";
 import { useStore } from "../lib/store";
 
 export default function Book() {
   const { id } = useParams();
   const [params] = useSearchParams();
-  const { lawyers, user, signIn, addBooking, sendMessage, bids, setBidStatus, reports } = useStore();
+  const { findLawyer, user, book, bids, reports, takenSlots, ready } = useStore();
   const navigate = useNavigate();
-  const l = lawyers.find((x) => x.id === id);
+  const l = findLawyer(id);
   const bid = bids.find((b) => b.id === params.get("bid"));
 
   const [kind, setKind] = useState<SessionKind>(bid?.kind || (params.get("kind") as SessionKind) || "consultation");
@@ -23,15 +24,20 @@ export default function Book() {
   const [time, setTime] = useState("");
   const [channel, setChannel] = useState<Channel>(l?.channels[0] || "call");
   const [note, setNote] = useState("");
-  const [acct, setAcct] = useState({ name: "", contact: "", password: "" });
   const [reportId, setReportId] = useState(bid?.reportId || "");
   const [paying, setPaying] = useState(false);
-  const [booking, setBooking] = useState<Booking | null>(null);
+  const [booking, setBooking] = useState<{ id: string } | null>(null);
+  const [err, setErr] = useState("");
+  const [taken, setTaken] = useState<Set<string>>(new Set());
+  useEffect(() => {
+    if (l?.id) takenSlots(l.id).then(setTaken).catch(() => {});
+  }, [l?.id, takenSlots]);
 
   const dates = useMemo(() => (l ? nextDates(l.days, 10) : []), [l]);
   const slots = useMemo(() => (l ? timeSlots(l.from, l.to, l.sessionMins) : []), [l]);
   const myReports = reports;
 
+  if (!l && !ready) return <div className="grid min-h-[50vh] place-items-center text-plum-400">Loading…</div>;
   if (!l) return <div className="mx-auto max-w-xl px-4 sm:px-6 py-12 sm:py-20"><Empty icon={<MessageCircleHeart />} title="Lawyer not found" action={<Button to="/lawyers">Browse lawyers</Button>} /></div>;
 
   if (!l.verified)
@@ -41,31 +47,29 @@ export default function Book() {
   const STEPS = ["What you need", "Pick a time", "About you", fee ? "Pay" : "Confirm"];
   const dateLabel = dates.find((d) => d.iso === date);
 
-  const valid = [true, !!date && !!time, user ? true : acct.name.trim() && acct.contact.trim() && acct.password.length >= 6, true][step];
+  const valid = [true, !!date && !!time, !!user, true][step];
 
-  const next = () => {
-    if (step === 2 && !user) signIn({ name: acct.name.trim(), email: acct.contact, role: "client" });
-    setStep(step + 1);
-  };
+  const next = () => setStep(step + 1);
 
-  const confirm = () => {
+  const confirm = async () => {
     setPaying(true);
-    setTimeout(() => {
-      const b: Booking = {
-        id: uid("BK-"),
-        lawyerId: l.id,
-        clientName: user?.name || acct.name,
-        kind, date, time, channel, fee,
-        status: "upcoming",
-        reportId: reportId || undefined,
-        createdAt: new Date().toISOString(),
-      };
-      addBooking(b);
-      if (note.trim()) sendMessage({ threadId: b.id, from: "client", text: note.trim() });
-      if (bid) setBidStatus(bid.id, "accepted");
-      setBooking(b);
-      setPaying(false);
-    }, fee ? 1600 : 600);
+    setErr("");
+    const out = await book({ lawyerId: l.id, kind, date, time, channel, note: note.trim() || undefined, reportId: reportId || undefined, bidId: bid?.id });
+    if (out.payUrl) {
+      window.location.assign(out.payUrl); // Paystack checkout → back to /pay/callback
+      return;
+    }
+    setPaying(false);
+    if (out.error) {
+      setErr(out.error);
+      if (/slot|booked that time/i.test(out.error)) {
+        setTime("");
+        setStep(1);
+        takenSlots(l.id).then(setTaken).catch(() => {});
+      }
+      return;
+    }
+    if (out.bookingId) setBooking({ id: out.bookingId });
   };
 
   if (booking)
@@ -87,9 +91,9 @@ export default function Book() {
             <div className="mt-5 grid grid-cols-3 gap-2 text-center text-sm">
               <div className="rounded-2xl bg-cream p-3"><p className="text-plum-400">Date</p><p className="font-semibold text-ink">{dateLabel?.day} {dateLabel?.label}</p></div>
               <div className="rounded-2xl bg-cream p-3"><p className="text-plum-400">Time</p><p className="font-semibold text-ink">{time}</p></div>
-              <div className="rounded-2xl bg-cream p-3"><p className="text-plum-400">Paid</p><p className="font-semibold text-ink">{fee ? naira(fee) : "Free"}</p></div>
+              <div className="rounded-2xl bg-cream p-3"><p className="text-plum-400">Fee</p><p className="font-semibold text-ink">{fee ? naira(fee) : "Free"}</p></div>
             </div>
-            <p className="mt-4 text-sm text-plum-600">Ref: {booking.id}. We'll remind you an hour before. You can message {l.name.split(" ")[0]} anytime before then.</p>
+            <p className="mt-4 text-sm text-plum-600">Ref: {booking.id}. You can message {l.name.split(" ")[0]} anytime before then.</p>
           </Card>
           <div className="mt-6 flex flex-col justify-center gap-3 sm:flex-row">
             <Button onClick={() => navigate(`/messages/${booking.id}`)}><MessageCircleHeart size={18} /> Message {l.name.split(" ")[0]}</Button>
@@ -142,9 +146,9 @@ export default function Book() {
                   <p className="mb-3 text-sm font-semibold text-ink">Pick a time</p>
                   <div className="flex flex-wrap gap-2">
                     {slots.map((s, i) => {
-                      const taken = (i * 7 + (date.charCodeAt(9) || 0)) % 5 === 0;
+                      const isTaken = taken.has(`${date}|${s}`);
                       return (
-                        <button key={s} disabled={taken || !date} onClick={() => setTime(s)} className={cx("rounded-full border-2 px-4 py-2 text-sm font-medium transition disabled:cursor-not-allowed disabled:opacity-40", time === s ? "border-tangerine-500 bg-tangerine-500 text-white" : "border-plum-100 bg-white text-ink hover:border-plum-300", taken && "line-through")}>
+                        <button key={s} disabled={isTaken || !date} onClick={() => setTime(s)} className={cx("rounded-full border-2 px-4 py-2 text-sm font-medium transition disabled:cursor-not-allowed disabled:opacity-40", time === s ? "border-tangerine-500 bg-tangerine-500 text-white" : "border-plum-100 bg-white text-ink hover:border-plum-300", isTaken && "line-through")}>
                           {s}
                         </button>
                       );
@@ -173,14 +177,10 @@ export default function Book() {
             {step === 2 && (
               <div className="space-y-5">
                 {!user ? (
-                  <>
-                    <p className="rounded-3xl bg-plum-50 p-4 text-sm text-plum-700">Create your private Tyche account so your booking, chats and receipts stay safe in one place. <Link to={`/signin?next=/book/${l.id}?kind=${kind}`} className="font-semibold underline">Already have one?</Link></p>
-                    <div className="grid gap-4 sm:grid-cols-2">
-                      <Field label="Your name or nickname"><Input value={acct.name} onChange={(e) => setAcct({ ...acct, name: e.target.value })} placeholder="e.g. Tomi" /></Field>
-                      <Field label="Email or phone"><Input value={acct.contact} onChange={(e) => setAcct({ ...acct, contact: e.target.value })} /></Field>
-                      <div className="sm:col-span-2"><Field label="Password" hint="At least 6 characters"><Input type="password" value={acct.password} onChange={(e) => setAcct({ ...acct, password: e.target.value })} /></Field></div>
-                    </div>
-                  </>
+                  <div className="rounded-3xl bg-cream p-4 sm:p-5">
+                    <p className="mb-4 text-sm text-plum-700">Create your private Tyche account so your booking, chats and receipts stay safe in one place.</p>
+                    <AccountForm cta="Create & continue" onDone={() => setStep(3)} />
+                  </div>
                 ) : (
                   <p className="rounded-3xl bg-lagoon-50 p-4 text-sm text-lagoon-600">Booking as <b>{user.name}</b>.</p>
                 )}
@@ -215,22 +215,23 @@ export default function Book() {
                 {fee > 0 && (
                   <div className="flex items-start gap-3 rounded-3xl bg-lagoon-50 p-4 text-sm text-lagoon-600">
                     <ShieldCheck className="mt-0.5 shrink-0" size={18} />
-                    <span>You pay Tyche, not the lawyer directly. We hold your payment and only release it after your session happens. If they don't show, you get a full refund.</span>
+                    <span>You pay securely through Tyche with Paystack — never into a stranger's personal account. If your session doesn't happen, message us and we'll make it right.</span>
                   </div>
                 )}
               </div>
             )}
 
-            <div className="mt-8 flex items-center justify-between">
+            {err && <div className="mt-6"><Notice>{err}</Notice></div>}
+            {!(step === 2 && !user) && <div className="mt-8 flex items-center justify-between">
               {step > (bid ? 1 : 0) ? <Button variant="ghost" onClick={() => setStep(step - 1)}><ArrowLeft size={18} /> Back</Button> : <span />}
               {step < 3 ? (
                 <Button disabled={!valid} onClick={next}>Continue <ArrowRight size={18} /></Button>
               ) : (
                 <Button variant="warm" size="lg" disabled={paying} onClick={confirm}>
-                  {paying ? "Processing…" : fee ? <><CreditCard size={18} /> Pay {naira(fee)} securely</> : <><CheckCircle2 size={18} /> Confirm booking</>}
+                  {paying ? (fee ? "Opening secure checkout…" : "Booking…") : fee ? <><CreditCard size={18} /> Pay {naira(fee)} securely</> : <><CheckCircle2 size={18} /> Confirm booking</>}
                 </Button>
               )}
-            </div>
+            </div>}
             {step === 3 && fee > 0 && <p className="mt-3 flex items-center justify-end gap-1.5 text-xs text-plum-400"><Lock size={12} /> Card, transfer or USSD · secured by Paystack</p>}
           </Card>
         </div>

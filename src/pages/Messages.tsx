@@ -12,11 +12,13 @@ export default function Messages() {
   const [text, setText] = useState("");
   const endRef = useRef<HTMLDivElement>(null);
 
-  const isLawyer = user?.role === "lawyer";
-  const threads = bookings.filter((b) => (isLawyer ? b.lawyerId === user?.lawyerId : true));
+  const threads = bookings.filter((b) => b.status === "upcoming" || b.status === "done");
   const active = threads.find((t) => t.id === threadId);
+  // In each thread I'm the lawyer if the booking is with my lawyer profile, otherwise the client.
+  const amLawyer = (b?: (typeof threads)[number]) => !!b && !!user?.lawyerId && b.lawyerId === user.lawyerId;
+  const isLawyer = amLawyer(active) || (!active && user?.role === "lawyer");
   const thread = messages.filter((m) => m.threadId === threadId);
-  const me = isLawyer ? "lawyer" : "client";
+  const me = amLawyer(active) ? "lawyer" : "client";
 
   useEffect(() => {
     const box = endRef.current?.parentElement;
@@ -29,15 +31,12 @@ export default function Messages() {
   const send = (e: React.FormEvent) => {
     e.preventDefault();
     if (!text.trim() || !active) return;
-    sendMessage({ threadId: active.id, from: me, text: text.trim() });
-    const firstFromMe = !thread.some((m) => m.from === me);
+    sendMessage(active.id, text.trim());
     setText("");
-    if (!isLawyer && firstFromMe)
-      setTimeout(() => sendMessage({ threadId: active.id, from: "lawyer", text: "Thank you for trusting me with this. I've noted everything — we'll go through it together during our session. Take care of yourself till then. 💜" }), 2200);
   };
 
-  const otherName = (b: (typeof threads)[number]) => (isLawyer ? b.clientName : lawyers.find((l) => l.id === b.lawyerId)?.name || "Lawyer");
-  const otherHue = (b: (typeof threads)[number]) => (isLawyer ? 330 : lawyers.find((l) => l.id === b.lawyerId)?.hue || 285);
+  const otherName = (b: (typeof threads)[number]) => (amLawyer(b) ? b.clientName : lawyers.find((l) => l.id === b.lawyerId)?.name || "Lawyer");
+  const otherHue = (b: (typeof threads)[number]) => (amLawyer(b) ? 330 : lawyers.find((l) => l.id === b.lawyerId)?.hue || 285);
 
   return (
     <section className="mx-auto max-w-6xl 2xl:max-w-7xl px-4 sm:px-6 py-8">

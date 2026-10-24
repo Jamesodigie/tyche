@@ -1,200 +1,125 @@
-import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
-import {
-  LAWYERS, SEED_ACCOUNTS, SEED_APPLICANTS, SEED_BOOKINGS, SEED_REPORTS, uid,
-  type Account, type Bid, type Booking, type Lawyer, type Message, type Report,
-} from "./data";
+import { createContext, useContext, type ReactNode } from "react";
+import type { Account, Bid, Booking, Channel, CommunityMember, Evidence, Lawyer, Message, Payment, Report, SessionKind } from "./data";
+import { isLive } from "./supabase";
+import { LiveProvider } from "./live";
+import { PreviewProvider } from "./preview";
 
-// Demo persistence in localStorage. Replace with Supabase / your API later.
+// One contract, two implementations:
+//   • LiveProvider    — Supabase + /api (real accounts, data, payments)
+//   • PreviewProvider — in-browser demo, used only while the Supabase keys aren't set
 
-export type Role = "client" | "lawyer";
-export type User = { name: string; email: string; phone?: string; role: Role; lawyerId?: string };
-export type CommunityMember = { name: string; phone: string; city: string; joinedAt: string; ref: string };
+export type Role = "client" | "lawyer" | "admin";
+export type User = { id: string; name: string; email: string; phone?: string; role: Role; lawyerId?: string; suspended?: boolean };
 
-type State = {
-  user: User | null;
-  myLawyers: Lawyer[]; // lawyers who signed up on this device
+export type LawyerInput = {
+  name: string;
+  state: string;
+  city: string;
+  yearCalled: number;
+  scn: string;
+  branch?: string;
+  areas: string[];
+  languages: string[];
+  bio: string;
+  consultFee: number;
+  consultFree: boolean;
+  bookingFee: number;
+  bookingFree: boolean;
+  sessionMins: number;
+  days: string[];
+  from: string;
+  to: string;
+  channels: Channel[];
+  meetLink?: string;
+};
+
+export type SignUpInput = { name: string; email: string; password: string; phone?: string; role: "client" | "lawyer"; lawyer?: LawyerInput };
+export type ReportInput = Omit<Report, "id" | "createdAt" | "evidence" | "mine" | "hidden">;
+export type EvidenceUpload = { ev: Evidence; file?: File | Blob };
+export type BookInput = { lawyerId: string; kind: SessionKind; date: string; time: string; channel: Channel; note?: string; reportId?: string; bidId?: string };
+export type BookResult = { bookingId?: string; payUrl?: string; error?: string };
+export type CommunityInput = { name: string; phone: string; state: string; heard?: string };
+export type VerifyResult = {
+  purpose?: "booking" | "community";
+  status?: "success" | "pending" | "failed";
+  bookingId?: string;
+  inviteUrl?: string | null;
+  message?: string;
+  error?: string;
+};
+export type CommunityRow = CommunityMember & { userId: string };
+
+export type AdminData = {
+  accounts: Account[];
+  lawyers: Lawyer[];
   reports: Report[];
+  bookings: Booking[];
+  payments: Payment[];
+  members: CommunityRow[];
+  log: { at: string; text: string }[];
+};
+
+export type Ctx = {
+  mode: "live" | "preview";
+  ready: boolean;
+  user: User | null;
+
+  lawyers: Lawyer[]; // directory + own profile (+ everyone, for admins)
+  publicLawyers: Lawyer[]; // approved only
+  myLawyer: Lawyer | null;
+  findLawyer: (idOrSlug?: string) => Lawyer | undefined;
+  reports: Report[]; // my reports
+  caseBoard: Report[]; // anonymised shared reports (approved lawyers)
   bids: Bid[];
   bookings: Booking[];
   messages: Message[];
   community: CommunityMember | null;
-  // --- admin ---
-  admin: boolean;
-  accounts: Account[]; // people who signed up on this device
-  lawyerReview: Record<string, "approved" | "rejected">;
-  suspended: string[]; // account emails
-  hiddenReports: string[];
-  adminLog: { at: string; text: string }[];
-};
+  communityCount: number;
+  communityPrice: number;
+  communityCap: number;
 
-const KEY = "tyche:v1";
-const initial: State = {
-  user: null, myLawyers: [], reports: [], bids: [], bookings: [], messages: [], community: null,
-  admin: false, accounts: [], lawyerReview: {}, suspended: [], hiddenReports: [], adminLog: [],
-};
+  signUp: (i: SignUpInput) => Promise<{ error?: string; needsConfirm?: boolean }>;
+  signIn: (email: string, password: string) => Promise<string | null>;
+  signOut: () => Promise<void>;
+  resetPassword: (email: string) => Promise<string | null>;
 
-/** Front-end gate only. Replace with real admin auth (roles in your database) before launch. */
-export const ADMIN_PASSCODE = "tyche-admin";
+  // actions — a string result is an error message, null means it worked
+  createLawyer: (i: LawyerInput, licence?: File | null) => Promise<string | null>;
+  updateLawyer: (l: Lawyer) => Promise<string | null>;
+  uploadLicence: (f: File) => Promise<string | null>;
+  addReport: (r: ReportInput, files: EvidenceUpload[]) => Promise<{ id?: string; error?: string }>;
+  addBid: (b: Omit<Bid, "id" | "createdAt" | "status">) => Promise<string | null>;
+  setBidStatus: (id: string, status: Bid["status"]) => Promise<void>;
+  book: (i: BookInput) => Promise<BookResult>;
+  joinCommunity: (i: CommunityInput) => Promise<{ payUrl?: string; done?: boolean; error?: string }>;
+  communityInvite: () => Promise<string | null>;
+  verifyPayment: (reference: string) => Promise<VerifyResult>;
+  sendMessage: (bookingId: string, text: string) => Promise<void>;
+  setMeetLink: (bookingId: string, link: string) => Promise<string | null>;
+  completeBooking: (bookingId: string) => Promise<void>;
+  takenSlots: (lawyerId: string) => Promise<Set<string>>; // "YYYY-MM-DD|10:00am"
+  evidenceUrl: (e: Evidence) => Promise<string | null>;
+  banks: () => Promise<{ name: string; code: string }[]>;
+  setupPayout: (bankCode: string, bankName: string, accountNumber: string) => Promise<string | null>;
+  refresh: () => Promise<void>;
 
-function load(): State {
-  try {
-    const raw = localStorage.getItem(KEY);
-    return raw ? { ...initial, ...JSON.parse(raw) } : initial;
-  } catch {
-    return initial;
-  }
-}
-
-type Ctx = State & {
-  lawyers: Lawyer[]; // every lawyer incl. pending/rejected, with review applied
-  publicLawyers: Lawyer[]; // approved only — what clients see
-  allReports: Report[];
-  allAccounts: Account[];
-  allBookings: Booking[];
-  isSuspended: (email?: string) => boolean;
+  isAdmin: boolean;
+  admin: AdminData | null;
+  loadAdmin: () => Promise<void>;
   lawyerState: (l: Lawyer) => "approved" | "pending" | "rejected";
-  adminSignIn: (code: string) => boolean;
-  adminSignOut: () => void;
-  reviewLawyer: (id: string, decision: "approved" | "rejected") => void;
-  setSuspended: (email: string, on: boolean) => void;
-  setReportHidden: (id: string, on: boolean) => void;
-  signIn: (u: User) => void;
-  signOut: () => void;
-  addLawyer: (l: Lawyer) => void;
-  updateLawyer: (l: Lawyer) => void;
-  addReport: (r: Report) => void;
-  addBid: (b: Bid) => void;
-  setBidStatus: (id: string, status: Bid["status"]) => void;
-  addBooking: (b: Booking) => void;
-  sendMessage: (m: Omit<Message, "id" | "at">) => void;
-  joinCommunity: (c: CommunityMember) => void;
-  reset: () => void;
+  reviewLawyer: (id: string, decision: "approved" | "rejected") => Promise<void>;
+  setSuspended: (a: Account, on: boolean) => Promise<void>;
+  setReportHidden: (id: string, on: boolean) => Promise<void>;
+  licenceUrl: (lawyerId: string) => Promise<string | null>;
+  adminSignIn?: (code: string) => boolean; // preview only
+  adminSignOut?: () => void; // preview only
+  reset?: () => void; // preview only
 };
 
-const StoreCtx = createContext<Ctx | null>(null);
+export const StoreCtx = createContext<Ctx | null>(null);
 
 export function StoreProvider({ children }: { children: ReactNode }) {
-  const [s, setS] = useState<State>(load);
-
-  useEffect(() => {
-    try {
-      localStorage.setItem(KEY, JSON.stringify(s));
-    } catch {
-      // Storage full (large evidence previews) — strip previews and retry.
-      try {
-        const slim = { ...s, reports: s.reports.map((r) => ({ ...r, evidence: r.evidence.map(({ preview, ...e }) => e) })) };
-        localStorage.setItem(KEY, JSON.stringify(slim));
-      } catch { /* give up quietly */ }
-    }
-  }, [s]);
-
-  const value = useMemo<Ctx>(() => {
-    const mine = new Set(s.myLawyers.map((l) => l.id));
-    const raw = [...s.myLawyers, ...[...LAWYERS, ...SEED_APPLICANTS].filter((l) => !mine.has(l.id))];
-    const lawyerState = (l: Lawyer) => s.lawyerReview[l.id] || (l.verified ? "approved" : "pending");
-    const lawyers = raw.map((l) => ({ ...l, verified: lawyerState(l) === "approved" }));
-    const log = (p: State, text: string) => [{ at: new Date().toISOString(), text }, ...p.adminLog].slice(0, 50);
-    const seen = new Set(s.accounts.map((a) => a.email));
-    return {
-      ...s,
-      lawyers,
-      publicLawyers: lawyers.filter((l) => l.verified),
-      allReports: [...s.reports, ...SEED_REPORTS],
-      allAccounts: [...s.accounts, ...SEED_ACCOUNTS.filter((a) => !seen.has(a.email))],
-      allBookings: [...s.bookings, ...SEED_BOOKINGS],
-      isSuspended: (email) => !!email && s.suspended.includes(email),
-      lawyerState,
-      adminSignIn: (code) => {
-        const ok = code.trim() === ADMIN_PASSCODE;
-        if (ok) setS((p) => ({ ...p, admin: true }));
-        return ok;
-      },
-      adminSignOut: () => setS((p) => ({ ...p, admin: false })),
-      reviewLawyer: (id, decision) =>
-        setS((p) => ({ ...p, lawyerReview: { ...p.lawyerReview, [id]: decision }, adminLog: log(p, `${decision === "approved" ? "Approved" : "Rejected"} lawyer ${id}`) })),
-      setSuspended: (email, on) =>
-        setS((p) => ({
-          ...p,
-          suspended: on ? [...new Set([...p.suspended, email])] : p.suspended.filter((e) => e !== email),
-          adminLog: log(p, `${on ? "Suspended" : "Restored"} ${email}`),
-        })),
-      setReportHidden: (id, on) =>
-        setS((p) => ({
-          ...p,
-          hiddenReports: on ? [...new Set([...p.hiddenReports, id])] : p.hiddenReports.filter((r) => r !== id),
-          adminLog: log(p, `${on ? "Hid" : "Restored"} report ${id}`),
-        })),
-      signIn: (user) =>
-        setS((p) => ({
-          ...p,
-          user,
-          accounts: p.accounts.some((a) => a.email === user.email)
-            ? p.accounts
-            : [{ id: uid("U-"), name: user.name, email: user.email, phone: user.phone, role: user.role, lawyerId: user.lawyerId, state: "—", joinedAt: new Date().toISOString() }, ...p.accounts],
-        })),
-      signOut: () => setS((p) => ({ ...p, user: null })),
-      addLawyer: (l) => setS((p) => ({ ...p, myLawyers: [l, ...p.myLawyers.filter((x) => x.id !== l.id)] })),
-      updateLawyer: (l) => setS((p) => ({ ...p, myLawyers: [l, ...p.myLawyers.filter((x) => x.id !== l.id)] })),
-      addReport: (r) => {
-        setS((p) => ({ ...p, reports: [r, ...p.reports] }));
-        // Demo: two verified lawyers respond to a shared report shortly after.
-        if (r.shareWithLawyers) {
-          const picks = LAWYERS.filter((l) => l.areas.some((a) => /harass|violence|rights/i.test(a))).slice(0, 3);
-          const notes = [
-            "I've read through what you shared and I'm so sorry this happened. I'd love to walk you through your options — first call is on me.",
-            "Your evidence is stronger than you think. I've handled very similar matters and can take this on for you.",
-            "Happy to help. We can start with a calm conversation and decide together what next steps feel right.",
-          ];
-          picks.forEach((l, i) =>
-            setTimeout(
-              () =>
-                setS((p) => ({
-                  ...p,
-                  bids: [
-                    {
-                      id: uid("B-"),
-                      reportId: r.id,
-                      lawyerId: l.id,
-                      kind: i === 1 ? "booking" : "consultation",
-                      fee: i === 1 ? l.bookingFee : l.consultFee,
-                      free: i === 1 ? l.bookingFree : l.consultFree || i === 0,
-                      message: notes[i],
-                      createdAt: new Date().toISOString(),
-                      status: "pending",
-                    },
-                    ...p.bids,
-                  ],
-                })),
-              2500 + i * 3500,
-            ),
-          );
-        }
-      },
-      addBid: (b) => setS((p) => ({ ...p, bids: [b, ...p.bids] })),
-      setBidStatus: (id, status) => setS((p) => ({ ...p, bids: p.bids.map((b) => (b.id === id ? { ...b, status } : b)) })),
-      addBooking: (b) =>
-        setS((p) => ({
-          ...p,
-          bookings: [b, ...p.bookings],
-          messages: [
-            ...p.messages,
-            {
-              id: uid("M-"),
-              threadId: b.id,
-              from: "lawyer",
-              text: "Hi, thank you for booking with me. You can share anything here before our session — it stays between us. 💜",
-              at: new Date().toISOString(),
-            },
-          ],
-        })),
-      sendMessage: (m) =>
-        setS((p) => ({ ...p, messages: [...p.messages, { ...m, id: uid("M-"), at: new Date().toISOString() }] })),
-      joinCommunity: (c) => setS((p) => ({ ...p, community: c })),
-      reset: () => setS({ ...initial, admin: s.admin }),
-    };
-  }, [s]);
-
-  return <StoreCtx.Provider value={value}>{children}</StoreCtx.Provider>;
+  return isLive ? <LiveProvider>{children}</LiveProvider> : <PreviewProvider>{children}</PreviewProvider>;
 }
 
 export function useStore() {
@@ -202,3 +127,11 @@ export function useStore() {
   if (!c) throw new Error("useStore outside provider");
   return c;
 }
+
+/** "Barr. Adaeze Okafor" → "adaeze-okafor-x7k" */
+export const slugify = (name: string) =>
+  name.toLowerCase().replace(/^barr\.?\s+/, "").replace(/[^a-z]+/g, "-").replace(/^-|-$/g, "").slice(0, 40) +
+  "-" +
+  Math.random().toString(36).slice(2, 5);
+
+export const findIn = (list: Lawyer[], idOrSlug?: string) => (idOrSlug ? list.find((l) => l.id === idOrSlug || l.slug === idOrSlug) : undefined);

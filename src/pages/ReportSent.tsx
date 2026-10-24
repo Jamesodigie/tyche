@@ -1,12 +1,14 @@
 import { ArrowRight, Hourglass, ShieldCheck } from "lucide-react";
-import { useParams } from "react-router-dom";
+import { useParams, useSearchParams } from "react-router-dom";
 import { BidCard } from "./MySpace";
-import { Blobs, Button, Card } from "../components/ui";
+import { Blobs, Button, Card, Notice } from "../components/ui";
 import { useStore } from "../lib/store";
 
 export default function ReportSent() {
   const { id } = useParams();
   const { reports, bids } = useStore();
+  const [params] = useSearchParams();
+  const warn = params.get("warn");
   const r = reports.find((x) => x.id === id);
   const mine = bids.filter((b) => b.reportId === id);
 
@@ -23,6 +25,7 @@ export default function ReportSent() {
           </p>
         </div>
 
+        {warn && <div className="mt-6"><Notice>{warn}</Notice></div>}
         {r?.shareWithLawyers && (
           <Card className="mt-10 p-6 sm:p-8">
             <div className="flex items-center justify-between gap-4">
@@ -32,7 +35,7 @@ export default function ReportSent() {
             {mine.length === 0 ? (
               <div className="mt-6 flex items-center gap-4 rounded-3xl bg-cream p-5 text-plum-600">
                 <Hourglass className="shrink-0 animate-pulse text-plum-400" />
-                <p>Lawyers are reading your report now. Offers usually start coming in within a few hours — we'll notify you.</p>
+                <p>Verified lawyers can now read your report. Offers will appear here and in your space as soon as they arrive.</p>
               </div>
             ) : (
               <div className="mt-6 space-y-4">{mine.map((b) => <BidCard key={b.id} b={b} />)}</div>

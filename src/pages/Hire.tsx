@@ -1,27 +1,21 @@
 import { ArrowLeft, ArrowRight, Briefcase, Coffee, Lock, ShieldCheck } from "lucide-react";
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { Blobs, Button, Card, Field, Input, Sparkle, cx } from "../components/ui";
+import { AccountForm } from "../components/AccountForm";
+import { Blobs, Card, Sparkle, cx } from "../components/ui";
 import { KIND_COPY, type SessionKind } from "../lib/data";
 import { useStore } from "../lib/store";
 
 export default function Hire() {
-  const { user, signIn } = useStore();
+  const { user } = useStore();
   const navigate = useNavigate();
   const [kind, setKind] = useState<SessionKind | null>(null);
   const [step, setStep] = useState(0);
-  const [f, setF] = useState({ name: "", contact: "", password: "" });
 
   const go = (k: SessionKind) => {
     setKind(k);
     if (user) navigate(`/lawyers?kind=${k}`);
     else setStep(1);
-  };
-
-  const create = (e: React.FormEvent) => {
-    e.preventDefault();
-    signIn({ name: f.name.trim(), email: f.contact, role: "client" });
-    navigate(`/lawyers?kind=${kind}`);
   };
 
   return (
@@ -71,15 +65,9 @@ export default function Hire() {
             <h1 className="h-page font-display font-semibold text-ink">Create your private space</h1>
             <p className="mt-2 text-plum-700/80">So your bookings, chats and payments stay in one safe place. A nickname is totally fine.</p>
             <Card className="mt-6 p-6 sm:p-8">
-              <form onSubmit={create} className="space-y-4">
-                <Field label="What should we call you?" hint="Lawyers see this name. Use a nickname if you prefer."><Input required value={f.name} onChange={(e) => setF({ ...f, name: e.target.value })} placeholder="e.g. Tomi" /></Field>
-                <Field label="Email or phone"><Input required value={f.contact} onChange={(e) => setF({ ...f, contact: e.target.value })} placeholder="you@example.com" /></Field>
-                <Field label="Password" hint="At least 6 characters"><Input required minLength={6} type="password" value={f.password} onChange={(e) => setF({ ...f, password: e.target.value })} /></Field>
-                <Button className="w-full" size="lg">See lawyers for a {kind} <ArrowRight size={18} /></Button>
-              </form>
-              <div className="mt-5 flex flex-col items-center gap-2 text-sm text-plum-600">
-                <Link to={`/signin?next=/lawyers?kind=${kind}`} className="font-semibold text-plum-700 underline decoration-tangerine-400 underline-offset-4">I already have an account</Link>
-                <Link to={`/lawyers?kind=${kind}`} className="text-plum-500 hover:underline">Just browse for now</Link>
+              <AccountForm cta={`See lawyers for a ${kind}`} onDone={() => navigate(`/lawyers?kind=${kind}`)} />
+              <div className="mt-4 text-center text-sm">
+                <Link to={`/lawyers?kind=${kind}`} className="inline-block py-2 text-plum-500 hover:underline">Just browse for now</Link>
               </div>
             </Card>
           </div>
