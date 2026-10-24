@@ -15,7 +15,7 @@ export default function ReportSent() {
   return (
     <section className="relative overflow-hidden">
       <Blobs />
-      <div className="relative mx-auto max-w-3xl px-4 sm:px-6 py-8 sm:py-14">
+      <div className="relative mx-auto max-w-3xl px-4 sm:px-6 py-6 sm:py-10">
         <div className="text-center">
           <div className="mx-auto grid h-20 w-20 animate-rise place-items-center rounded-full bg-lagoon-100 text-lagoon-600"><ShieldCheck size={38} /></div>
           <p className="mt-6 font-script text-3xl text-tangerine-500">we've got you</p>

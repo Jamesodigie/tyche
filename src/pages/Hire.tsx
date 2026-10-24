@@ -21,7 +21,7 @@ export default function Hire() {
   return (
     <section className="relative overflow-hidden">
       <Blobs />
-      <div className="relative mx-auto max-w-5xl px-4 sm:px-6 py-8 sm:py-14">
+      <div className="relative mx-auto max-w-5xl px-4 sm:px-6 py-6 sm:py-10">
         {step === 0 ? (
           <>
             <div className="text-center">

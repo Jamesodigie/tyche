@@ -187,8 +187,15 @@ async function applyEffects(pay: { purpose: string; booking_id: string | null; u
   }
 }
 
-/** Accepts the related offer and opens the chat thread. */
+/** Accepts the related offer, opens the chat thread and pings the lawyer. */
 export async function afterBookingConfirmed(bk: any, note?: string) {
+  if (bk.lawyers?.user_id)
+    await sendPush({ userIds: [bk.lawyers.user_id] }, {
+      title: "You've been booked 🎉",
+      body: `${bk.client_name} booked a ${bk.kind} on ${bk.date} at ${bk.time}.`,
+      url: "/lawyer/dashboard",
+      tag: `booking-${bk.id}`,
+    }).catch(() => {});
   if (bk.bid_id) await db().from("bids").update({ status: "accepted" }).eq("id", bk.bid_id);
   const lawyerUser = bk.lawyers?.user_id;
   const rows: { booking_id: string; sender_id: string; body: string }[] = [];
@@ -201,4 +208,48 @@ export async function afterBookingConfirmed(bk: any, note?: string) {
       body: "Hi, thank you for booking with me. You can share anything here before our session — it stays between us. 💜",
     });
   if (rows.length) await db().from("messages").insert(rows);
+}
+
+// ---------------------------------------------------------------------------
+// Push notifications (Web Push / VAPID)
+// ---------------------------------------------------------------------------
+
+export type PushPayload = { title: string; body: string; url?: string; tag?: string };
+
+let pushReady: boolean | null = null;
+async function webpush() {
+  const mod = (await import("web-push")).default;
+  if (pushReady === null) {
+    const pub = process.env.VAPID_PUBLIC_KEY || process.env.VITE_VAPID_PUBLIC_KEY;
+    const priv = process.env.VAPID_PRIVATE_KEY;
+    pushReady = !!(pub && priv);
+    if (pushReady) mod.setVapidDetails(process.env.VAPID_SUBJECT || "mailto:support@tyche.io", pub!, priv!);
+  }
+  return pushReady ? mod : null;
+}
+
+/** Sends to every matching subscription; removes ones the browser has dropped. */
+export async function sendPush(filter: { userIds?: string[]; roles?: string[]; all?: boolean }, payload: PushPayload) {
+  const wp = await webpush();
+  if (!wp) return { sent: 0, failed: 0, removed: 0, configured: false };
+  let q = db().from("push_subscriptions").select("*");
+  if (filter.userIds) q = q.in("user_id", filter.userIds.length ? filter.userIds : ["00000000-0000-0000-0000-000000000000"]);
+  else if (filter.roles) q = q.in("role", filter.roles);
+  const { data: subs } = await q;
+  let sent = 0, failed = 0;
+  const dead: string[] = [];
+  await Promise.all(
+    (subs || []).map(async (s) => {
+      try {
+        await wp.sendNotification({ endpoint: s.endpoint, keys: { p256dh: s.p256dh, auth: s.auth } }, JSON.stringify(payload), { TTL: 60 * 60 * 24 });
+        sent++;
+      } catch (e) {
+        failed++;
+        const code = (e as { statusCode?: number }).statusCode;
+        if (code === 404 || code === 410) dead.push(s.endpoint);
+      }
+    }),
+  );
+  if (dead.length) await db().from("push_subscriptions").delete().in("endpoint", dead);
+  return { sent, failed, removed: dead.length, configured: true };
 }

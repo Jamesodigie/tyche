@@ -22,7 +22,7 @@ export default function LawyerProfile() {
   return (
     <section className="relative overflow-hidden">
       <Blobs />
-      <div className="relative mx-auto max-w-6xl 2xl:max-w-7xl px-4 sm:px-6 py-8 sm:py-10">
+      <div className="relative mx-auto max-w-5xl px-4 sm:px-6 py-8 sm:py-10">
         <Link to="/lawyers" className="-my-2 inline-flex items-center gap-1 py-2 text-sm font-semibold text-plum-600"><ArrowLeft size={16} /> All lawyers</Link>
         <div className="mt-4 grid gap-5 sm:mt-6 sm:gap-8 lg:grid-cols-[1fr_340px] xl:grid-cols-[1fr_380px]">
           <div className="space-y-6">

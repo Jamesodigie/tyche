@@ -14,7 +14,7 @@ const RULES = [
 ];
 
 export default function CommunityJoin() {
-  const { user, community, joinCommunity, communityInvite, communityCount, communityCap, communityPrice } = useStore();
+  const { user, community, joinCommunity, communityInvite, communityPrice } = useStore();
   const [step, setStep] = useState(0);
   const [f, setF] = useState({ name: user?.name || "", phone: "", email: user?.email || "", state: "Lagos", heard: "", adult: false });
   const [agreed, setAgreed] = useState<boolean[]>(RULES.map(() => false));
@@ -60,7 +60,6 @@ export default function CommunityJoin() {
     );
 
   const valid = [!!user && f.name.trim().length > 1 && f.phone.replace(/\D/g, "").length >= 10 && f.adult, agreed.every(Boolean), true][step];
-  const left = Math.max(0, communityCap - communityCount);
 
   const pay = async () => {
     setPaying(true);
@@ -77,10 +76,10 @@ export default function CommunityJoin() {
   return (
     <section className="relative overflow-hidden">
       <Blobs />
-      <div className="relative mx-auto max-w-2xl px-4 sm:px-6 py-8 sm:py-12">
+      <div className="relative mx-auto max-w-2xl px-4 sm:px-6 py-6 sm:py-10">
         <p className="font-script text-3xl text-tangerine-500">come on in, love</p>
         <h1 className="h-page font-display font-semibold text-ink">Join the Tyche circle</h1>
-        <p className="mt-2 text-plum-700/80">{left.toLocaleString()} of {communityCap.toLocaleString()} spots left.</p>
+        <p className="mt-2 text-plum-700/80">A private WhatsApp circle of women who get it.</p>
         <Card className="mt-8 p-6 sm:p-8">
           <Stepper steps={STEPS} current={step} />
           {step === 0 && !user && (

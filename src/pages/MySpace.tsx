@@ -5,6 +5,8 @@ import { channelIcon } from "../components/LawyerCard";
 import { Avatar, Badge, Blobs, Button, Card, Empty, cx } from "../components/ui";
 import { CHANNEL_LABEL, KIND_COPY, naira, prettySize, timeAgo, type Bid } from "../lib/data";
 import { EvidenceChip } from "../components/EvidenceChip";
+import { NotificationsCard } from "../components/Alerts";
+import { SupportAvatar, openSupport } from "../components/Support";
 import { useStore } from "../lib/store";
 
 export function BidCard({ b }: { b: Bid }) {
@@ -64,7 +66,7 @@ export default function MySpace() {
   return (
     <section className="relative overflow-hidden">
       <Blobs />
-      <div className="relative mx-auto max-w-6xl 2xl:max-w-7xl px-4 sm:px-6 py-8 sm:py-12">
+      <div className="relative mx-auto max-w-5xl px-4 sm:px-6 py-6 sm:py-10">
         <div className="flex flex-wrap items-end justify-between gap-4">
           <div>
             <p className="font-script text-3xl text-tangerine-500">hi {user.name.split(" ")[0].toLowerCase()}, welcome home</p>
@@ -76,21 +78,32 @@ export default function MySpace() {
           </div>
         </div>
 
-        <div className="mt-6 grid grid-cols-2 gap-3 sm:mt-8 sm:gap-4 lg:grid-cols-4">
+        <div className="mt-5 grid grid-cols-2 gap-2.5 sm:mt-6 sm:gap-4 lg:grid-cols-4">
           {[
             { t: "Offers waiting", v: counts.Offers, i: Gavel, c: "bg-tangerine-100 text-tangerine-600" },
             { t: "Bookings", v: counts.Bookings, i: CalendarHeart, c: "bg-plum-100 text-plum-600" },
             { t: "Reports saved", v: counts["My reports"], i: FileLock2, c: "bg-lagoon-100 text-lagoon-600" },
             { t: "Evidence files", v: reports.reduce((n, r) => n + r.evidence.length, 0), i: FileText, c: "bg-blush-200 text-plum-700" },
           ].map((s) => (
-            <div key={s.t} className="flex flex-col items-start gap-2 rounded-3xl bg-white p-4 shadow-soft ring-1 ring-plum-100 sm:flex-row sm:items-center sm:gap-4 sm:rounded-4xl sm:p-5">
-              <span className={cx("grid h-10 w-10 shrink-0 place-items-center rounded-2xl sm:h-12 sm:w-12", s.c)}><s.i size={22} /></span>
-              <span><span className="block font-display text-3xl font-semibold text-ink">{s.v}</span><span className="text-sm text-plum-500">{s.t}</span></span>
+            <div key={s.t} className="flex items-center gap-3 rounded-3xl bg-white p-3 shadow-soft ring-1 ring-plum-100 sm:flex-row sm:items-center sm:gap-4 sm:rounded-4xl sm:p-5">
+              <span className={cx("grid h-9 w-9 shrink-0 place-items-center rounded-2xl sm:h-12 sm:w-12", s.c)}><s.i size={22} /></span>
+              <span className="min-w-0"><span className="block truncate font-display text-2xl font-semibold text-ink sm:text-3xl">{s.v}</span><span className="block text-xs leading-tight text-plum-500 sm:text-sm">{s.t}</span></span>
             </div>
           ))}
         </div>
 
-        <div className="no-scrollbar mt-8 flex gap-2 overflow-x-auto">
+
+        <div className="mt-4 grid gap-3 md:grid-cols-[1fr_auto]">
+          <NotificationsCard compact />
+          <button onClick={() => openSupport()} className="flex items-center gap-3 rounded-3xl bg-white p-3 text-left ring-1 ring-plum-100 transition hover:bg-plum-50">
+            <SupportAvatar size={40} />
+            <span className="min-w-0 flex-1">
+              <span className="block text-sm font-semibold text-ink">Message support</span>
+              <span className="block text-xs text-plum-500">Chat, FAQ or WhatsApp — we're here</span>
+            </span>
+          </button>
+        </div>
+        <div className="no-scrollbar mt-6 flex gap-2 overflow-x-auto">
           {TABS.map((t) => (
             <button key={t} onClick={() => setTab(t)} className={cx("whitespace-nowrap rounded-full px-5 py-2.5 text-sm font-semibold transition", tab === t ? "bg-plum-600 text-white" : "bg-white text-plum-600 ring-1 ring-plum-100")}>
               {t} {counts[t] > 0 && t !== "Community" && <span className={cx("ml-1 rounded-full px-2 py-0.5 text-xs", tab === t ? "bg-white/20" : "bg-plum-50")}>{counts[t]}</span>}
@@ -176,7 +189,7 @@ export default function MySpace() {
                 <Button variant="teal" to="/community/join">See my invite</Button>
               </Card>
             ) : (
-              <Empty icon={<HeartHandshake />} title="You're not in the circle yet" sub="A private WhatsApp community of up to 10,000 women." action={<Button variant="teal" to="/community">Join the community</Button>} />
+              <Empty icon={<HeartHandshake />} title="You're not in the circle yet" sub="A private WhatsApp community of women who get it." action={<Button variant="teal" to="/community">Join the community</Button>} />
             ))}
         </div>
       </div>

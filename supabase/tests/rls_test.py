@@ -229,5 +229,26 @@ check("anon can't read members", fails("select * from public.community_members")
 as_user(ids["eve"])
 check("others can't read members", q("select count(*) from public.community_members")[0][0] == 0)
 
+# --- support chat ------------------------------------------------------------
+as_user(ids["alice"])
+q("insert into public.support_messages (user_id, body) values (%s, 'Help please')", (str(ids["alice"]),))
+check("user can't post as admin", fails("insert into public.support_messages (user_id, body, from_admin) values (%s, 'fake', true)", (str(ids["alice"]),)))
+check("user can't post into another's thread", fails("insert into public.support_messages (user_id, body) values (%s, 'x')", (str(ids["bob"]),)))
+as_user(ids["eve"])  # suspended earlier — can still reach support
+q("insert into public.support_messages (user_id, body) values (%s, 'Why am I paused?')", (str(ids["eve"]),))
+check("user sees only own support thread", q("select count(*) from public.support_messages")[0][0] == 1)
+as_user(ids["admin"])
+check("admin sees all support threads", q("select count(*) from public.support_messages")[0][0] == 2)
+q("insert into public.support_messages (user_id, body, from_admin) values (%s, 'Hi Alice, we are here', true)", (str(ids["alice"]),))
+as_user(ids["alice"])
+check("user sees admin reply", q("select count(*) from public.support_messages where from_admin")[0][0] == 1)
+q("update public.support_messages set body = 'edited', read_at = now() where from_admin")
+r = q("select body, read_at is not null from public.support_messages where from_admin")[0]
+check("user can mark read but not edit", r[0] == "Hi Alice, we are here" and r[1] is True)
+as_user(None)
+check("anon can't read push subscriptions", fails("select * from public.push_subscriptions") or q("select count(*) from public.push_subscriptions")[0][0] == 0)
+as_user(ids["alice"])
+check("users can't write push subscriptions directly", fails("insert into public.push_subscriptions (endpoint, p256dh, auth) values ('x','y','z')"))
+
 print(f"\n{passed} passed, {failed} failed")
 sys.exit(1 if failed else 0)

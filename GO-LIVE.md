@@ -49,10 +49,21 @@ Vercel → your **tyche** project → **Settings → Environment Variables**. Ad
 | `PAYSTACK_SECRET_KEY` | Paystack secret key (`sk_test_…` first, then `sk_live_…`) |
 | `COMMUNITY_INVITE_URL` | Your WhatsApp group invite link (`https://chat.whatsapp.com/…`) — shown only to paid members |
 | `COMMUNITY_PRICE` | Yearly price in naira, e.g. `5000` |
-| `COMMUNITY_CAP` | `10000` |
 | `SITE_URL` | `https://YOUR-DOMAIN` (no trailing slash) |
+| `VITE_VAPID_PUBLIC_KEY` | Push notifications — see step 3b |
+| `VAPID_PUBLIC_KEY` | Same value as `VITE_VAPID_PUBLIC_KEY` |
+| `VAPID_PRIVATE_KEY` | Push notifications private key — keep secret |
+| `VAPID_SUBJECT` | `mailto:you@your-domain` |
 
 Then **Deployments → ⋯ on the latest → Redeploy**. The "Preview mode" bar should be gone.
+
+## 3b. Push notifications (optional, 2 minutes)
+
+1. Sign in to `/admin` → **Notifications** → **Generate keys**.
+2. Copy the four values into Vercel (table above) and **Redeploy**.
+3. Users and lawyers can now tap **Turn on** under "Get notified" in their dashboard. Lawyers get a notification (plus a chime in the app) when they're booked, and you can send announcements from **/admin → Notifications** to everyone, just users, or just lawyers.
+
+On iPhone, notifications only work after Tyche is added to the Home Screen (Share → Add to Home Screen) and opened from there — that's an Apple rule.
 
 ## 4. Make yourself the admin
 
@@ -61,7 +72,7 @@ Then **Deployments → ⋯ on the latest → Redeploy**. The "Preview mode" bar 
    ```sql
    update public.profiles set role = 'admin' where email = 'you@example.com';
    ```
-3. Go to `https://YOUR-DOMAIN/admin` and sign in. You'll approve lawyers, see users, payments and community members there.
+3. Go to `https://YOUR-DOMAIN/admin` and sign in. You'll approve lawyers, see users, payments and community members there, answer **Support chat**, and send **Notifications**.
 
 ## 5. Your domain
 
@@ -92,6 +103,7 @@ Then swap `PAYSTACK_SECRET_KEY` to the live key, redeploy, and you're open. 🎉
   - `POST /api/paystack-webhook` — confirms payments from Paystack directly (signature-checked)
   - `GET/POST /api/community` — membership status, join + checkout, private invite link
   - `GET/POST /api/payout` — bank list; verify a lawyer's account and create their Paystack subaccount
+  - `POST /api/push` — save a device for notifications; admins send announcements
 - **Database rules** (`supabase/schema.sql`): who can see and change what. Tested with `supabase/tests/rls_test.py`.
 
 ### Privacy, in short

@@ -493,6 +493,13 @@ export type CommunityMember = {
   expiresAt?: string;
 };
 
+export type SupportMessage = { id: string; userId: string; fromAdmin: boolean; text: string; at: string; readAt?: string };
+
+/** Tyche support contacts */
+export const SUPPORT_WHATSAPP = "2348057564242"; // 0805 756 4242
+export const SUPPORT_WHATSAPP_DISPLAY = "0805 756 4242";
+export const INSTAGRAM_HANDLE = "tyche.io";
+
 export type Payment = {
   reference: string;
   purpose: "booking" | "community";

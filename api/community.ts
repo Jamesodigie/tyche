@@ -4,7 +4,7 @@
 import { HttpError, body, db, env, handler, reference, requireUser, startPayment } from "./_lib.js";
 
 const price = () => Number(env("COMMUNITY_PRICE", "5000"));
-const cap = () => Number(env("COMMUNITY_CAP", "10000"));
+const cap = () => Number(env("COMMUNITY_CAP", "0")); // 0 = no limit
 
 export default handler(["GET", "POST"], async (req) => {
   // Logged-out visitors just need the price and how many spots are left.
@@ -29,7 +29,7 @@ export default handler(["GET", "POST"], async (req) => {
   if (phone.replace(/\D/g, "").length < 10) throw new HttpError(400, "Please enter your WhatsApp number.");
 
   const { data: count } = await db().rpc("community_count");
-  if ((count as number) >= cap()) throw new HttpError(409, "The circle is full right now. We'll let you know when a spot opens.");
+  if (cap() > 0 && (count as number) >= cap()) throw new HttpError(409, "The circle is full right now. We'll let you know when a spot opens.");
   if (!me.email) throw new HttpError(400, "Please add an email address to your account to pay.");
 
   const ref = reference("TYC");

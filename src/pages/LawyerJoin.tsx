@@ -144,7 +144,7 @@ export default function LawyerJoin() {
   return (
     <section className="relative overflow-hidden">
       <Blobs />
-      <div className="relative mx-auto grid max-w-6xl 2xl:max-w-7xl gap-10 px-4 sm:px-6 py-8 sm:py-12 lg:grid-cols-[1fr_340px]">
+      <div className="relative mx-auto grid max-w-5xl gap-10 px-4 sm:px-6 py-6 sm:py-10 lg:grid-cols-[1fr_340px]">
         <div>
           <p className="font-script text-3xl text-tangerine-500">hello, Counsel</p>
           <h1 className="h-page font-display font-semibold text-ink">Join Tyche as a lawyer</h1>

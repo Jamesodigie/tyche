@@ -39,7 +39,7 @@ export default function SignIn() {
   return (
     <section className="relative overflow-hidden">
       <Blobs />
-      <div className="relative mx-auto grid max-w-6xl 2xl:max-w-7xl gap-10 px-4 lg:gap-12 sm:px-6 py-8 sm:py-14 lg:grid-cols-2">
+      <div className="relative mx-auto grid max-w-5xl gap-10 px-4 lg:gap-12 sm:px-6 py-6 sm:py-10 lg:grid-cols-2">
         <div className="mx-auto w-full max-w-md">
           {mode === "signin" ? (
             <>

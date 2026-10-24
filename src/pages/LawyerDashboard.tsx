@@ -9,6 +9,8 @@ import {
   CHANNEL_LABEL, DAYS, KIND_COPY, PRACTICE_AREAS, TYCHE_FEE, lawyerTake, naira, timeAgo, tycheTake,
   type Booking, type Channel, type Lawyer, type Report, type SessionKind,
 } from "../lib/data";
+import { NotificationsCard } from "../components/Alerts";
+import { SupportAvatar, openSupport } from "../components/Support";
 import { useStore } from "../lib/store";
 
 const TABS = [
@@ -287,7 +289,7 @@ export default function LawyerDashboard() {
   return (
     <section className="relative overflow-hidden">
       <Blobs />
-      <div className="relative mx-auto max-w-6xl 2xl:max-w-7xl px-4 sm:px-6 py-8 sm:py-12">
+      <div className="relative mx-auto max-w-5xl px-4 sm:px-6 py-6 sm:py-10">
         <div className="flex flex-wrap items-center gap-4 sm:gap-5">
           <Avatar name={me.name} hue={me.hue} size={60} />
           <div className="flex-1">
@@ -310,21 +312,32 @@ export default function LawyerDashboard() {
           </p>
         )}
 
-        <div className="mt-6 grid grid-cols-2 gap-3 sm:mt-8 sm:gap-4 lg:grid-cols-4">
+        <div className="mt-5 grid grid-cols-2 gap-2.5 sm:mt-6 sm:gap-4 lg:grid-cols-4">
           {[
             { t: "Open cases", v: open.length, c: "bg-tangerine-100 text-tangerine-600", i: Briefcase },
             { t: "Offers sent", v: myBids.length, c: "bg-plum-100 text-plum-600", i: Send },
             { t: "Bookings", v: myBookings.length, c: "bg-lagoon-100 text-lagoon-600", i: CalendarHeart },
             { t: "You've earned", v: naira(lawyerTake(gross)), c: "bg-blush-200 text-plum-700", i: Wallet },
           ].map((s) => (
-            <div key={s.t} className="flex flex-col items-start gap-2 rounded-3xl bg-white p-4 shadow-soft ring-1 ring-plum-100 sm:flex-row sm:items-center sm:gap-4 sm:rounded-4xl sm:p-5">
-              <span className={cx("grid h-10 w-10 shrink-0 place-items-center rounded-2xl sm:h-12 sm:w-12", s.c)}><s.i size={22} /></span>
-              <span><span className="block font-display text-2xl font-semibold text-ink">{s.v}</span><span className="text-sm text-plum-500">{s.t}</span></span>
+            <div key={s.t} className="flex items-center gap-3 rounded-3xl bg-white p-3 shadow-soft ring-1 ring-plum-100 sm:flex-row sm:items-center sm:gap-4 sm:rounded-4xl sm:p-5">
+              <span className={cx("grid h-9 w-9 shrink-0 place-items-center rounded-2xl sm:h-12 sm:w-12", s.c)}><s.i size={22} /></span>
+              <span className="min-w-0"><span className="block truncate font-display text-xl font-semibold text-ink sm:text-2xl">{s.v}</span><span className="block text-xs leading-tight text-plum-500 sm:text-sm">{s.t}</span></span>
             </div>
           ))}
         </div>
 
-        <div className="no-scrollbar mt-8 flex gap-2 overflow-x-auto">
+
+        <div className="mt-4 grid gap-3 md:grid-cols-[1fr_auto]">
+          <NotificationsCard compact />
+          <button onClick={() => openSupport()} className="flex items-center gap-3 rounded-3xl bg-white p-3 text-left ring-1 ring-plum-100 transition hover:bg-plum-50">
+            <SupportAvatar size={40} />
+            <span className="min-w-0 flex-1">
+              <span className="block text-sm font-semibold text-ink">Message support</span>
+              <span className="block text-xs text-plum-500">Chat, FAQ or WhatsApp — we're here</span>
+            </span>
+          </button>
+        </div>
+        <div className="no-scrollbar mt-6 flex gap-2 overflow-x-auto">
           {TABS.map((t) => (
             <button key={t.id} onClick={() => setTab(t.id)} className={cx("flex items-center gap-2 whitespace-nowrap rounded-full px-5 py-2.5 text-sm font-semibold transition", tab === t.id ? "bg-plum-600 text-white" : "bg-white text-plum-600 ring-1 ring-plum-100")}>
               <t.icon size={16} /> {t.label}

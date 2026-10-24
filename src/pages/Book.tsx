@@ -106,7 +106,7 @@ export default function Book() {
   return (
     <section className="relative overflow-hidden">
       <Blobs />
-      <div className="relative mx-auto grid max-w-6xl 2xl:max-w-7xl gap-8 px-4 sm:px-6 py-8 sm:py-10 lg:grid-cols-[1fr_340px]">
+      <div className="relative mx-auto grid max-w-5xl gap-8 px-4 sm:px-6 py-8 sm:py-10 lg:grid-cols-[1fr_340px]">
         <div>
           <Link to={`/lawyers/${l.id}`} className="-my-2 inline-flex items-center gap-1 py-2 text-sm font-semibold text-plum-600"><ArrowLeft size={16} /> Back to profile</Link>
           <h1 className="h-page mt-4 font-display font-semibold text-ink">Book {l.name}</h1>

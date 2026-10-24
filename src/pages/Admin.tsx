@@ -1,10 +1,15 @@
 import {
   Activity, BadgeCheck, Ban, CalendarHeart, Check, ChevronDown, Download, Eye, EyeOff, FileWarning, Gavel, HeartHandshake,
   LayoutDashboard, LogOut, RotateCcw, Search, Settings, ShieldCheck, Undo2, Users, Wallet, X,
+  MessagesSquare, BellRing, Send, ArrowLeft, Copy, KeyRound,
 } from "lucide-react";
-import { Fragment, useEffect, useMemo, useState, type ReactNode } from "react";
+import { Fragment, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { Link, NavLink, Navigate, Route, Routes, useNavigate } from "react-router-dom";
 import { EvidenceChip } from "../components/EvidenceChip";
+import { ActivityAlerts, NotificationsCard } from "../components/Alerts";
+import { SupportAvatar } from "../components/Support";
+import { generateVapidKeys } from "../lib/notify";
+import type { Broadcast } from "../lib/store";
 import { Avatar, Badge, Button, Card, Field, Input, Notice, PasswordInput, Select, cx } from "../components/ui";
 import {
   KIND_COPY, TYCHE_FEE, naira, timeAgo,
@@ -166,7 +171,7 @@ function AdminLogin() {
 // ---------------------------------------------------------------------------
 
 function Overview() {
-  const { allAccounts, lawyers, lawyerState, allReports, allBookings, adminLog, hiddenReports, suspended, payments, communityCount, communityCap } = useAdmin();
+  const { allAccounts, lawyers, lawyerState, allReports, allBookings, adminLog, hiddenReports, suspended, payments, communityCount } = useAdmin();
   const clients = allAccounts.filter((a) => a.role === "client");
   const pending = lawyers.filter((l) => lawyerState(l) === "pending");
   const approved = lawyers.filter((l) => lawyerState(l) === "approved");
@@ -195,7 +200,7 @@ function Overview() {
         <Stat label="Bookings" value={allBookings.length} sub={`${allBookings.filter((b) => b.status === "upcoming").length} upcoming`} icon={CalendarHeart} tone="bg-lagoon-100 text-lagoon-600" />
         <Stat label="Booking volume" value={naira(gmv)} sub="Paid by clients for sessions" icon={Wallet} tone="bg-plum-100 text-plum-600" />
         <Stat label="Tyche revenue" value={naira(tycheRev)} sub={`${TYCHE_FEE * 100}% of bookings + community fees`} icon={Wallet} tone="bg-tangerine-100 text-tangerine-600" />
-        <Stat label="Community members" value={communityCount.toLocaleString()} sub={`${Math.max(0, communityCap - communityCount).toLocaleString()} of ${communityCap.toLocaleString()} spots left`} icon={HeartHandshake} tone="bg-lagoon-100 text-lagoon-600" />
+        <Stat label="Community members" value={communityCount.toLocaleString()} sub="Active paid members" icon={HeartHandshake} tone="bg-lagoon-100 text-lagoon-600" />
         <Stat label="Suspended accounts" value={suspended.length} icon={Ban} tone="bg-blush-200 text-plum-700" />
       </div>
 
@@ -590,8 +595,7 @@ function Payments() {
 // ---------------------------------------------------------------------------
 
 function CommunityView() {
-  const { members, communityCount, communityCap, communityPrice } = useAdmin();
-  const pct = Math.min(100, (communityCount / Math.max(1, communityCap)) * 100);
+  const { members, communityCount, communityPrice } = useAdmin();
   const wa = (phone: string) => `https://wa.me/${phone.replace(/\D/g, "").replace(/^0/, "234")}`;
   return (
     <>
@@ -601,15 +605,10 @@ function CommunityView() {
         </Button>
       </SectionTitle>
       <div className="grid grid-cols-1 gap-3 min-[420px]:grid-cols-3 sm:gap-4">
-        <Stat label="Active members" value={communityCount.toLocaleString()} sub={`${pct.toFixed(1)}% of capacity`} icon={HeartHandshake} tone="bg-lagoon-100 text-lagoon-600" />
-        <Stat label="Spots left" value={Math.max(0, communityCap - communityCount).toLocaleString()} sub={`Cap ${communityCap.toLocaleString()}`} icon={Users} tone="bg-plum-100 text-plum-600" />
+        <Stat label="Active members" value={communityCount.toLocaleString()} icon={HeartHandshake} tone="bg-lagoon-100 text-lagoon-600" />
+        <Stat label="Joined (all time)" value={members.length.toLocaleString()} sub="incl. unpaid sign-ups" icon={Users} tone="bg-plum-100 text-plum-600" />
         <Stat label="Yearly revenue (est.)" value={naira(communityCount * communityPrice)} sub={`${naira(communityPrice)} × members`} icon={Wallet} tone="bg-tangerine-100 text-tangerine-600" />
       </div>
-      <Card className="mt-5 p-5 sm:p-6">
-        <p className="font-semibold text-ink">Capacity</p>
-        <div className="mt-3 h-4 overflow-hidden rounded-full bg-plum-50"><div className="h-full rounded-full bg-gradient-to-r from-lagoon-500 to-tangerine-400" style={{ width: `${pct}%` }} /></div>
-        {pct > 90 && <p className="mt-3 text-sm text-tangerine-600">Almost full — consider opening a waitlist or a second circle.</p>}
-      </Card>
       <Card className="mt-5 p-5 sm:p-6">
         <p className="font-semibold text-ink">Members</p>
         {members.length ? (
@@ -636,7 +635,7 @@ function CommunityView() {
 // ---------------------------------------------------------------------------
 
 function SettingsView() {
-  const { reset, adminSignOut, signOut, mode, communityPrice, communityCap, refresh, loadAdmin } = useAdmin();
+  const { reset, adminSignOut, signOut, mode, communityPrice, refresh, loadAdmin } = useAdmin();
   const navigate = useNavigate();
   const leave = async () => { if (adminSignOut) adminSignOut(); else await signOut(); navigate("/"); };
   const [confirm, setConfirm] = useState(false);
@@ -651,14 +650,13 @@ function SettingsView() {
               ["Tyche service fee", `${TYCHE_FEE * 100}% of every consultation and booking`],
               ["Lawyer payout", `${100 - TYCHE_FEE * 100}%, split automatically by Paystack`],
               ["Community price", `${naira(communityPrice)} per year`],
-              ["Community cap", `${communityCap.toLocaleString()} members`],
             ].map(([k, v]) => (
               <div key={k} className="flex justify-between gap-4 rounded-2xl bg-cream px-4 py-3"><dt className="text-plum-500">{k}</dt><dd className="text-right font-semibold text-ink">{v}</dd></div>
             ))}
           </dl>
           <p className="mt-3 text-xs text-plum-400">
-            The {TYCHE_FEE * 100}% fee is set in code (<code>TYCHE_FEE</code> and <code>TYCHE_PERCENT</code>). Community price and cap come from the
-            <code> COMMUNITY_PRICE</code> / <code>COMMUNITY_CAP</code> settings in Vercel.
+            The {TYCHE_FEE * 100}% fee is set in code (<code>TYCHE_FEE</code> and <code>TYCHE_PERCENT</code>). Community price comes from the
+            <code> COMMUNITY_PRICE</code> setting in Vercel.
           </p>
         </Card>
         <Card className="p-6">
@@ -695,6 +693,268 @@ function SettingsView() {
   );
 }
 
+
+// ---------------------------------------------------------------------------
+// support inbox
+// ---------------------------------------------------------------------------
+
+function SupportInbox() {
+  const { admin, replySupport, loadAdmin } = useAdmin();
+  const msgs = admin?.support || [];
+  const accounts = admin?.accounts || [];
+  const [active, setActive] = useState<string | null>(null);
+  const [q, setQ] = useState("");
+  const [text, setText] = useState("");
+  const [err, setErr] = useState("");
+  const [busy, setBusy] = useState(false);
+  const boxRef = useRef<HTMLDivElement>(null);
+
+  const threads = useMemo(() => {
+    const by = new Map<string, typeof msgs>();
+    for (const m of msgs) by.set(m.userId, [...(by.get(m.userId) || []), m]);
+    return [...by.entries()]
+      .map(([userId, list]) => {
+        const sorted = [...list].sort((a, b) => a.at.localeCompare(b.at));
+        const acc = accounts.find((a) => a.id === userId);
+        return {
+          userId,
+          list: sorted,
+          last: sorted[sorted.length - 1],
+          unread: sorted.filter((m) => !m.fromAdmin && !m.readAt).length,
+          name: acc?.name || "Tyche user",
+          email: acc?.email || "",
+          role: acc?.role || "client",
+        };
+      })
+      .filter((t) => !q || (t.name + " " + t.email).toLowerCase().includes(q.toLowerCase()))
+      .sort((a, b) => b.last.at.localeCompare(a.last.at));
+  }, [msgs, accounts, q]);
+
+  const thread = threads.find((t) => t.userId === active);
+
+  useEffect(() => {
+    const box = boxRef.current;
+    if (box) box.scrollTop = box.scrollHeight;
+  }, [active, thread?.list.length]);
+
+  // keep the inbox fresh even if realtime drops
+  useEffect(() => {
+    const t = setInterval(() => { if (document.visibilityState === "visible") loadAdmin(); }, 20000);
+    return () => clearInterval(t);
+  }, [loadAdmin]);
+
+  const send = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const t = text.trim();
+    if (!t || !active) return;
+    setBusy(true);
+    setErr("");
+    const error = await replySupport(active, t);
+    setBusy(false);
+    if (error) setErr(error);
+    else setText("");
+  };
+
+  const time = (iso: string) => new Date(iso).toLocaleString("en-GB", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
+
+  return (
+    <div>
+      <SectionTitle title="Support chat" sub="Messages from users and lawyers. Replies show up live in their Help chat." />
+      <div className="grid h-[calc(100dvh-13rem)] min-h-[420px] overflow-hidden rounded-3xl bg-white shadow-soft ring-1 ring-plum-100 lg:h-[calc(100dvh-12rem)] lg:grid-cols-[320px_1fr]">
+        {/* thread list */}
+        <div className={cx("flex min-h-0 flex-col border-plum-100 lg:border-r", thread && "hidden lg:flex")}>
+          <div className="border-b border-plum-100 p-3">
+            <div className="flex items-center gap-2 rounded-full bg-cream px-3">
+              <Search size={16} className="text-plum-400" />
+              <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search name or email" className="min-w-0 flex-1 bg-transparent py-2.5 text-base outline-none sm:text-sm" />
+            </div>
+          </div>
+          <div className="flex-1 overflow-y-auto">
+            {!threads.length && (
+              <div className="p-8 text-center text-sm text-plum-400">
+                <MessagesSquare className="mx-auto mb-2 text-plum-300" />
+                No support messages yet.
+              </div>
+            )}
+            {threads.map((t) => (
+              <button
+                key={t.userId}
+                onClick={() => setActive(t.userId)}
+                className={cx("flex w-full items-center gap-3 border-b border-plum-50 px-4 py-3 text-left transition hover:bg-plum-50", active === t.userId && "bg-plum-50")}
+              >
+                <Avatar name={t.name} size={40} />
+                <span className="min-w-0 flex-1">
+                  <span className="flex items-center gap-2">
+                    <span className="truncate text-sm font-semibold text-ink">{t.name}</span>
+                    {t.role === "lawyer" && <Badge tone="teal">Lawyer</Badge>}
+                  </span>
+                  <span className="block truncate text-xs text-plum-500">{t.last.fromAdmin ? "You: " : ""}{t.last.text}</span>
+                </span>
+                <span className="flex shrink-0 flex-col items-end gap-1">
+                  <span className="text-[10px] text-plum-400">{timeAgo(t.last.at)}</span>
+                  {t.unread > 0 && <span className="grid h-5 min-w-5 place-items-center rounded-full bg-tangerine-500 px-1 text-[11px] font-bold text-white">{t.unread}</span>}
+                </span>
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* conversation */}
+        <div className={cx("min-h-0 flex-col", thread ? "flex" : "hidden lg:flex")}>
+          {!thread ? (
+            <div className="grid flex-1 place-items-center p-8 text-center text-sm text-plum-400">
+              <div>
+                <SupportAvatar size={64} online={false} />
+                <p className="mt-3">Pick a conversation to reply.</p>
+              </div>
+            </div>
+          ) : (
+            <>
+              <div className="flex items-center gap-3 border-b border-plum-100 px-3 py-2.5 sm:px-4">
+                <button onClick={() => setActive(null)} className="grid h-9 w-9 place-items-center rounded-full text-plum-500 hover:bg-plum-50 lg:hidden" aria-label="Back"><ArrowLeft size={18} /></button>
+                <Avatar name={thread.name} size={36} />
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-sm font-semibold text-ink">{thread.name}</p>
+                  <p className="truncate text-xs text-plum-500">{thread.email} · {thread.role}</p>
+                </div>
+              </div>
+              <div ref={boxRef} className="flex-1 space-y-2 overflow-y-auto bg-cream/60 p-3 sm:p-4">
+                {thread.list.map((m) => (
+                  <div key={m.id} className={cx("flex", m.fromAdmin ? "justify-end" : "justify-start")}>
+                    <p className={cx("max-w-[85%] whitespace-pre-wrap rounded-3xl px-4 py-2.5 text-sm shadow-sm sm:max-w-[70%]", m.fromAdmin ? "rounded-br-md bg-plum-600 text-white" : "rounded-bl-md bg-white text-ink")}>
+                      {m.text}
+                      <span className={cx("mt-1 block text-[10px]", m.fromAdmin ? "text-plum-200" : "text-plum-400")}>{time(m.at)}{m.fromAdmin && m.readAt ? " · seen" : ""}</span>
+                    </p>
+                  </div>
+                ))}
+              </div>
+              {err && <p className="bg-blush-100 px-4 py-2 text-xs text-plum-800">{err}</p>}
+              <form onSubmit={send} className="flex items-end gap-2 border-t border-plum-100 p-2.5">
+                <textarea
+                  value={text}
+                  onChange={(e) => setText(e.target.value)}
+                  onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); send(e); } }}
+                  rows={1}
+                  placeholder="Reply as Tyche Support…"
+                  className="max-h-32 min-w-0 flex-1 resize-none rounded-3xl bg-cream px-4 py-3 text-base outline-none ring-plum-200 focus:ring-2 sm:text-sm"
+                />
+                <button disabled={busy || !text.trim()} className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-plum-600 text-white disabled:opacity-40" aria-label="Send reply"><Send size={18} /></button>
+              </form>
+            </>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// push notifications
+// ---------------------------------------------------------------------------
+
+function NotificationsView() {
+  const { sendBroadcast, pushState, mode } = useAdmin();
+  const [f, setF] = useState<Broadcast>({ title: "", body: "", url: "/", audience: "all" });
+  const [busy, setBusy] = useState(false);
+  const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
+  const [keys, setKeys] = useState<{ publicKey: string; privateKey: string } | null>(null);
+
+  const send = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!f.title.trim() || !f.body.trim()) return;
+    setBusy(true);
+    setMsg(null);
+    const r = await sendBroadcast({ ...f, title: f.title.trim(), body: f.body.trim(), url: f.url?.trim() || "/" });
+    setBusy(false);
+    if (r.error) setMsg({ ok: false, text: r.error });
+    else {
+      setMsg({ ok: true, text: `Sent to ${r.sent ?? 0} device${r.sent === 1 ? "" : "s"} 💜` });
+      setF((p) => ({ ...p, title: "", body: "" }));
+    }
+  };
+
+  const copy = (t: string) => navigator.clipboard?.writeText(t).catch(() => {});
+
+  return (
+    <div className="max-w-3xl">
+      <SectionTitle title="Push notifications" sub="Send a notification to everyone who installed Tyche and turned notifications on." />
+
+      {pushState === "unconfigured" && (
+        <Card className="mb-5 p-5">
+          <div className="flex items-start gap-3">
+            <span className="grid h-10 w-10 shrink-0 place-items-center rounded-2xl bg-tangerine-100 text-tangerine-600"><KeyRound size={19} /></span>
+            <div className="min-w-0 flex-1">
+              <p className="font-semibold text-ink">One-time setup: notification keys</p>
+              <p className="mt-1 text-sm text-plum-600">
+                Generate a key pair, add these to Vercel → Settings → Environment Variables, then redeploy.
+              </p>
+              {!keys ? (
+                <Button size="sm" className="mt-3" onClick={async () => setKeys(await generateVapidKeys())}>Generate keys</Button>
+              ) : (
+                <div className="mt-3 space-y-2 text-xs">
+                  {[
+                    ["VITE_VAPID_PUBLIC_KEY", keys.publicKey],
+                    ["VAPID_PUBLIC_KEY", keys.publicKey],
+                    ["VAPID_PRIVATE_KEY", keys.privateKey],
+                    ["VAPID_SUBJECT", "mailto:support@tyche.io"],
+                  ].map(([k, v]) => (
+                    <div key={k} className="rounded-2xl bg-plum-50 p-3">
+                      <div className="flex items-center justify-between gap-2">
+                        <b className="text-plum-700">{k}</b>
+                        <button type="button" onClick={() => copy(v)} className="flex items-center gap-1 rounded-full px-2 py-1 text-plum-500 hover:bg-white"><Copy size={12} /> Copy</button>
+                      </div>
+                      <code className="mt-1 block break-all text-ink">{v}</code>
+                    </div>
+                  ))}
+                  <p className="text-plum-500">Keep the private key secret — never share it or paste it anywhere else.</p>
+                </div>
+              )}
+            </div>
+          </div>
+        </Card>
+      )}
+
+      <div className="mb-5"><NotificationsCard compact /></div>
+
+      <Card className="p-5">
+        <form onSubmit={send} className="space-y-4">
+          <Field label="Who gets it?">
+            <div className="grid grid-cols-3 gap-2">
+              {([["all", "Everyone"], ["clients", "Users"], ["lawyers", "Lawyers"]] as const).map(([v, l]) => (
+                <button type="button" key={v} onClick={() => setF({ ...f, audience: v })} className={cx("rounded-2xl py-2.5 text-sm font-semibold ring-1 transition", f.audience === v ? "bg-plum-600 text-white ring-plum-600" : "bg-white text-plum-700 ring-plum-100 hover:bg-plum-50")}>{l}</button>
+              ))}
+            </div>
+          </Field>
+          <Field label="Title"><Input value={f.title} maxLength={60} onChange={(e) => setF({ ...f, title: e.target.value })} placeholder="New lawyers just joined 💜" /></Field>
+          <Field label="Message">
+            <textarea value={f.body} maxLength={180} rows={3} onChange={(e) => setF({ ...f, body: e.target.value })} placeholder="Free consultations this week — book yours." className="w-full rounded-2xl bg-white px-4 py-3 text-base outline-none ring-1 ring-plum-100 focus:ring-2 focus:ring-plum-300 sm:text-sm" />
+          </Field>
+          <Field label="Opens (link inside Tyche)">
+            <Select value={f.url} onChange={(e) => setF({ ...f, url: e.target.value })}>
+              {[["/", "Home"], ["/hire", "Hire a lawyer"], ["/report", "Report harassment"], ["/community", "Community"], ["/me", "My space"], ["/lawyer/dashboard", "Lawyer dashboard"]].map(([v, l]) => <option key={v} value={v}>{l}</option>)}
+            </Select>
+          </Field>
+
+          {/* preview */}
+          <div className="flex items-start gap-3 rounded-3xl bg-plum-50 p-3">
+            <img src="/icons/icon-192.png" alt="" className="h-10 w-10 rounded-xl" />
+            <div className="min-w-0">
+              <p className="truncate text-sm font-semibold text-ink">{f.title || "Notification title"}</p>
+              <p className="line-clamp-2 text-xs text-plum-600">{f.body || "Your message shows here."}</p>
+            </div>
+          </div>
+
+          {msg && <Notice tone={msg.ok ? "success" : undefined}>{msg.text}</Notice>}
+          <Button type="submit" className="w-full" disabled={busy || !f.title.trim() || !f.body.trim() || mode !== "live"}>
+            <BellRing size={17} /> {busy ? "Sending…" : "Send notification"}
+          </Button>
+          {mode !== "live" && <p className="text-center text-xs text-plum-400">Sending works once Tyche is connected to the live backend.</p>}
+        </form>
+      </Card>
+    </div>
+  );
+}
+
 // ---------------------------------------------------------------------------
 // shell
 // ---------------------------------------------------------------------------
@@ -710,12 +970,15 @@ export default function Admin() {
   if (!admin) return <div className="grid min-h-screen place-items-center bg-cream text-plum-400">Loading admin data…</div>;
   const leave = async () => { if (adminSignOut) adminSignOut(); else await signOut(); navigate("/"); };
   const pending = lawyers.filter((l) => lawyerState(l) === "pending").length;
+  const unreadSupport = new Set((admin.support || []).filter((m) => !m.fromAdmin && !m.readAt).map((m) => m.userId)).size;
   const nav = [
     { to: "/admin", label: "Overview", icon: LayoutDashboard, end: true },
     { to: "/admin/approvals", label: "Lawyer approvals", icon: BadgeCheck, count: pending },
     { to: "/admin/users", label: "Users", icon: Users },
     { to: "/admin/reports", label: "Reports", icon: FileWarning },
     { to: "/admin/payments", label: "Bookings & payments", icon: Wallet },
+    { to: "/admin/support", label: "Support chat", icon: MessagesSquare, count: unreadSupport },
+    { to: "/admin/notifications", label: "Notifications", icon: BellRing },
     { to: "/admin/community", label: "Community", icon: HeartHandshake },
     { to: "/admin/settings", label: "Settings", icon: Settings },
   ];
@@ -754,11 +1017,14 @@ export default function Admin() {
           <Route path="users" element={<UsersView />} />
           <Route path="reports" element={<ReportsView />} />
           <Route path="payments" element={<Payments />} />
+          <Route path="support" element={<SupportInbox />} />
+          <Route path="notifications" element={<NotificationsView />} />
           <Route path="community" element={<CommunityView />} />
           <Route path="settings" element={<SettingsView />} />
           <Route path="*" element={<Navigate to="/admin" replace />} />
         </Routes>
       </main>
+      <ActivityAlerts />
     </div>
   );
 }

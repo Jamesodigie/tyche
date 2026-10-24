@@ -20,43 +20,29 @@ const rules = [
 ];
 
 export default function Community() {
-  const { community, communityCount, communityCap, communityPrice } = useStore();
-  const left = Math.max(0, communityCap - communityCount);
+  const { community, communityPrice } = useStore();
   const inCircle = !!community && community.status !== "pending" && community.status !== "expired";
   return (
     <>
       <section className="relative overflow-hidden">
         <Blobs />
-        <div className="relative mx-auto grid max-w-6xl 2xl:max-w-7xl items-center gap-8 px-4 sm:gap-10 sm:px-6 py-8 sm:py-14 lg:grid-cols-2">
+        <div className="relative mx-auto grid max-w-5xl items-center gap-8 px-4 sm:gap-10 sm:px-6 py-6 sm:py-10 lg:grid-cols-2">
           <div>
             <p className="font-script text-3xl text-tangerine-500">your girls, your people</p>
             <h1 className="h-hero font-display font-semibold text-ink">The circle you <em className="font-normal text-lagoon-600">deserve.</em></h1>
-            <p className="mt-5 max-w-lg text-lg text-plum-700/85">
-              A private, paid WhatsApp community for women — capped at {communityCap.toLocaleString()} so it stays close, safe and
-              actually supportive.
+            <p className="mt-4 max-w-lg text-base sm:text-lg text-plum-700/85">
+              A private, paid WhatsApp community for women — close, safe and actually supportive.
             </p>
-            <div className="mt-8 flex flex-wrap items-center gap-4">
-              <Button size="lg" variant="teal" to="/community/join">{inCircle ? "See my invite" : "Join the circle"} <ArrowRight size={18} /></Button>
+            <div className="mt-6 flex flex-wrap items-center gap-3">
+              <Button size="lg" variant="teal" to="/community/join">{inCircle ? "See my invite" : "Join the community"} <ArrowRight size={18} /></Button>
               <span className="text-plum-600"><b className="font-display text-2xl text-ink">{naira(communityPrice)}</b> / year</span>
             </div>
           </div>
           <div className="relative rounded-[2rem] bg-gradient-to-br from-lagoon-500 to-lagoon-600 p-6 text-white shadow-soft sm:rounded-5xl sm:p-8">
             <Sparkle className="absolute right-8 top-8 text-white/40" size={34} />
             <Users size={32} />
-            {communityCount >= 100 ? (
-              <>
-                <p className="mt-4 font-display text-6xl font-semibold">{communityCount.toLocaleString()}</p>
-                <p className="text-lagoon-50">women inside · {left.toLocaleString()} spots left</p>
-                <div className="mt-5 h-4 overflow-hidden rounded-full bg-white/20">
-                  <div className="h-full rounded-full bg-gradient-to-r from-tangerine-400 to-tangerine-200" style={{ width: `${Math.min(100, (communityCount / communityCap) * 100)}%` }} />
-                </div>
-              </>
-            ) : (
-              <>
-                <p className="mt-4 font-display text-4xl font-semibold">Founding members wanted</p>
-                <p className="mt-1 text-lagoon-50">Only {communityCap.toLocaleString()} spots, ever. Get in early.</p>
-              </>
-            )}
+            <p className="mt-4 font-display text-4xl font-semibold">Join the community</p>
+            <p className="mt-1 text-lagoon-50">Real talk, gentle check-ins and women who've got your back.</p>
             <p className="mt-6 text-xs font-semibold uppercase tracking-wider text-lagoon-100">The vibe inside (example)</p>
             <div className="mt-2 space-y-2">
               {["Just had my first consultation and I feel so much lighter 🥹", "Sending love to whoever needs it today 💜"].map((m, i) => (
@@ -67,7 +53,7 @@ export default function Community() {
         </div>
       </section>
 
-      <section className="mx-auto max-w-6xl 2xl:max-w-7xl px-4 sm:px-6">
+      <section className="mx-auto max-w-5xl px-4 sm:px-6">
         <h2 className="h-section text-center font-display font-semibold text-ink">What's inside</h2>
         <div className="rail mt-6 sm:mt-8 md:grid-cols-2 md:gap-5 lg:grid-cols-3">
           {perks.map((p) => (
@@ -80,7 +66,7 @@ export default function Community() {
         </div>
       </section>
 
-      <section className="section mx-auto grid max-w-6xl 2xl:max-w-7xl gap-4 px-4 sm:gap-6 sm:px-6 md:grid-cols-2">
+      <section className="section mx-auto grid max-w-5xl gap-4 px-4 sm:gap-6 sm:px-6 md:grid-cols-2">
         <div className="rounded-[2rem] bg-blush-100 p-6 sm:rounded-5xl sm:p-8">
           <HeartHandshake className="text-tangerine-500" size={30} />
           <h3 className="mt-3 font-display text-3xl font-semibold text-ink">Our house rules</h3>

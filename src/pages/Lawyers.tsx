@@ -42,7 +42,7 @@ export default function Lawyers() {
           ))}
         </div>
       </PageHero>
-      <section className="mx-auto max-w-6xl 2xl:max-w-7xl px-4 sm:px-6">
+      <section className="mx-auto max-w-5xl px-4 sm:px-6">
         <div className="grid grid-cols-2 gap-2.5 rounded-3xl bg-white p-3 shadow-soft ring-1 ring-plum-100 sm:gap-3 sm:rounded-4xl sm:p-4 md:grid-cols-[1.4fr_1fr_1fr_1fr]">
           <div className="relative col-span-2 md:col-span-1">
             <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-plum-300" size={18} />

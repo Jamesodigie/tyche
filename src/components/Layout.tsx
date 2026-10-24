@@ -1,10 +1,13 @@
-import { LogOut, Menu, MessageCircleHeart, X, ShieldAlert, LayoutDashboard } from "lucide-react";
+import { LogOut, Menu, MessageCircleHeart, X, ShieldAlert, LayoutDashboard, MessageCircle, HelpCircle } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Link, NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
 import { useStore } from "../lib/store";
 import { Avatar, Button, cx } from "./ui";
 import { PathBubbles } from "./PathBubbles";
 import { BottomTabs, InstallButton, InstallSheet } from "./AppChrome";
+import { SupportWidget, openSupport, whatsappLink } from "./Support";
+import { ActivityAlerts } from "./Alerts";
+import { INSTAGRAM_HANDLE, SUPPORT_WHATSAPP_DISPLAY } from "../lib/data";
 
 /** Leaves Tyche instantly and removes it from the back button. */
 export function quickExit() {
@@ -59,7 +62,7 @@ function Header() {
 
   return (
     <header className="safe-top sticky top-0 z-40 border-b border-plum-100/60 bg-cream/85 backdrop-blur-md">
-      <div className="mx-auto flex h-16 max-w-6xl items-center justify-between gap-3 px-4 sm:h-[72px] sm:px-6 2xl:max-w-7xl">
+      <div className="mx-auto flex h-16 max-w-5xl items-center justify-between gap-3 px-4 sm:h-[72px] sm:px-6">
         <Link to="/" className="flex items-center" aria-label="Tyche home">
           <img src="/tyche-logo.png" alt="Tyche" className="h-8 w-auto sm:h-10" />
         </Link>
@@ -142,10 +145,20 @@ function Header() {
   );
 }
 
-function Footer() {
+function InstagramIcon({ size = 16 }: { size?: number }) {
   return (
-    <footer className="section bg-plum-900 pb-[calc(5rem+env(safe-area-inset-bottom))] text-plum-100 lg:pb-0">
-      <div className="mx-auto grid max-w-6xl grid-cols-2 gap-x-6 gap-y-10 px-4 py-12 sm:px-6 sm:py-14 md:grid-cols-[1.4fr_1fr_1fr_1fr] 2xl:max-w-7xl">
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+      <rect x="3" y="3" width="18" height="18" rx="5" />
+      <circle cx="12" cy="12" r="4" />
+      <circle cx="17.5" cy="6.5" r="0.6" fill="currentColor" />
+    </svg>
+  );
+}
+
+function Footer({ compactOnPhones }: { compactOnPhones?: boolean }) {
+  return (
+    <footer className={cx(compactOnPhones && "hidden lg:block", "section bg-plum-900 pb-[calc(5rem+env(safe-area-inset-bottom))] text-plum-100 lg:pb-0")}>
+      <div className="mx-auto grid max-w-5xl grid-cols-2 gap-x-6 gap-y-8 px-4 py-10 sm:px-6 md:grid-cols-[1.4fr_1fr_1fr_1fr]">
         <div className="col-span-2 md:col-span-1">
           <div className="inline-block rounded-2xl bg-white px-3 py-2"><img src="/tyche-logo.png" alt="Tyche" className="h-8" /></div>
           <p className="mt-4 max-w-xs text-sm leading-relaxed text-plum-200">
@@ -156,6 +169,17 @@ function Footer() {
             <ShieldAlert size={18} className="mt-0.5 shrink-0 text-tangerine-400" />
             <span>In danger right now? Call <b className="text-white">112</b> — Nigeria's free emergency line.</span>
           </p>
+          <div className="mt-5 flex flex-wrap gap-2 text-sm">
+            <a href={`https://instagram.com/${INSTAGRAM_HANDLE}`} target="_blank" rel="noreferrer" className="inline-flex items-center gap-2 rounded-full bg-white/10 px-4 py-2 font-semibold text-white hover:bg-white/20">
+              <InstagramIcon size={16} /> @{INSTAGRAM_HANDLE}
+            </a>
+            <a href={whatsappLink()} target="_blank" rel="noreferrer" className="inline-flex items-center gap-2 rounded-full bg-[#25D366] px-4 py-2 font-semibold text-white">
+              <MessageCircle size={16} /> {SUPPORT_WHATSAPP_DISPLAY}
+            </a>
+            <button onClick={() => openSupport("faq")} className="inline-flex items-center gap-2 rounded-full bg-white/10 px-4 py-2 font-semibold text-white hover:bg-white/20">
+              <HelpCircle size={16} /> Help & FAQ
+            </button>
+          </div>
         </div>
         {[
           { h: "Get help", l: [["/report", "Report harassment"], ["/hire", "Hire a lawyer"], ["/community", "Join the community"], ["/me", "My space"]] },
@@ -238,11 +262,13 @@ export function Layout() {
         </div>
       )}
       <main><Outlet /></main>
-      {!bare && <Footer />}
+      {!bare && <Footer compactOnPhones={["/me", "/lawyer/dashboard", "/messages"].some((r) => pathname === r || pathname.startsWith(r + "/"))} />}
       <QuickExit floatingOnPhones={bare} />
       <WelcomeBubbles />
       {!bare && <BottomTabs />}
       <InstallSheet />
+      <SupportWidget />
+      <ActivityAlerts />
     </div>
   );
 }

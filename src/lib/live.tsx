@@ -2,9 +2,10 @@
 // evidence files (Storage), realtime chat/offers, and payments through /api (Paystack).
 import type { Session } from "@supabase/supabase-js";
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
-import type { Account, Bid, Booking, CommunityMember, Evidence, Lawyer, Message, Payment, Report } from "./data";
+import type { Account, Bid, Booking, CommunityMember, Evidence, Lawyer, Message, Payment, Report, SupportMessage } from "./data";
 import { StoreCtx, findIn, slugify, type AdminData, type Ctx, type LawyerInput, type User } from "./store";
 import { supabase } from "./supabase";
+import { usePush } from "./usePush";
 
 const sb = supabase!;
 
@@ -104,6 +105,8 @@ const toCommunity = (c: any): CommunityMember => ({
   name: c.name, phone: c.phone, city: c.state || "", joinedAt: c.joined_at || c.created_at, ref: c.reference || "", status: c.status, expiresAt: c.expires_at || undefined,
 });
 
+const toSupport = (m: any): SupportMessage => ({ id: m.id, userId: m.user_id, fromAdmin: m.from_admin, text: m.body, at: m.created_at, readAt: m.read_at || undefined });
+
 const toPayment = (p: any): Payment => ({
   reference: p.reference, purpose: p.purpose, amount: p.amount, tycheShare: p.tyche_share, lawyerShare: p.lawyer_share, status: p.status,
   bookingId: p.booking_id || undefined, createdAt: p.created_at,
@@ -138,9 +141,11 @@ export function LiveProvider({ children }: { children: ReactNode }) {
   const [communityInfo, setCommunityInfo] = useState({ count: 0, price: 5000, cap: 10000 });
   const [extraLawyers, setExtraLawyers] = useState<Lawyer[]>([]);
   const [admin, setAdmin] = useState<AdminData | null>(null);
+  const [support, setSupport] = useState<SupportMessage[]>([]);
   const bookingsRef = useRef<Booking[]>([]);
   bookingsRef.current = bookings;
   const uidRef = useRef<string | null>(null);
+  const adminSupportRef = useRef<(() => void) | null>(null);
 
   const token = () => session?.access_token || "";
   const api = useCallback(
@@ -184,6 +189,8 @@ export function LiveProvider({ children }: { children: ReactNode }) {
     setBids((bidRows || []).map(toBid));
     setBookings(bk);
     setCommunity(comm ? toCommunity(comm) : null);
+    const { data: sup } = await sb.from("support_messages").select("*").eq("user_id", uid).order("created_at");
+    setSupport((sup || []).map(toSupport));
 
     const ids = bk.filter((b) => b.status === "upcoming" || b.status === "done").map((b) => b.id);
     if (ids.length) {
@@ -248,7 +255,7 @@ export function LiveProvider({ children }: { children: ReactNode }) {
   const clearUser = () => {
     uidRef.current = null;
     setProfile(null); setMyLawyer(null); setReports([]); setCaseBoard([]); setBids([]); setBookings([]);
-    setMessages([]); setCommunity(null); setAdmin(null); setExtraLawyers([]);
+    setMessages([]); setCommunity(null); setAdmin(null); setExtraLawyers([]); setSupport([]);
   };
 
   // auth lifecycle
@@ -286,9 +293,20 @@ export function LiveProvider({ children }: { children: ReactNode }) {
       .on("postgres_changes", { event: "*", schema: "public", table: "messages" }, bump)
       .on("postgres_changes", { event: "*", schema: "public", table: "bids" }, bump)
       .on("postgres_changes", { event: "*", schema: "public", table: "bookings" }, bump)
+      .on("postgres_changes", { event: "*", schema: "public", table: "support_messages" }, () => {
+        bump();
+        adminSupportRef.current?.();
+      })
       .subscribe();
+    // Fallback in case realtime is unavailable: refresh quietly every 30s while the app is open.
+    const poll = window.setInterval(() => {
+      if (document.visibilityState !== "visible" || !uidRef.current) return;
+      loadActivity(uidRef.current, myLawyer).catch(() => {});
+      adminSupportRef.current?.();
+    }, 30000);
     return () => {
       clearTimeout(t);
+      clearInterval(poll);
       sb.removeChannel(ch);
     };
   }, [session, myLawyer, loadActivity]);
@@ -320,6 +338,7 @@ export function LiveProvider({ children }: { children: ReactNode }) {
       sb.from("community_members").select("*").order("created_at", { ascending: false }),
       sb.from("admin_log").select("*").order("at", { ascending: false }).limit(50),
     ]);
+    const { data: sup } = await sb.from("support_messages").select("*").order("created_at").limit(2000);
     const lawyerByUser = new Map((lws || []).map((l) => [l.user_id, l.id]));
     setAdmin({
       accounts: (profs || []).map(
@@ -334,8 +353,32 @@ export function LiveProvider({ children }: { children: ReactNode }) {
       payments: (pays || []).map(toPayment),
       members: (mems || []).map((m) => ({ ...toCommunity(m), userId: m.user_id })),
       log: (log || []).map((l) => ({ at: l.at, text: l.text })),
+      support: (sup || []).map(toSupport),
     });
   }, [isAdmin]);
+
+  const loadAdminSupport = useCallback(async () => {
+    if (!isAdmin) return;
+    const { data: sup } = await sb.from("support_messages").select("*").order("created_at").limit(2000);
+    setAdmin((a) => (a ? { ...a, support: (sup || []).map(toSupport) } : a));
+  }, [isAdmin]);
+  adminSupportRef.current = isAdmin ? () => loadAdminSupport().catch(() => {}) : null;
+
+  // push notifications for this device
+  const registerPush = useCallback(async (sub: PushSubscriptionJSON) => {
+    await api("push", { method: "POST", body: { action: "subscribe", subscription: sub } });
+  }, [api]);
+  const unregisterPush = useCallback(async (endpoint: string) => {
+    await api("push", { method: "POST", body: { action: "unsubscribe", endpoint } });
+  }, [api]);
+  const push = usePush(registerPush, unregisterPush);
+  // Link this device to the account once someone signs in, so personal alerts (bookings) reach them.
+  useEffect(() => {
+    if (push.state !== "on" || !session) return;
+    import("./notify").then(({ currentPushSubscription }) =>
+      currentPushSubscription().then((sub) => sub && registerPush(sub.toJSON()).catch(() => {})),
+    );
+  }, [push.state, session?.user.id, registerPush]);
 
   const adminLog = async (text: string) => {
     await sb.from("admin_log").insert({ text });
@@ -552,6 +595,48 @@ export function LiveProvider({ children }: { children: ReactNode }) {
           return (e as Error).message;
         }
       },
+      support,
+      sendSupport: async (text) => {
+        if (!session) return "Please sign in first.";
+        const temp: SupportMessage = { id: "tmp-" + Date.now(), userId: session.user.id, fromAdmin: false, text, at: new Date().toISOString() };
+        setSupport((p) => [...p, temp]);
+        const { data, error } = await sb.from("support_messages").insert({ user_id: session.user.id, body: text }).select("*").single();
+        if (error) {
+          setSupport((p) => p.filter((m) => m.id !== temp.id));
+          return friendly(error.message);
+        }
+        setSupport((p) => p.map((m) => (m.id === temp.id ? toSupport(data) : m)));
+        return null;
+      },
+      markSupportRead: async () => {
+        if (!session) return;
+        const unread = support.filter((m) => m.fromAdmin && !m.readAt).map((m) => m.id);
+        if (!unread.length) return;
+        const now = new Date().toISOString();
+        setSupport((p) => p.map((m) => (unread.includes(m.id) ? { ...m, readAt: now } : m)));
+        await sb.from("support_messages").update({ read_at: now }).in("id", unread);
+      },
+      replySupport: async (userId, text) => {
+        const { error } = await sb.from("support_messages").insert({ user_id: userId, body: text, from_admin: true });
+        if (error) return friendly(error.message);
+        await sb.from("support_messages").update({ read_at: new Date().toISOString() }).eq("user_id", userId).eq("from_admin", false).is("read_at", null);
+        await loadAdminSupport();
+        return null;
+      },
+
+      pushState: push.state,
+      enablePush: push.enable,
+      disablePush: push.disable,
+      sendBroadcast: async (b) => {
+        try {
+          const out = await api<{ sent: number }>("push", { method: "POST", body: { action: "send", ...b } });
+          await loadAdmin();
+          return { sent: out.sent };
+        } catch (e) {
+          return { error: (e as Error).message };
+        }
+      },
+
       refresh: async () => {
         await loadPublic();
         if (session) await loadUser(session);
@@ -586,7 +671,7 @@ export function LiveProvider({ children }: { children: ReactNode }) {
       },
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [ready, user, directory, extraLawyers, myLawyer, reports, caseBoard, bids, bookings, messages, community, communityInfo, admin, isAdmin, session]);
+  }, [ready, user, directory, extraLawyers, myLawyer, reports, caseBoard, bids, bookings, messages, community, communityInfo, admin, isAdmin, session, support, push.state, push.enable, push.disable, loadAdminSupport]);
 
   void token;
   return <StoreCtx.Provider value={value}>{children}</StoreCtx.Provider>;

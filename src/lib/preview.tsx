@@ -1,11 +1,12 @@
 // Preview mode: everything lives in this browser's localStorage, with sample lawyers and cases.
 // Used only while VITE_SUPABASE_URL / VITE_SUPABASE_ANON_KEY aren't set.
-import { useEffect, useMemo, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
 import {
   COMMUNITY_CAP, COMMUNITY_MEMBERS, COMMUNITY_PRICE, LAWYERS, SEED_ACCOUNTS, SEED_APPLICANTS, SEED_BOOKINGS, SEED_REPORTS, uid,
-  type Account, type Bid, type Booking, type CommunityMember, type Lawyer, type Message, type Report,
+  type Account, type Bid, type Booking, type CommunityMember, type Lawyer, type Message, type Report, type SupportMessage,
 } from "./data";
 import { StoreCtx, findIn, slugify, type Ctx, type User } from "./store";
+import { usePush } from "./usePush";
 
 export const ADMIN_PASSCODE = "tyche-admin";
 
@@ -23,12 +24,13 @@ type State = {
   suspended: string[];
   hiddenReports: string[];
   adminLog: { at: string; text: string }[];
+  support: SupportMessage[];
 };
 
 const KEY = "tyche:v1";
 const initial: State = {
   user: null, myLawyers: [], reports: [], bids: [], bookings: [], messages: [], community: null,
-  admin: false, accounts: [], lawyerReview: {}, suspended: [], hiddenReports: [], adminLog: [],
+  admin: false, accounts: [], lawyerReview: {}, suspended: [], hiddenReports: [], adminLog: [], support: [],
 };
 
 function load(): State {
@@ -50,6 +52,8 @@ const NOTES = [
 
 export function PreviewProvider({ children }: { children: ReactNode }) {
   const [s, setS] = useState<State>(load);
+  const noop = useCallback(async () => {}, []);
+  const push = usePush(noop, noop);
 
   useEffect(() => {
     try {
@@ -60,7 +64,7 @@ export function PreviewProvider({ children }: { children: ReactNode }) {
         localStorage.setItem(KEY, JSON.stringify(slim));
       } catch { /* ignore */ }
     }
-  }, [s]);
+  }, [s, push.state, push.enable, push.disable]);
 
   const value = useMemo<Ctx>(() => {
     const mine = new Set(s.myLawyers.map((l) => l.id));
@@ -234,6 +238,35 @@ export function PreviewProvider({ children }: { children: ReactNode }) {
       },
       refresh: async () => {},
 
+      support: s.user ? s.support.filter((m) => m.userId === s.user!.id) : [],
+      sendSupport: async (text) => {
+        if (!s.user) return "Please sign in first.";
+        const uidv = s.user.id;
+        const first = !s.support.some((m) => m.userId === uidv);
+        setS((p) => ({ ...p, support: [...p.support, { id: uid("S-"), userId: uidv, fromAdmin: false, text, at: new Date().toISOString() }] }));
+        if (first)
+          setTimeout(
+            () =>
+              setS((p) => ({
+                ...p,
+                support: [...p.support, { id: uid("S-"), userId: uidv, fromAdmin: true, text: "Hi love 💜 thanks for reaching out. A member of the Tyche team will reply here shortly. If it's urgent, tap WhatsApp above.", at: new Date().toISOString() }],
+              })),
+            1800,
+          );
+        return null;
+      },
+      markSupportRead: async () =>
+        setS((p) => ({ ...p, support: p.support.map((m) => (s.user && m.userId === s.user.id && m.fromAdmin && !m.readAt ? { ...m, readAt: new Date().toISOString() } : m)) })),
+      replySupport: async (userId, text) => {
+        setS((p) => ({ ...p, support: [...p.support, { id: uid("S-"), userId, fromAdmin: true, text, at: new Date().toISOString() }] }));
+        return null;
+      },
+
+      pushState: push.state,
+      enablePush: push.enable,
+      disablePush: push.disable,
+      sendBroadcast: async () => ({ error: "Preview mode — connect Supabase and add the push keys to send real notifications." }),
+
       isAdmin: s.admin,
       admin: s.admin
         ? {
@@ -247,6 +280,7 @@ export function PreviewProvider({ children }: { children: ReactNode }) {
             })),
             members: s.community && s.user ? [{ ...s.community, userId: s.user.id }] : [],
             log: s.adminLog,
+            support: s.support,
           }
         : null,
       loadAdmin: async () => {},
@@ -274,7 +308,7 @@ export function PreviewProvider({ children }: { children: ReactNode }) {
       adminSignOut: () => setS((p) => ({ ...p, admin: false })),
       reset: () => setS({ ...initial, admin: s.admin }),
     };
-  }, [s]);
+  }, [s, push.state, push.enable, push.disable]);
 
   return <StoreCtx.Provider value={value}>{children}</StoreCtx.Provider>;
 }

@@ -23,15 +23,17 @@ React 18 + Vite + TypeScript + Tailwind. Deploys as a static site (Vercel / Netl
 | `/lawyers` | Browse/filter verified lawyers by type, area, state, free-only |
 | `/lawyers/:id` | Lawyer profile: fees, availability, channels, reviews |
 | `/book/:id` | Booking flow: type → date/time/channel (call, chat, Google Meet in Tyche) → account → pay Tyche |
-| `/community`, `/community/join` | Paid WhatsApp circle (10,000 cap): details → house rules → pay → invite |
+| `/community`, `/community/join` | Paid WhatsApp community: details → house rules → pay → invite |
 | `/join/lawyer` | Lawyer sign-up: details → practice & licence → fees (free toggles, 80/20 preview) → availability → review |
 | `/lawyer/dashboard` | Case board (see evidence, bid), offers, bookings, earnings (20% Tyche fee), fees & hours editor |
 | `/me` | Client space: offers, bookings, reports & evidence vault, community status |
 | `/messages`, `/session/:id` | In-app chat, voice call and Meet rooms |
 | `/how-it-works`, `/for-lawyers`, `/safety`, `/about`, `/signin` | Supporting pages |
-| `/admin` | **Admin dashboard** (admin accounts in live mode; passcode `tyche-admin` in preview): overview & sign-up chart, lawyer approvals, users (search, suspend, CSV export), report moderation, bookings & payments with the 20% split, community capacity, settings |
+| `/admin` | **Admin dashboard** (admin accounts in live mode; passcode `tyche-admin` in preview): overview & sign-up chart, lawyer approvals, users (search, suspend, CSV export), report moderation, bookings & payments with the 20% split, community members, **support chat inbox**, **push notifications**, settings |
 
-Plus a **Quick exit** button on every page (or press Esc 3×).
+Plus a **Quick exit** button on every page (or press Esc 3×), and a **Help** button on dashboards: live support chat with the Tyche team, FAQ, and WhatsApp (0805 756 4242). Footer links to Instagram **@tyche.io**.
+
+Lawyers hear a chime and get a notification when they're booked; clients when an offer or support reply arrives.
 
 ## Installable app (PWA)
 
@@ -49,7 +51,8 @@ The site must be served over **HTTPS** to be installable (Vercel/Netlify do this
 
 - `TYCHE_FEE = 0.2` — Tyche keeps 20% of consultation and booking fees; lawyers get 80%.
 - Consultation fee and booking fee are separate; either can be set free by the lawyer.
-- `COMMUNITY_CAP = 10_000`, `COMMUNITY_PRICE = 5_000` (placeholder — set your real price), `COMMUNITY_MEMBERS` (demo count).
+- `COMMUNITY_PRICE = 5_000` (placeholder — set your real price). No member numbers are shown publicly.
+- `SUPPORT_WHATSAPP`, `INSTAGRAM_HANDLE` — support line and Instagram handle.
 
 ## Going live
 

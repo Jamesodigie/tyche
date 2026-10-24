@@ -25,7 +25,7 @@ export const PATHS = [
     to: "/community",
     icon: HeartHandshake,
     title: "Join our community",
-    line: "A private WhatsApp circle of up to 10,000 women who get it.",
+    line: "A private WhatsApp circle of women who truly get it.",
     bg: "from-lagoon-50 to-lagoon-100",
     ring: "hover:ring-lagoon-200",
     dot: "bg-lagoon-500",

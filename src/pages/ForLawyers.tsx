@@ -14,7 +14,7 @@ export default function ForLawyers() {
           <Button size="lg" variant="outline" to="/signin?as=lawyer">I already have one</Button>
         </div>
       </PageHero>
-      <section className="mx-auto max-w-6xl 2xl:max-w-7xl px-4 sm:px-6"><div className="rail md:grid-cols-2 md:gap-5 lg:grid-cols-3">
+      <section className="mx-auto max-w-5xl px-4 sm:px-6"><div className="rail md:grid-cols-2 md:gap-5 lg:grid-cols-3">
         {[
           { i: Eye, t: "See the case before you commit", d: "Read anonymised reports and review uploaded evidence before you bid." },
           { i: Gavel, t: "Bid on cases you want", d: "Send an offer with your fee — or offer it free — plus a personal note." },

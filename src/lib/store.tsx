@@ -1,5 +1,5 @@
 import { createContext, useContext, type ReactNode } from "react";
-import type { Account, Bid, Booking, Channel, CommunityMember, Evidence, Lawyer, Message, Payment, Report, SessionKind } from "./data";
+import type { Account, Bid, Booking, Channel, CommunityMember, Evidence, Lawyer, Message, Payment, Report, SessionKind, SupportMessage } from "./data";
 import { isLive } from "./supabase";
 import { LiveProvider } from "./live";
 import { PreviewProvider } from "./preview";
@@ -57,7 +57,11 @@ export type AdminData = {
   payments: Payment[];
   members: CommunityRow[];
   log: { at: string; text: string }[];
+  support: SupportMessage[];
 };
+
+export type PushState = "unsupported" | "unconfigured" | "off" | "on" | "denied";
+export type Broadcast = { title: string; body: string; url?: string; audience: "all" | "clients" | "lawyers" };
 
 export type Ctx = {
   mode: "live" | "preview";
@@ -102,6 +106,18 @@ export type Ctx = {
   banks: () => Promise<{ name: string; code: string }[]>;
   setupPayout: (bankCode: string, bankName: string, accountNumber: string) => Promise<string | null>;
   refresh: () => Promise<void>;
+
+  // support chat with the Tyche team
+  support: SupportMessage[];
+  sendSupport: (text: string) => Promise<string | null>;
+  markSupportRead: () => Promise<void>;
+  replySupport: (userId: string, text: string) => Promise<string | null>; // admins
+
+  // push notifications
+  pushState: PushState;
+  enablePush: () => Promise<string | null>;
+  disablePush: () => Promise<void>;
+  sendBroadcast: (b: Broadcast) => Promise<{ sent?: number; error?: string }>; // admins
 
   isAdmin: boolean;
   admin: AdminData | null;

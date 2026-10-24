@@ -31,14 +31,14 @@ body { -webkit-tap-highlight-color: transparent; }
     scrollbar-width: none;
   }
   .rail::-webkit-scrollbar { display: none; }
-  .rail > * { @apply w-[86%] max-w-[340px] shrink-0 snap-start sm:w-[60%]; }
+  .rail > * { @apply w-[82%] max-w-[300px] shrink-0 snap-start sm:w-[55%]; }
   @screen md {
     .rail { @apply mx-0 grid snap-none overflow-visible px-0 pb-0; }
     .rail > * { @apply w-auto max-w-none; }
   }
-  .h-hero { font-size: clamp(2.15rem, 8.2vw, 3.75rem); line-height: 1.04; }
-  .h-page { font-size: clamp(1.85rem, 6.4vw, 3rem); line-height: 1.08; }
-  .h-section { font-size: clamp(1.7rem, 5.6vw, 3rem); line-height: 1.1; }
-  .section { @apply mt-16 sm:mt-20 lg:mt-24; }
+  .h-hero { font-size: clamp(1.9rem, 7vw, 3.25rem); line-height: 1.06; }
+  .h-page { font-size: clamp(1.6rem, 5.5vw, 2.5rem); line-height: 1.1; }
+  .h-section { font-size: clamp(1.5rem, 5vw, 2.4rem); line-height: 1.12; }
+  .section { @apply mt-10 sm:mt-14 lg:mt-16; }
   .container-x { @apply mx-auto w-full px-4 sm:px-6 lg:px-8; }
 }

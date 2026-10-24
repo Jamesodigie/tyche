@@ -13,7 +13,7 @@ export default defineConfig({
     }),
     VitePWA({
       registerType: "autoUpdate", // fixes reach everyone on next load
-      includeAssets: ["tyche-logo.png", "tyche-mark.png", "icons/apple-touch-icon.png", "icons/favicon-64.png"],
+      includeAssets: ["tyche-logo.png", "tyche-mark.png", "support-agent.jpg", "icons/apple-touch-icon.png", "icons/favicon-64.png"],
       manifest: {
         id: "/",
         name: "Tyche — Safety, support & justice",
@@ -46,6 +46,7 @@ export default defineConfig({
         // Only the app shell and static assets are cached — never user data.
         globPatterns: ["**/*.{js,css,html,png,jpg,svg,woff2}"],
         globIgnores: ["**/*-legacy-*.js"], // old browsers fetch these on demand
+        importScripts: ["/push-handler.js"], // push notifications
         navigateFallback: "/index.html",
         navigateFallbackDenylist: [/^\/api\//],
         cleanupOutdatedCaches: true,

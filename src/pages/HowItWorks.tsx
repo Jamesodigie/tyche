@@ -27,7 +27,7 @@ const journeys = [
     steps: [
       "Tell us a little about you and agree to the house rules.",
       `Pay ${naira(COMMUNITY_PRICE)} for a year.`,
-      "Get your private WhatsApp invite — the circle is capped at 10,000 women.",
+      "Get your private WhatsApp invite and join the circle.",
     ],
   },
   {
@@ -46,7 +46,7 @@ export default function HowItWorks() {
   return (
     <>
       <PageHero eyebrow="simple, gentle, clear" title="How Tyche works" sub="Four ways in. Pick the one you need today — they all connect." />
-      <section className="mx-auto grid max-w-6xl 2xl:max-w-7xl gap-4 px-4 sm:gap-6 sm:px-6 md:grid-cols-2">
+      <section className="mx-auto grid max-w-5xl gap-4 px-4 sm:gap-6 sm:px-6 md:grid-cols-2">
         {journeys.map((j) => (
           <div key={j.title} className={cx("rounded-5xl bg-gradient-to-br p-8", j.tone)}>
             <span className="grid h-14 w-14 place-items-center rounded-full bg-white text-plum-700 shadow-sm"><j.icon size={26} /></span>

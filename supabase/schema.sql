@@ -167,6 +167,26 @@ create table if not exists public.community_members (
   created_at  timestamptz not null default now()
 );
 
+create table if not exists public.support_messages (
+  id          uuid primary key default gen_random_uuid(),
+  user_id     uuid not null references public.profiles (id) on delete cascade,  -- whose conversation
+  sender_id   uuid not null default auth.uid() references public.profiles (id) on delete cascade,
+  from_admin  boolean not null default false,
+  body        text not null check (length(body) between 1 and 4000),
+  read_at     timestamptz,
+  created_at  timestamptz not null default now()
+);
+
+-- Web push subscriptions (one per installed browser/app). Written only by the server.
+create table if not exists public.push_subscriptions (
+  endpoint    text primary key,
+  p256dh      text not null,
+  auth        text not null,
+  user_id     uuid references public.profiles (id) on delete set null,
+  role        text,
+  created_at  timestamptz not null default now()
+);
+
 create table if not exists public.admin_log (
   id     bigserial primary key,
   at     timestamptz not null default now(),
@@ -185,6 +205,7 @@ create index if not exists bids_lawyer_idx         on public.bids (lawyer_id);
 create index if not exists bookings_client_idx     on public.bookings (client_id);
 create index if not exists bookings_lawyer_idx     on public.bookings (lawyer_id, date);
 create index if not exists messages_booking_idx    on public.messages (booking_id, created_at);
+create index if not exists support_user_idx        on public.support_messages (user_id, created_at);
 
 -- -----------------------------------------------------------------------------
 -- Helper functions (security definer = can look past RLS, return only booleans)
@@ -377,6 +398,20 @@ end $$;
 drop trigger if exists guard_booking on public.bookings;
 create trigger guard_booking before update on public.bookings for each row execute function public.guard_booking();
 
+-- Support messages can only be marked read after sending — never edited.
+create or replace function public.guard_support() returns trigger
+language plpgsql as $$
+declare r timestamptz := new.read_at;
+begin
+  if current_user in ('authenticated', 'anon') then
+    new := old;
+    new.read_at := r;
+  end if;
+  return new;
+end $$;
+drop trigger if exists guard_support on public.support_messages;
+create trigger guard_support before update on public.support_messages for each row execute function public.guard_support();
+
 -- -----------------------------------------------------------------------------
 -- Row level security
 -- -----------------------------------------------------------------------------
@@ -391,6 +426,8 @@ alter table public.payments          enable row level security;
 alter table public.messages          enable row level security;
 alter table public.community_members enable row level security;
 alter table public.admin_log         enable row level security;
+alter table public.support_messages  enable row level security;
+alter table public.push_subscriptions enable row level security;  -- no policies: server only
 
 -- profiles
 drop policy if exists "profiles: read own or admin" on public.profiles;
@@ -458,6 +495,16 @@ create policy "messages: participants send" on public.messages for insert
 -- community (server writes)
 drop policy if exists "community: own or admin" on public.community_members;
 create policy "community: own or admin" on public.community_members for select using (user_id = auth.uid() or public.is_admin());
+
+-- support chat: each user talks to the Tyche team; admins see and answer every conversation.
+-- (Suspended users can still reach support.)
+drop policy if exists "support: read own or admin" on public.support_messages;
+create policy "support: read own or admin" on public.support_messages for select using (user_id = auth.uid() or public.is_admin());
+drop policy if exists "support: user writes own" on public.support_messages;
+create policy "support: user writes own" on public.support_messages for insert
+  with check (sender_id = auth.uid() and ((user_id = auth.uid() and not from_admin) or (public.is_admin() and from_admin)));
+drop policy if exists "support: mark read" on public.support_messages;
+create policy "support: mark read" on public.support_messages for update using (user_id = auth.uid() or public.is_admin());
 
 -- admin log
 drop policy if exists "admin_log: admin" on public.admin_log;
@@ -537,6 +584,7 @@ begin
   begin alter publication supabase_realtime add table public.messages; exception when others then null; end;
   begin alter publication supabase_realtime add table public.bids; exception when others then null; end;
   begin alter publication supabase_realtime add table public.bookings; exception when others then null; end;
+  begin alter publication supabase_realtime add table public.support_messages; exception when others then null; end;
 end $$;
 
 -- =============================================================================
