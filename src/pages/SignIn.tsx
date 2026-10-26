@@ -99,11 +99,11 @@ export default function SignIn() {
             {as === "lawyer" ? (
               <>New to Tyche? <Link to="/join/lawyer" className="font-semibold text-plum-700 underline decoration-tangerine-400 underline-offset-4">Create a lawyer account</Link></>
             ) : (
-              <>No account yet? Pick a path — you'll create one as you go.</>
+              <>No account yet? <span className="hidden sm:inline">Pick a path — you'll create one as you go.</span><span className="sm:hidden"><Link to="/hire" className="font-semibold text-plum-700 underline decoration-tangerine-400 underline-offset-4">Hire a lawyer</Link> · <Link to="/report" className="font-semibold text-plum-700 underline decoration-tangerine-400 underline-offset-4">Report</Link> · <Link to="/community" className="font-semibold text-plum-700 underline decoration-tangerine-400 underline-offset-4">Community</Link></span></>
             )}
           </p>
         </div>
-        <div className="rounded-[2rem] bg-white/70 p-4 ring-1 ring-plum-100 sm:rounded-5xl sm:p-8">
+        <div className="hidden rounded-[2rem] bg-white/70 p-4 ring-1 ring-plum-100 sm:block sm:rounded-5xl sm:p-8">
           <p className="font-script text-2xl text-tangerine-500">new here?</p>
           <h2 className="mb-6 font-display text-2xl font-semibold text-ink">Start with what you need</h2>
           <PathBubbles compact />

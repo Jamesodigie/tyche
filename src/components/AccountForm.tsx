@@ -62,7 +62,7 @@ export function AccountForm({
     );
 
   return (
-    <form onSubmit={submit} className="space-y-4">
+    <form onSubmit={submit} className="space-y-3">
       {mode === "new" && (
         <Field label={nameLabel} hint={nameHint}>
           <Input required minLength={2} value={f.name} onChange={(e) => setF({ ...f, name: e.target.value })} placeholder={namePlaceholder} autoComplete="nickname" />

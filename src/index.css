@@ -3,6 +3,8 @@
 @tailwind utilities;
 
 html { scroll-behavior: smooth; }
+/* Slightly smaller everything on phones so screens fit without scrolling */
+@media (max-width: 639px) { html { font-size: 15px; } }
 body { -webkit-font-smoothing: antialiased; }
 ::selection { background: #FFE6D3; color: #4C1E71; }
 .font-display { font-optical-sizing: auto; }

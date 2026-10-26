@@ -262,7 +262,7 @@ export function Layout() {
         </div>
       )}
       <main><Outlet /></main>
-      {!bare && <Footer compactOnPhones={["/me", "/lawyer/dashboard", "/messages"].some((r) => pathname === r || pathname.startsWith(r + "/"))} />}
+      {!bare && <Footer compactOnPhones={["/me", "/lawyer/dashboard", "/messages", "/hire", "/signin", "/report", "/join", "/book", "/community/join", "/reset-password"].some((r) => pathname === r || pathname.startsWith(r + "/"))} />}
       <QuickExit floatingOnPhones={bare} />
       <WelcomeBubbles />
       {!bare && <BottomTabs />}

@@ -106,7 +106,7 @@ export default function Book() {
   return (
     <section className="relative overflow-hidden">
       <Blobs />
-      <div className="relative mx-auto grid max-w-5xl gap-8 px-4 sm:px-6 py-8 sm:py-10 lg:grid-cols-[1fr_340px]">
+      <div className="relative mx-auto grid max-w-5xl gap-6 px-4 sm:px-6 py-5 sm:py-10 lg:grid-cols-[1fr_340px]">
         <div>
           <Link to={`/lawyers/${l.id}`} className="-my-2 inline-flex items-center gap-1 py-2 text-sm font-semibold text-plum-600"><ArrowLeft size={16} /> Back to profile</Link>
           <h1 className="h-page mt-4 font-display font-semibold text-ink">Book {l.name}</h1>
@@ -119,10 +119,10 @@ export default function Book() {
                 {(["consultation", "booking"] as const).map((k) => {
                   const f = k === "consultation" ? (l.consultFree ? 0 : l.consultFee) : l.bookingFree ? 0 : l.bookingFee;
                   return (
-                    <button key={k} onClick={() => setKind(k)} className={cx("rounded-4xl border-2 p-6 text-left transition", kind === k ? "border-plum-500 bg-plum-50" : "border-plum-100 hover:border-plum-300")}>
-                      <p className="font-display text-2xl font-semibold text-ink">{KIND_COPY[k].title}</p>
+                    <button key={k} onClick={() => setKind(k)} className={cx("rounded-3xl border-2 p-4 text-left transition sm:p-6", kind === k ? "border-plum-500 bg-plum-50" : "border-plum-100 hover:border-plum-300")}>
+                      <p className="font-display text-xl font-semibold text-ink sm:text-2xl">{KIND_COPY[k].title}</p>
                       <p className={cx("mt-1 font-display text-xl", f ? "text-ink" : "text-lagoon-600")}>{f ? naira(f) : "Free"}</p>
-                      <p className="mt-2 text-sm text-plum-600">{KIND_COPY[k].blurb}</p>
+                      <p className="mt-1 text-sm text-plum-600">{KIND_COPY[k].blurb}</p>
                     </button>
                   );
                 })}
@@ -236,7 +236,7 @@ export default function Book() {
           </Card>
         </div>
 
-        <aside className="lg:pt-16">
+        <aside className="hidden lg:block lg:pt-16">
           <Card className="p-6 lg:sticky lg:top-24">
             <div className="flex items-center gap-4">
               <Avatar name={l.name} hue={l.hue} size={60} />

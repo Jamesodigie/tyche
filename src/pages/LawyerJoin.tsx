@@ -144,11 +144,11 @@ export default function LawyerJoin() {
   return (
     <section className="relative overflow-hidden">
       <Blobs />
-      <div className="relative mx-auto grid max-w-5xl gap-10 px-4 sm:px-6 py-6 sm:py-10 lg:grid-cols-[1fr_340px]">
+      <div className="relative mx-auto grid max-w-5xl gap-6 px-4 sm:px-6 py-6 sm:py-10 lg:grid-cols-[1fr_340px]">
         <div>
           <p className="font-script text-3xl text-tangerine-500">hello, Counsel</p>
           <h1 className="h-page font-display font-semibold text-ink">Join Tyche as a lawyer</h1>
-          <p className="mt-2 max-w-xl text-plum-700/80">Set your own fees and hours. Get matched with women who need you. Get paid through Tyche — no chasing anyone.</p>
+          <p className="mt-1 max-w-xl text-sm text-plum-700/80 sm:mt-2 sm:text-base">Set your own fees and hours. Get matched with women who need you. Get paid through Tyche — no chasing anyone.</p>
           <Card className="mt-8 p-6 sm:p-8">
             <Stepper steps={STEPS} current={step} />
 
@@ -278,7 +278,7 @@ export default function LawyerJoin() {
           </Card>
         </div>
 
-        <aside className="space-y-4 lg:pt-28">
+        <aside className="hidden space-y-4 lg:block lg:pt-28">
           {[
             { icon: Gavel, t: "Cases come to you", d: "Women share anonymised reports. You see the evidence and send an offer." },
             { icon: BadgeCheck, t: "You set the terms", d: "Your fees, your hours, free or paid — change them any time." },

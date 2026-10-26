@@ -986,7 +986,7 @@ export default function Admin() {
     <div className="min-h-screen bg-cream font-sans text-ink lg:grid lg:grid-cols-[260px_1fr]">
       <aside className="sticky top-0 z-30 border-b border-plum-100 bg-white lg:h-screen lg:border-b-0 lg:border-r">
         <div className="flex items-center justify-between px-4 py-3 sm:px-5 lg:block lg:px-6 lg:py-6">
-          <Link to="/admin" className="flex items-center gap-2">
+          <Link to="/admin" className="flex min-h-[40px] items-center gap-2">
             <img src="/tyche-logo.png" alt="Tyche" className="h-8" />
             <span className="rounded-full bg-plum-600 px-2 py-0.5 text-[11px] font-bold uppercase tracking-wider text-white">Admin</span>
           </Link>

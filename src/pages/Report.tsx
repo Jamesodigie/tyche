@@ -130,22 +130,22 @@ export default function Report() {
   return (
     <section className="relative overflow-hidden">
       <Blobs />
-      <div className="relative mx-auto grid max-w-5xl gap-8 px-4 sm:px-6 py-6 sm:py-10 lg:grid-cols-[1fr_320px]">
+      <div className="relative mx-auto grid max-w-5xl gap-6 px-4 sm:px-6 py-6 sm:py-10 lg:grid-cols-[1fr_320px]">
         <div>
           <p className="font-script text-3xl text-tangerine-500">take your time, love</p>
           <h1 className="h-page font-display font-semibold text-ink">Tell us what happened</h1>
-          <p className="mt-2 max-w-xl text-plum-700/80">There are no wrong answers and nothing is sent anywhere until you say so. Skip anything you're not ready to share.</p>
+          <p className="mt-2 hidden max-w-xl text-plum-700/80 sm:block">There are no wrong answers and nothing is sent anywhere until you say so. Skip anything you're not ready to share.</p>
+          <p className="mt-1 text-xs text-plum-600 lg:hidden">In danger right now? Call <b>112</b>. Tap <b>Exit</b> at the top to leave fast.</p>
 
           <Card className="mt-8 p-6 sm:p-8">
             <Stepper steps={STEPS} current={step} />
 
             {step === 0 && (
-              <div className="space-y-5">
-                <div className="flex items-start gap-4 rounded-4xl bg-gradient-to-br from-blush-50 to-plum-50 p-5">
-                  <Heart className="mt-1 shrink-0 fill-tangerine-200 text-tangerine-500" />
-                  <p className="text-[15px] leading-relaxed text-ink">
-                    First — whatever happened, it wasn't your fault. You're doing something brave just by being here.
-                    Let's create a private space so your report and evidence are saved safely.
+              <div className="space-y-4">
+                <div className="flex items-start gap-3 rounded-3xl bg-gradient-to-br from-blush-50 to-plum-50 p-3.5 sm:p-5">
+                  <Heart size={18} className="mt-0.5 shrink-0 fill-tangerine-200 text-tangerine-500" />
+                  <p className="text-sm leading-relaxed text-ink sm:text-[15px]">
+                    Whatever happened, it wasn't your fault. <span className="hidden sm:inline">You're doing something brave just by being here. </span>Let's make a private space so your report and evidence stay safe.
                   </p>
                 </div>
                 <Field label="Pick a nickname" hint="This is the only name lawyers will see until you choose to share more.">
@@ -280,7 +280,7 @@ export default function Report() {
           </Card>
         </div>
 
-        <aside className="space-y-4 lg:pt-32">
+        <aside className="hidden space-y-4 lg:block lg:pt-32">
           <div className="rounded-4xl bg-ink p-6 text-white">
             <PhoneCall className="text-tangerine-400" />
             <p className="mt-3 font-display text-xl font-semibold">In danger right now?</p>
