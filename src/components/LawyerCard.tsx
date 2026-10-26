@@ -13,11 +13,11 @@ export const channelIcon = { call: Phone, chat: MessageCircle, meet: Video };
 
 export function LawyerCard({ l, kind }: { l: Lawyer; kind?: SessionKind }) {
   return (
-    <div className="group flex flex-col rounded-4xl border border-plum-100 bg-white p-5 shadow-soft transition hover:-translate-y-1 sm:p-6">
-      <div className="flex items-start gap-4">
-        <Avatar name={l.name} hue={l.hue} size={56} />
+    <div className="group flex flex-col rounded-3xl border border-plum-100 bg-white p-4 shadow-soft transition hover:-translate-y-1 sm:rounded-4xl sm:p-6">
+      <div className="flex items-start gap-3 sm:gap-4">
+        <Avatar name={l.name} hue={l.hue} size={48} />
         <div className="min-w-0 flex-1">
-          <Link to={`/lawyers/${l.id}`} className="-my-1 flex items-center gap-1.5 py-1 font-display text-xl font-semibold leading-tight text-ink hover:text-plum-600">
+          <Link to={`/lawyers/${l.id}`} className="-my-1 flex items-center gap-1.5 py-1 font-display text-lg font-semibold leading-tight sm:text-xl text-ink hover:text-plum-600">
             {l.name}
             {l.verified && <BadgeCheck size={18} className="shrink-0 text-lagoon-500" aria-label="Verified" />}
           </Link>
@@ -34,28 +34,30 @@ export function LawyerCard({ l, kind }: { l: Lawyer; kind?: SessionKind }) {
           )}
         </div>
       </div>
-      <div className="mt-4 flex flex-wrap gap-1.5">
+      <div className="mt-3 hidden flex-wrap gap-1.5 sm:flex">
         {l.areas.slice(0, 3).map((a) => <Badge key={a} tone="blush">{a}</Badge>)}
       </div>
-      <p className="mt-4 line-clamp-2 text-sm leading-relaxed text-plum-700/80">{l.bio}</p>
-      <div className="mt-5 grid grid-cols-2 gap-1.5 rounded-3xl bg-cream p-2 text-center sm:gap-2 sm:p-3">
+      <p className="mt-3 hidden line-clamp-2 text-sm leading-relaxed text-plum-700/80 sm:block">{l.bio}</p>
+      <div className="mt-3 flex items-center gap-2 sm:mt-5 sm:block">
+      <div className="grid min-w-0 flex-1 grid-cols-2 gap-1.5 rounded-2xl bg-cream p-1.5 text-center sm:gap-2 sm:rounded-3xl sm:p-3">
         {(["consultation", "booking"] as const).map((k) => (
-          <div key={k} className={kind === k ? "rounded-2xl bg-white py-2 shadow-sm ring-2 ring-plum-200" : "py-2"}>
+          <div key={k} className={kind === k ? "rounded-xl bg-white py-1.5 shadow-sm ring-2 ring-plum-200 sm:py-2" : "py-1.5 sm:py-2"}>
             <p className="text-[11px] font-medium uppercase tracking-normal text-plum-400 sm:text-xs sm:tracking-wide">{k}</p>
-            <p className={feeLabel(l, k) === "Free" ? "font-display text-lg font-semibold text-lagoon-600" : "font-display text-lg font-semibold text-ink"}>
+            <p className={feeLabel(l, k) === "Free" ? "font-display text-base font-semibold text-lagoon-600 sm:text-lg" : "font-display text-base font-semibold text-ink sm:text-lg"}>
               {feeLabel(l, k)}
             </p>
           </div>
         ))}
       </div>
-      <div className="mt-4 flex items-center justify-between gap-3">
-        <div className="flex gap-1.5 text-plum-400">
+      <div className="flex shrink-0 items-center justify-between gap-3 sm:mt-4">
+        <div className="hidden gap-1.5 text-plum-400 sm:flex">
           {l.channels.map((c) => {
             const I = channelIcon[c];
             return <span key={c} className="grid h-8 w-8 place-items-center rounded-full bg-plum-50"><I size={15} /></span>;
           })}
         </div>
         <Button size="sm" to={`/book/${l.id}${kind ? `?kind=${kind}` : ""}`}>Book</Button>
+      </div>
       </div>
     </div>
   );

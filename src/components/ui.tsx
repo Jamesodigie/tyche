@@ -149,10 +149,10 @@ export function PageHero({ eyebrow, title, sub, children }: { eyebrow?: string; 
   return (
     <section className="relative overflow-hidden">
       <Blobs />
-      <div className="relative mx-auto max-w-5xl px-4 pb-8 pt-8 text-center sm:px-6 sm:pb-10 sm:pt-16">
-        {eyebrow && <p className="font-script text-xl text-tangerine-500 sm:text-2xl">{eyebrow}</p>}
+      <div className="relative mx-auto max-w-5xl px-4 pb-4 pt-5 text-center sm:px-6 sm:pb-10 sm:pt-16">
+        {eyebrow && <p className="font-script text-lg text-tangerine-500 sm:text-2xl">{eyebrow}</p>}
         <h1 className="h-page mx-auto mt-1 max-w-3xl font-display font-semibold leading-[1.08] text-ink">{title}</h1>
-        {sub && <p className="mx-auto mt-3 max-w-2xl text-base text-plum-700/80 sm:mt-4 sm:text-lg">{sub}</p>}
+        {sub && <p className="mx-auto mt-2 max-w-2xl text-sm text-plum-700/80 sm:mt-4 sm:text-lg">{sub}</p>}
         {children}
       </div>
     </section>

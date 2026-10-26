@@ -99,7 +99,7 @@ export default function SignIn() {
             {as === "lawyer" ? (
               <>New to Tyche? <Link to="/join/lawyer" className="font-semibold text-plum-700 underline decoration-tangerine-400 underline-offset-4">Create a lawyer account</Link></>
             ) : (
-              <>No account yet? <span className="hidden sm:inline">Pick a path — you'll create one as you go.</span><span className="sm:hidden"><Link to="/hire" className="font-semibold text-plum-700 underline decoration-tangerine-400 underline-offset-4">Hire a lawyer</Link> · <Link to="/report" className="font-semibold text-plum-700 underline decoration-tangerine-400 underline-offset-4">Report</Link> · <Link to="/community" className="font-semibold text-plum-700 underline decoration-tangerine-400 underline-offset-4">Community</Link></span></>
+              <>No account yet? <span className="hidden sm:inline">Pick a path — you'll create one as you go.</span><span className="sm:hidden"><Link to="/hire" className="inline-block py-2.5 font-semibold text-plum-700 underline decoration-tangerine-400 underline-offset-4">Hire a lawyer</Link> · <Link to="/report" className="inline-block py-2.5 font-semibold text-plum-700 underline decoration-tangerine-400 underline-offset-4">Report</Link> · <Link to="/community" className="inline-block py-2.5 font-semibold text-plum-700 underline decoration-tangerine-400 underline-offset-4">Community</Link></span></>
             )}
           </p>
         </div>

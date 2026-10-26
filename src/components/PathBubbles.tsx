@@ -43,7 +43,7 @@ export const PATHS = [
 
 export function PathBubbles({ onPick, compact }: { onPick?: () => void; compact?: boolean }) {
   return (
-    <div className="grid gap-3 sm:grid-cols-2 sm:gap-4">
+    <div className="grid gap-2 sm:grid-cols-2 sm:gap-4">
       {PATHS.map((p, i) => (
         <Link
           key={p.to}
@@ -51,23 +51,23 @@ export function PathBubbles({ onPick, compact }: { onPick?: () => void; compact?
           onClick={onPick}
           style={{ animationDelay: `${i * 80}ms` }}
           className={cx(
-            "group relative flex animate-rise items-start gap-3.5 overflow-hidden rounded-[1.75rem] bg-gradient-to-br p-4 ring-2 ring-transparent transition-all duration-300 active:scale-[.99] sm:gap-4 sm:rounded-[2.25rem] hover:-translate-y-1 hover:shadow-soft",
+            "group relative flex animate-rise items-center gap-3 overflow-hidden rounded-3xl bg-gradient-to-br p-3 ring-2 ring-transparent transition-all duration-300 active:scale-[.99] sm:gap-4 sm:rounded-[2.25rem] hover:-translate-y-1 hover:shadow-soft",
             p.bg,
             p.ring,
             compact ? "sm:p-6" : "sm:p-6 lg:p-7",
           )}
         >
           <span className="absolute -right-6 -top-6 h-24 w-24 rounded-full bg-white/50" />
-          <span className="relative grid h-12 w-12 shrink-0 place-items-center rounded-full bg-white text-plum-700 shadow-sm sm:h-14 sm:w-14">
-            <p.icon size={24} strokeWidth={1.8} />
+          <span className="relative grid h-10 w-10 shrink-0 place-items-center rounded-full bg-white text-plum-700 shadow-sm sm:h-14 sm:w-14">
+            <p.icon size={20} strokeWidth={1.8} />
             <span className={cx("absolute -right-0.5 -top-0.5 h-3.5 w-3.5 rounded-full ring-2 ring-white", p.dot)} />
           </span>
           <span className="relative flex-1">
-            <span className="flex items-center gap-2 font-display text-lg font-semibold leading-snug text-ink sm:text-xl">
+            <span className="flex items-center gap-2 font-display text-base font-semibold leading-snug text-ink sm:text-xl">
               {p.title}
               <ArrowRight size={18} className="-translate-x-1 opacity-0 transition group-hover:translate-x-0 group-hover:opacity-100" />
             </span>
-            <span className="mt-1 block text-sm leading-snug text-plum-700/80 sm:text-[15px]">{p.line}</span>
+            <span className="mt-0.5 block text-xs leading-snug text-plum-700/80 sm:mt-1 sm:text-[15px]">{p.line}</span>
           </span>
         </Link>
       ))}

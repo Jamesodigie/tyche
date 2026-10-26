@@ -86,8 +86,8 @@ export default function Home() {
 
       {/* PATHS */}
       <section className="mx-auto max-w-5xl px-4 sm:px-6">
-        <div className="rounded-[2rem] bg-white p-4 shadow-soft ring-1 ring-plum-100 sm:rounded-5xl sm:p-8">
-          <div className="mb-5 mt-2 text-center sm:mb-8 sm:mt-0">
+        <div className="rounded-3xl bg-white p-3 shadow-soft ring-1 ring-plum-100 sm:rounded-5xl sm:p-8">
+          <div className="mb-3 mt-1 text-center sm:mb-8 sm:mt-0">
             <p className="font-script text-2xl text-tangerine-500">start wherever feels right</p>
             <h2 className="h-section font-display font-semibold text-ink">What do you need today?</h2>
           </div>
@@ -106,38 +106,42 @@ export default function Home() {
             forward — at your own pace.
           </p>
         </div>
-        <div className="rail mt-5 sm:mt-8 md:grid-cols-2 md:gap-4 lg:grid-cols-4">
+        <div className="mt-3 grid gap-2 sm:mt-8 sm:grid-cols-2 sm:gap-4 lg:grid-cols-4">
           {features.map((f) => (
-            <div key={f.title} className="rounded-4xl bg-white p-5 shadow-soft ring-1 ring-plum-100 sm:p-6">
-              <span className={cx("grid h-12 w-12 place-items-center rounded-2xl", f.tone)}><f.icon size={22} /></span>
-              <h3 className="mt-4 font-display text-xl font-semibold text-ink">{f.title}</h3>
-              <p className="mt-2 text-[15px] leading-relaxed text-plum-700/80">{f.text}</p>
+            <div key={f.title} className="flex items-start gap-3 rounded-3xl bg-white p-3.5 shadow-soft ring-1 ring-plum-100 sm:block sm:rounded-4xl sm:p-6">
+              <span className={cx("grid h-9 w-9 shrink-0 place-items-center rounded-xl sm:h-12 sm:w-12 sm:rounded-2xl", f.tone)}><f.icon size={18} /></span>
+              <span className="block min-w-0">
+                <h3 className="font-display text-base font-semibold text-ink sm:mt-4 sm:text-xl">{f.title}</h3>
+                <p className="mt-0.5 line-clamp-2 text-sm leading-snug text-plum-700/80 sm:mt-2 sm:line-clamp-none sm:text-[15px] sm:leading-relaxed">{f.text}</p>
+              </span>
             </div>
           ))}
         </div>
       </section>
 
       {/* HOW BIDS WORK */}
-      <section className="section relative overflow-hidden bg-plum-700 py-10 text-white sm:py-14">
+      <section className="section relative overflow-hidden bg-plum-700 py-7 text-white sm:py-14">
         <div className="absolute -right-20 -top-20 h-80 w-80 rounded-full bg-plum-500/40 blur-3xl" />
         <div className="absolute -bottom-20 left-10 h-72 w-72 rounded-full bg-tangerine-500/25 blur-3xl" />
         <div className="relative mx-auto max-w-5xl px-4 sm:px-6">
           <p className="font-script text-2xl text-tangerine-200">the lawyers come to you</p>
           <h2 className="h-section max-w-2xl font-display font-semibold leading-tight">Share once. Let the right lawyer find you.</h2>
-          <div className="rail mt-5 sm:mt-8 md:grid-cols-2 md:gap-4 lg:grid-cols-4">
+          <div className="mt-4 grid gap-2 sm:mt-8 sm:grid-cols-2 sm:gap-4 lg:grid-cols-4">
             {[
               { icon: Upload, t: "You upload", d: "Tell us what happened in your own words and add any evidence you have." },
               { icon: EyeOff, t: "We hide your name", d: "Verified lawyers see an anonymised summary — never your details." },
               { icon: Gavel, t: "Lawyers offer", d: "They send you an offer: free consultation, a fee, and a kind note." },
               { icon: Sparkles, t: "You choose", d: "Compare, chat, and pick the one who feels right. Or none at all." },
             ].map((s, i) => (
-              <div key={s.t} className="rounded-4xl bg-white/10 p-5 ring-1 ring-white/15 backdrop-blur sm:p-6">
-                <div className="flex items-center justify-between">
-                  <span className="grid h-12 w-12 place-items-center rounded-full bg-white text-plum-700"><s.icon size={22} /></span>
-                  <span className="font-display text-5xl font-semibold text-white/15">0{i + 1}</span>
+              <div key={s.t} className="flex items-start gap-3 rounded-3xl bg-white/10 p-3.5 ring-1 ring-white/15 backdrop-blur sm:block sm:rounded-4xl sm:p-6">
+                <div className="flex shrink-0 items-center justify-between">
+                  <span className="grid h-9 w-9 place-items-center rounded-full bg-white text-plum-700 sm:h-12 sm:w-12"><s.icon size={18} /></span>
+                  <span className="hidden font-display text-5xl font-semibold text-white/15 sm:inline">0{i + 1}</span>
                 </div>
-                <h3 className="mt-4 font-display text-xl font-semibold">{s.t}</h3>
-                <p className="mt-2 text-[15px] leading-relaxed text-plum-100">{s.d}</p>
+                <span className="block min-w-0">
+                  <h3 className="font-display text-base font-semibold sm:mt-4 sm:text-xl">{i + 1}. {s.t}</h3>
+                  <p className="mt-0.5 text-sm leading-snug text-plum-100 sm:mt-2 sm:text-[15px] sm:leading-relaxed">{s.d}</p>
+                </span>
               </div>
             ))}
           </div>
@@ -181,7 +185,7 @@ export default function Home() {
       {/* FAQ */}
       <section className="section mx-auto max-w-3xl px-4 sm:px-6">
         <h2 className="h-section text-center font-display font-semibold text-ink">Questions you might have</h2>
-        <div className="mt-5 space-y-2.5 sm:mt-6">
+        <div className="mt-5 hidden space-y-2.5 sm:mt-6 sm:block">
           {faqs.map(([q, a], i) => (
             <div key={q} className="rounded-3xl bg-white ring-1 ring-plum-100">
               <button onClick={() => setOpen(open === i ? -1 : i)} aria-expanded={open === i} className="flex w-full items-center justify-between gap-4 px-5 py-3.5 text-left text-[15px] font-semibold text-ink sm:px-6 sm:py-4 sm:text-base">
@@ -192,14 +196,14 @@ export default function Home() {
             </div>
           ))}
         </div>
-        <div className="mt-4 flex flex-wrap justify-center gap-2 text-sm">
-          <button onClick={() => openSupport("faq")} className="rounded-full bg-white px-4 py-2 font-semibold text-plum-700 ring-1 ring-plum-100 hover:bg-plum-50">More answers</button>
+        <div className="mt-3 flex flex-wrap justify-center gap-2 text-sm sm:mt-4">
+          <button onClick={() => openSupport("faq")} className="rounded-full bg-white px-4 py-2 font-semibold text-plum-700 ring-1 ring-plum-100 hover:bg-plum-50"><span className="sm:hidden">Read the FAQ</span><span className="hidden sm:inline">More answers</span></button>
           <button onClick={() => openSupport()} className="rounded-full bg-plum-600 px-4 py-2 font-semibold text-white">Message support</button>
         </div>
       </section>
 
       {/* CTA */}
-      <section className="section mx-auto max-w-4xl px-4 sm:px-6 text-center">
+      <section className="section mx-auto hidden max-w-4xl px-4 text-center sm:block sm:px-6">
         <MessageCircleHeart className="mx-auto text-tangerine-400" size={32} />
         <h2 className="h-section mt-3 font-display font-semibold text-ink">Whenever you're ready, <em className="font-normal text-plum-600">we're here.</em></h2>
         <p className="mx-auto mt-4 max-w-xl text-base text-plum-700/80 sm:text-lg">It takes about five minutes to save your story. You can stop and come back anytime.</p>

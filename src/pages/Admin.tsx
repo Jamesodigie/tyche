@@ -55,13 +55,13 @@ const fmtDate = (iso: string) => new Date(iso).toLocaleDateString("en-GB", { day
 
 function Stat({ label, value, sub, icon: I, tone }: { label: string; value: ReactNode; sub?: ReactNode; icon: typeof Users; tone: string }) {
   return (
-    <div className="min-w-0 rounded-3xl bg-white p-4 shadow-soft ring-1 ring-plum-100 sm:rounded-4xl sm:p-5">
+    <div className="min-w-0 rounded-2xl bg-white p-3 shadow-soft ring-1 ring-plum-100 sm:rounded-4xl sm:p-5">
       <div className="flex items-start justify-between gap-2">
-        <p className="text-[13px] font-medium leading-snug text-plum-500 sm:text-sm">{label}</p>
-        <span className={cx("grid h-8 w-8 shrink-0 place-items-center rounded-xl sm:h-10 sm:w-10 sm:rounded-2xl", tone)}><I size={17} /></span>
+        <p className="text-xs font-medium leading-snug text-plum-500 sm:text-sm">{label}</p>
+        <span className={cx("hidden h-8 w-8 shrink-0 sm:grid place-items-center rounded-xl sm:h-10 sm:w-10 sm:rounded-2xl", tone)}><I size={17} /></span>
       </div>
-      <p className="mt-2 truncate font-display text-2xl font-semibold text-ink sm:text-3xl">{value}</p>
-      {sub && <p className="mt-1 text-xs leading-snug text-plum-400">{sub}</p>}
+      <p className="mt-1 truncate font-display text-xl font-semibold text-ink sm:mt-2 sm:text-3xl">{value}</p>
+      {sub && <p className="mt-0.5 line-clamp-1 text-[11px] leading-snug text-plum-400 sm:mt-1 sm:line-clamp-none sm:text-xs">{sub}</p>}
     </div>
   );
 }
@@ -81,7 +81,7 @@ function SectionTitle({ title, sub, children }: { title: string; sub?: string; c
 function Table({ head, children, empty, mobile }: { head: string[]; children: ReactNode; empty?: boolean; mobile?: ReactNode }) {
   return (
     <>
-    {mobile && <div className="grid gap-3 sm:grid-cols-2 xl:hidden [&>*]:min-w-0">{mobile}{empty && <Card className="p-8 text-center text-plum-400">Nothing here yet</Card>}</div>}
+    {mobile && <div className="grid gap-2 sm:grid-cols-2 sm:gap-3 xl:hidden [&>*]:min-w-0">{mobile}{empty && <Card className="p-8 text-center text-plum-400">Nothing here yet</Card>}</div>}
     <Card className={cx("overflow-hidden", !!mobile && "hidden xl:block")}>
       <div className="overflow-x-auto">
         <table className="w-full min-w-[720px] text-left text-sm [&_td]:align-middle">
@@ -356,6 +356,7 @@ function UsersView() {
   const [q, setQ] = useState("");
   const [role, setRole] = useState("");
   const [status, setStatus] = useState("");
+  const [shown, setShown] = useState(15);
   const list = allAccounts.filter(
     (a) =>
       (!q || (a.name + a.email).toLowerCase().includes(q.toLowerCase())) &&
@@ -377,30 +378,22 @@ function UsersView() {
       <Table
         head={["User", "Role", "State", "Joined", "Status", ""]}
         empty={!list.length}
-        mobile={list.map((a) => {
+        mobile={list.slice(0, shown).map((a) => {
           const susp = isSuspended(a.email);
           const l = a.lawyerId ? lawyers.find((x) => x.id === a.lawyerId) : undefined;
           return (
-            <Card key={a.id} className={cx("p-4", susp && "bg-blush-50")}>
-              <div className="flex items-center gap-3">
-                <Avatar name={a.name} hue={a.role === "lawyer" ? l?.hue ?? 185 : 330} size={44} className="ring-2" />
-                <div className="min-w-0 flex-1">
-                  <p className="truncate font-semibold text-ink">{a.name}</p>
-                  <p className="truncate text-xs text-plum-400">{a.email}</p>
-                </div>
-                {susp ? <Badge tone="warm">Suspended</Badge> : <Badge tone="teal">Active</Badge>}
+            <Card key={a.id} className={cx("flex items-center gap-3 p-3", susp && "bg-blush-50")}>
+              <Avatar name={a.name} hue={a.role === "lawyer" ? l?.hue ?? 185 : 330} size={36} className="ring-2" />
+              <div className="min-w-0 flex-1">
+                <p className="truncate text-sm font-semibold text-ink">{a.name} <span className={cx("ml-1 text-[11px] font-semibold", a.role === "lawyer" ? "text-lagoon-600" : "text-plum-400")}>{a.role}{l && lawyerState(l) !== "approved" ? ` · ${lawyerState(l)}` : ""}</span></p>
+                <p className="truncate text-xs text-plum-400">{a.email} · {a.state}</p>
               </div>
-              <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-plum-500">
-                <Badge tone={a.role === "lawyer" ? "teal" : "blush"}>{a.role}{l && lawyerState(l) !== "approved" ? ` · ${lawyerState(l)}` : ""}</Badge>
-                <span>{a.state}</span>
-                <span>Joined {fmtDate(a.joinedAt)}</span>
-              </div>
-              <button disabled={a.id === user?.id || a.role === "admin"} onClick={() => setSuspended(a, !susp)} className={cx("mt-3 inline-flex min-h-[40px] w-full items-center justify-center gap-1.5 rounded-full text-sm font-semibold", susp ? "bg-lagoon-50 text-lagoon-600" : "bg-blush-100 text-plum-700")}>
-                {susp ? <><Undo2 size={15} /> Restore account</> : <><Ban size={15} /> Suspend account</>}
+              <button disabled={a.id === user?.id || a.role === "admin"} onClick={() => setSuspended(a, !susp)} className={cx("inline-flex min-h-[36px] shrink-0 items-center gap-1 rounded-full px-3 text-xs font-semibold disabled:opacity-40", susp ? "bg-lagoon-50 text-lagoon-600" : "bg-blush-100 text-plum-700")}>
+                {susp ? <><Undo2 size={13} /> Restore</> : <><Ban size={13} /> Suspend</>}
               </button>
             </Card>
           );
-        })}
+        }).concat(list.length > shown ? [<button key="more" onClick={() => setShown(shown + 20)} className="min-h-[40px] rounded-full bg-white text-sm font-semibold text-plum-600 ring-1 ring-plum-100">Show more ({list.length - shown})</button>] : [])}
       >
         {list.map((a) => {
           const susp = isSuspended(a.email);
@@ -552,18 +545,18 @@ function Payments() {
         mobile={list.map((b) => {
           const p = payByBooking.get(b.id);
           return (
-            <Card key={b.id} className="p-4">
+            <Card key={b.id} className="p-3">
               <div className="flex items-start justify-between gap-2">
                 <div className="min-w-0">
-                  <p className="truncate font-semibold text-ink">{b.clientName} → {name(b.lawyerId)}</p>
+                  <p className="truncate text-sm font-semibold text-ink">{b.clientName} → {name(b.lawyerId)}</p>
                   <p className="text-xs text-plum-400">{KIND_COPY[b.kind].title} · {new Date(b.date).toLocaleDateString("en-GB", { day: "numeric", month: "short" })} · <span className="font-mono">{b.id}</span></p>
                 </div>
                 <Badge tone={b.status === "pending_payment" ? "warm" : b.status === "done" ? "plum" : "teal"}>{statusOf(b)}</Badge>
               </div>
-              <div className="mt-3 grid grid-cols-3 gap-1.5 text-center text-xs [&>*]:min-w-0">
-                <div className="rounded-2xl bg-cream p-2"><p className="text-plum-400">Fee</p><p className="truncate text-[13px] font-semibold text-ink">{b.fee ? naira(b.fee) : "Free"}</p></div>
-                <div className="rounded-2xl bg-tangerine-50 p-2"><p className="text-plum-400">Tyche</p><p className="truncate text-[13px] font-semibold text-tangerine-600">{naira(p?.tycheShare ?? 0)}</p></div>
-                <div className="rounded-2xl bg-lagoon-50 p-2"><p className="text-plum-400">Lawyer</p><p className="truncate text-[13px] font-semibold text-lagoon-600">{naira(p?.lawyerShare ?? 0)}</p></div>
+              <div className="mt-1.5 flex flex-wrap gap-x-3 text-xs">
+                <span className="text-plum-400">Fee <b className="text-ink">{b.fee ? naira(b.fee) : "Free"}</b></span>
+                <span className="text-plum-400">Tyche <b className="text-tangerine-600">{naira(p?.tycheShare ?? 0)}</b></span>
+                <span className="text-plum-400">Lawyer <b className="text-lagoon-600">{naira(p?.lawyerShare ?? 0)}</b></span>
               </div>
             </Card>
           );

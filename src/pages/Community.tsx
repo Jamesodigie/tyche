@@ -26,9 +26,9 @@ export default function Community() {
     <>
       <section className="relative overflow-hidden">
         <Blobs />
-        <div className="relative mx-auto grid max-w-5xl items-center gap-8 px-4 sm:gap-10 sm:px-6 py-6 sm:py-10 lg:grid-cols-2">
+        <div className="relative mx-auto grid max-w-5xl items-center gap-8 px-4 sm:gap-10 sm:px-6 py-5 sm:py-10 lg:grid-cols-2">
           <div>
-            <p className="font-script text-3xl text-tangerine-500">your girls, your people</p>
+            <p className="font-script text-2xl text-tangerine-500 sm:text-3xl">your girls, your people</p>
             <h1 className="h-hero font-display font-semibold text-ink">The circle you <em className="font-normal text-lagoon-600">deserve.</em></h1>
             <p className="mt-4 max-w-lg text-base sm:text-lg text-plum-700/85">
               A private, paid WhatsApp community for women — close, safe and actually supportive.
@@ -38,7 +38,7 @@ export default function Community() {
               <span className="text-plum-600"><b className="font-display text-2xl text-ink">{naira(communityPrice)}</b> / year</span>
             </div>
           </div>
-          <div className="relative rounded-[2rem] bg-gradient-to-br from-lagoon-500 to-lagoon-600 p-6 text-white shadow-soft sm:rounded-5xl sm:p-8">
+          <div className="relative hidden rounded-[2rem] bg-gradient-to-br from-lagoon-500 to-lagoon-600 p-6 text-white shadow-soft sm:block sm:rounded-5xl sm:p-8">
             <Sparkle className="absolute right-8 top-8 text-white/40" size={34} />
             <Users size={32} />
             <p className="mt-4 font-display text-4xl font-semibold">Join the community</p>
@@ -55,39 +55,41 @@ export default function Community() {
 
       <section className="mx-auto max-w-5xl px-4 sm:px-6">
         <h2 className="h-section text-center font-display font-semibold text-ink">What's inside</h2>
-        <div className="rail mt-6 sm:mt-8 md:grid-cols-2 md:gap-5 lg:grid-cols-3">
+        <div className="mt-3 grid gap-2 sm:mt-8 sm:grid-cols-2 sm:gap-5 lg:grid-cols-3">
           {perks.map((p) => (
-            <div key={p.t} className="rounded-4xl bg-white p-6 shadow-soft ring-1 ring-plum-100">
-              <span className="grid h-12 w-12 place-items-center rounded-2xl bg-lagoon-50 text-lagoon-600"><p.i size={22} /></span>
-              <p className="mt-4 font-display text-xl font-semibold text-ink">{p.t}</p>
-              <p className="mt-1 text-plum-700/80">{p.d}</p>
+            <div key={p.t} className="flex items-start gap-3 rounded-3xl bg-white p-3.5 shadow-soft ring-1 ring-plum-100 sm:block sm:rounded-4xl sm:p-6">
+              <span className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-lagoon-50 text-lagoon-600 sm:h-12 sm:w-12 sm:rounded-2xl"><p.i size={18} /></span>
+              <span className="block min-w-0">
+                <span className="block font-display text-base font-semibold text-ink sm:mt-4 sm:text-xl">{p.t}</span>
+                <span className="mt-0.5 block text-sm text-plum-700/80 sm:mt-1 sm:text-base">{p.d}</span>
+              </span>
             </div>
           ))}
         </div>
       </section>
 
-      <section className="section mx-auto grid max-w-5xl gap-4 px-4 sm:gap-6 sm:px-6 md:grid-cols-2">
-        <div className="rounded-[2rem] bg-blush-100 p-6 sm:rounded-5xl sm:p-8">
-          <HeartHandshake className="text-tangerine-500" size={30} />
-          <h3 className="mt-3 font-display text-3xl font-semibold text-ink">Our house rules</h3>
-          <ul className="mt-5 space-y-3">
+      <section className="mx-auto mt-4 grid max-w-5xl gap-3 px-4 sm:mt-14 sm:gap-6 sm:px-6 md:grid-cols-2">
+        <div className="rounded-3xl bg-blush-100 p-4 sm:rounded-5xl sm:p-8">
+          <HeartHandshake className="hidden text-tangerine-500 sm:block" size={30} />
+          <h3 className="font-display text-xl font-semibold text-ink sm:mt-3 sm:text-3xl">Our house rules</h3>
+          <ul className="mt-3 space-y-2 sm:mt-5 sm:space-y-3">
             {rules.map((r, i) => (
-              <li key={r} className="flex gap-3 text-ink"><span className="grid h-7 w-7 shrink-0 place-items-center rounded-full bg-white text-sm font-bold text-plum-600">{i + 1}</span>{r}</li>
+              <li key={r} className="flex gap-2.5 text-sm text-ink sm:gap-3 sm:text-base"><span className="grid h-6 w-6 shrink-0 place-items-center rounded-full bg-white text-xs font-bold text-plum-600 sm:h-7 sm:w-7 sm:text-sm">{i + 1}</span>{r}</li>
             ))}
           </ul>
         </div>
-        <div className="flex flex-col justify-between rounded-[2rem] bg-plum-700 p-6 text-white sm:rounded-5xl sm:p-8">
+        <div className="flex flex-col justify-between rounded-3xl bg-plum-700 p-4 text-white sm:rounded-5xl sm:p-8">
           <div>
             <p className="font-script text-2xl text-tangerine-200">one simple price</p>
-            <p className="mt-2 font-display text-6xl font-semibold">{naira(communityPrice)}</p>
+            <p className="mt-1 font-display text-4xl font-semibold sm:mt-2 sm:text-6xl">{naira(communityPrice)}</p>
             <p className="text-plum-100">per year · cancel anytime</p>
-            <ul className="mt-6 space-y-2 text-plum-50">
+            <ul className="mt-3 space-y-1.5 text-sm text-plum-50 sm:mt-6 sm:space-y-2 sm:text-base">
               {["12 months in the private WhatsApp circle", "Monthly live Q&As with lawyers & therapists", "Priority booking on Tyche"].map((x) => (
                 <li key={x} className="flex items-center gap-2"><span className="h-2 w-2 rounded-full bg-tangerine-400" />{x}</li>
               ))}
             </ul>
           </div>
-          <Button size="lg" variant="warm" className="mt-8" to="/community/join">{inCircle ? "See my invite" : "Claim my spot"} <ArrowRight size={18} /></Button>
+          <Button size="lg" variant="warm" className="mt-4 sm:mt-8" to="/community/join">{inCircle ? "See my invite" : "Claim my spot"} <ArrowRight size={18} /></Button>
         </div>
       </section>
     </>

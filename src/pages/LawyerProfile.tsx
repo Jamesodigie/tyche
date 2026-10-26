@@ -22,20 +22,20 @@ export default function LawyerProfile() {
   return (
     <section className="relative overflow-hidden">
       <Blobs />
-      <div className="relative mx-auto max-w-5xl px-4 sm:px-6 py-8 sm:py-10">
+      <div className="relative mx-auto max-w-5xl px-4 sm:px-6 py-4 sm:py-10">
         <Link to="/lawyers" className="-my-2 inline-flex items-center gap-1 py-2 text-sm font-semibold text-plum-600"><ArrowLeft size={16} /> All lawyers</Link>
-        <div className="mt-4 grid gap-5 sm:mt-6 sm:gap-8 lg:grid-cols-[1fr_340px] xl:grid-cols-[1fr_380px]">
-          <div className="space-y-6">
-            <Card className="p-6 sm:p-8">
-              <div className="flex flex-col items-center gap-4 text-center sm:flex-row sm:items-center sm:gap-6 sm:text-left">
-                <Avatar name={l.name} hue={l.hue} size={96} />
-                <div>
-                  <div className="flex flex-wrap items-center justify-center gap-2 sm:justify-start">
+        <div className="mt-2 grid gap-3 sm:mt-6 sm:gap-8 lg:grid-cols-[1fr_340px] xl:grid-cols-[1fr_380px]">
+          <div className="space-y-3 sm:space-y-6">
+            <Card className="p-4 sm:p-8">
+              <div className="flex items-center gap-4 sm:gap-6">
+                <Avatar name={l.name} hue={l.hue} size={64} className="sm:h-24 sm:w-24" />
+                <div className="min-w-0">
+                  <div className="flex flex-wrap items-center gap-2">
                     <h1 className="h-page font-display font-semibold text-ink">{l.name}</h1>
                     {l.verified ? <Badge tone="teal"><BadgeCheck size={14} /> Verified by Tyche</Badge> : <Badge tone="warm">Verification pending</Badge>}
                   </div>
-                  <p className="mt-1 text-plum-600">{l.title} · Called to bar {l.yearCalled}</p>
-                  <div className="mt-3 flex flex-wrap justify-center gap-x-4 gap-y-1.5 text-sm text-plum-600 sm:justify-start">
+                  <p className="mt-0.5 text-sm text-plum-600 sm:mt-1 sm:text-base">{l.title} · Called {l.yearCalled}</p>
+                  <div className="mt-2 flex flex-wrap gap-x-3 gap-y-1 text-xs text-plum-600 sm:mt-3 sm:gap-x-4 sm:text-sm">
                     <span className="flex items-center gap-1"><MapPin size={15} /> {l.city}, {l.state}</span>
                     {l.reviews > 0 ? (
                       <span className="flex items-center gap-1"><Star size={15} className="fill-tangerine-400 text-tangerine-400" /> <b className="text-ink">{l.rating.toFixed(1)}</b> ({l.reviews} reviews)</span>
@@ -43,46 +43,60 @@ export default function LawyerProfile() {
                       <span className="flex items-center gap-1"><Star size={15} className="text-tangerine-400" /> New on Tyche</span>
                     )}
                     <span className="flex items-center gap-1"><Clock size={15} /> Replies {l.responds}</span>
-                    <span className="flex items-center gap-1"><Globe2 size={15} /> {l.languages.join(", ")}</span>
+                    <span className="hidden items-center gap-1 sm:flex"><Globe2 size={15} /> {l.languages.join(", ")}</span>
                   </div>
                 </div>
               </div>
             </Card>
 
-            <Card className="p-6 sm:p-8">
-              <h2 className="font-display text-2xl font-semibold text-ink">About {l.name.split(" ")[0]}</h2>
-              <p className="mt-3 text-base leading-relaxed text-plum-700/90 sm:text-lg">{l.bio}</p>
-              <div className="mt-5 flex flex-wrap gap-2">{l.areas.map((a) => <Badge key={a} tone="blush" className="px-4 py-1.5 text-sm">{a}</Badge>)}</div>
+            {/* phones: fees + book right away */}
+            <div className="grid grid-cols-2 gap-2 lg:hidden">
+              {(["consultation", "booking"] as const).map((k) => {
+                const label = feeLabel(l, k);
+                return (
+                  <Link key={k} to={`/book/${l.id}?kind=${k}`} className={k === "consultation" ? "rounded-3xl bg-lagoon-500 p-3 text-white" : "rounded-3xl bg-tangerine-500 p-3 text-white"}>
+                    <span className="block text-[11px] font-semibold uppercase tracking-wide text-white/80">{KIND_COPY[k].title}</span>
+                    <span className="block font-display text-xl font-semibold">{label}</span>
+                    <span className="mt-1 block text-xs font-semibold">Book a {k} →</span>
+                  </Link>
+                );
+              })}
+            </div>
+
+            <Card className="p-4 sm:p-8">
+              <h2 className="font-display text-xl font-semibold text-ink sm:text-2xl">About {l.name.split(" ")[0]}</h2>
+              <p className="mt-2 text-sm leading-relaxed text-plum-700/90 sm:mt-3 sm:text-lg">{l.bio}</p>
+              <div className="mt-3 flex flex-wrap gap-1.5 sm:mt-5 sm:gap-2">{l.areas.map((a) => <Badge key={a} tone="blush" className="sm:px-4 sm:py-1.5 sm:text-sm">{a}</Badge>)}</div>
             </Card>
 
-            <Card className="p-6 sm:p-8">
-              <h2 className="font-display text-2xl font-semibold text-ink">When & how you can talk</h2>
-              <div className="mt-4 flex flex-wrap gap-2">
+            <Card className="p-4 sm:p-8">
+              <h2 className="font-display text-xl font-semibold text-ink sm:text-2xl">When & how you can talk</h2>
+              <div className="mt-3 flex flex-wrap gap-1.5 sm:mt-4 sm:gap-2">
                 {DAYS.map((d) => (
-                  <span key={d} className={l.days.includes(d) ? "rounded-2xl bg-plum-600 px-4 py-2 text-sm font-semibold text-white" : "rounded-2xl bg-plum-50 px-4 py-2 text-sm text-plum-300 line-through"}>{d}</span>
+                  <span key={d} className={l.days.includes(d) ? "rounded-xl bg-plum-600 px-2.5 py-1 text-xs font-semibold text-white sm:rounded-2xl sm:px-4 sm:py-2 sm:text-sm" : "rounded-xl bg-plum-50 px-2.5 py-1 text-xs text-plum-300 line-through sm:rounded-2xl sm:px-4 sm:py-2 sm:text-sm"}>{d}</span>
                 ))}
               </div>
-              <p className="mt-3 text-plum-600">{l.from} – {l.to} · {l.sessionMins}-minute consultations</p>
-              <div className="mt-5 grid gap-3 sm:grid-cols-3">
+              <p className="mt-2 text-sm text-plum-600 sm:mt-3 sm:text-base">{l.from} – {l.to} · {l.sessionMins}-minute consultations</p>
+              <div className="mt-3 flex flex-wrap gap-2 sm:mt-5 sm:grid sm:grid-cols-3 sm:gap-3">
                 {l.channels.map((c) => {
                   const I = channelIcon[c];
                   return (
-                    <div key={c} className="flex items-center gap-3 rounded-3xl bg-cream p-4">
-                      <span className="grid h-10 w-10 place-items-center rounded-full bg-white text-plum-600"><I size={18} /></span>
-                      <span className="text-sm font-semibold text-ink">{CHANNEL_LABEL[c]}</span>
+                    <div key={c} className="flex items-center gap-2 rounded-full bg-cream py-1.5 pl-1.5 pr-3 sm:gap-3 sm:rounded-3xl sm:p-4">
+                      <span className="grid h-7 w-7 place-items-center rounded-full bg-white text-plum-600 sm:h-10 sm:w-10"><I size={15} /></span>
+                      <span className="text-xs font-semibold text-ink sm:text-sm">{CHANNEL_LABEL[c]}</span>
                     </div>
                   );
                 })}
               </div>
             </Card>
 
-            {mode === "preview" && <Card className="p-6 sm:p-8">
-              <h2 className="font-display text-2xl font-semibold text-ink">What women say</h2>
-              <div className="mt-5 grid gap-4 md:grid-cols-3">
+            {mode === "preview" && <Card className="p-4 sm:p-8">
+              <h2 className="font-display text-xl font-semibold text-ink sm:text-2xl">What women say</h2>
+              <div className="rail mt-3 sm:mt-5 md:grid-cols-3 md:gap-4">
                 {REVIEWS.map((r) => (
-                  <div key={r.t} className="rounded-3xl bg-blush-50 p-5">
+                  <div key={r.t} className="rounded-3xl bg-blush-50 p-4 sm:p-5">
                     <Quote className="text-tangerine-300" size={20} />
-                    <p className="mt-2 text-[15px] text-ink">{r.t}</p>
+                    <p className="mt-1 text-sm text-ink sm:text-[15px]">{r.t}</p>
                     <p className="mt-3 text-sm font-semibold text-plum-600">— {r.n}</p>
                   </div>
                 ))}
@@ -90,7 +104,7 @@ export default function LawyerProfile() {
             </Card>}
           </div>
 
-          <aside className="space-y-4 lg:sticky lg:top-24 lg:self-start">
+          <aside className="hidden space-y-4 lg:sticky lg:top-24 lg:block lg:self-start">
             {(["consultation", "booking"] as const).map((k) => {
               const label = feeLabel(l, k);
               return (

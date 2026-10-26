@@ -63,7 +63,7 @@ function Header() {
   return (
     <header className="safe-top sticky top-0 z-40 border-b border-plum-100/60 bg-cream/85 backdrop-blur-md">
       <div className="mx-auto flex h-16 max-w-5xl items-center justify-between gap-3 px-4 sm:h-[72px] sm:px-6">
-        <Link to="/" className="flex items-center" aria-label="Tyche home">
+        <Link to="/" className="flex min-h-[44px] items-center" aria-label="Tyche home">
           <img src="/tyche-logo.png" alt="Tyche" className="h-8 w-auto sm:h-10" />
         </Link>
         <nav className="hidden items-center gap-1 lg:flex">
@@ -158,7 +158,34 @@ function InstagramIcon({ size = 16 }: { size?: number }) {
 function Footer({ compactOnPhones }: { compactOnPhones?: boolean }) {
   return (
     <footer className={cx(compactOnPhones && "hidden lg:block", "section bg-plum-900 pb-[calc(5rem+env(safe-area-inset-bottom))] text-plum-100 lg:pb-0")}>
-      <div className="mx-auto grid max-w-5xl grid-cols-2 gap-x-6 gap-y-8 px-4 py-10 sm:px-6 md:grid-cols-[1.4fr_1fr_1fr_1fr]">
+      {/* phones: short footer */}
+      <div className="space-y-4 px-4 py-6 md:hidden">
+        <p className="flex items-center gap-2 text-xs text-plum-100">
+          <ShieldAlert size={15} className="shrink-0 text-tangerine-400" />
+          <span>In danger right now? Call <b className="text-white">112</b> — free emergency line.</span>
+        </p>
+        <div className="flex flex-wrap gap-2 text-xs">
+          <a href={`https://instagram.com/${INSTAGRAM_HANDLE}`} target="_blank" rel="noreferrer" className="inline-flex min-h-[36px] items-center gap-1.5 rounded-full bg-white/10 px-3 font-semibold text-white">
+            <InstagramIcon size={14} /> @{INSTAGRAM_HANDLE}
+          </a>
+          <a href={whatsappLink()} target="_blank" rel="noreferrer" className="inline-flex min-h-[36px] items-center gap-1.5 rounded-full bg-[#25D366] px-3 font-semibold text-white">
+            <MessageCircle size={14} /> {SUPPORT_WHATSAPP_DISPLAY}
+          </a>
+          <button onClick={() => openSupport("faq")} className="inline-flex min-h-[36px] items-center gap-1.5 rounded-full bg-white/10 px-3 font-semibold text-white">
+            <HelpCircle size={14} /> Help
+          </button>
+        </div>
+        <nav className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-plum-200">
+          {[["/how-it-works", "How it works"], ["/community", "Community"], ["/for-lawyers", "For lawyers"], ["/safety", "Safety"], ["/about", "About"], ["/signin", "Sign in"]].map(([to, label]) => (
+            <Link key={to} to={to} className="inline-block py-1.5 hover:text-white">{label}</Link>
+          ))}
+          <InstallButton className="inline-block py-1.5 font-semibold text-white" label="Get the app" />
+        </nav>
+        <p className="text-[11px] leading-relaxed text-plum-300">
+          © {new Date().getFullYear()} Tyche · Lawyers are independent, verified by our team · <Link to="/admin" className="text-plum-400">Team</Link>
+        </p>
+      </div>
+      <div className="mx-auto hidden max-w-5xl grid-cols-2 gap-x-6 gap-y-8 px-4 py-10 sm:px-6 md:grid md:grid-cols-[1.4fr_1fr_1fr_1fr]">
         <div className="col-span-2 md:col-span-1">
           <div className="inline-block rounded-2xl bg-white px-3 py-2"><img src="/tyche-logo.png" alt="Tyche" className="h-8" /></div>
           <p className="mt-4 max-w-xs text-sm leading-relaxed text-plum-200">
@@ -196,7 +223,7 @@ function Footer({ compactOnPhones }: { compactOnPhones?: boolean }) {
           </div>
         ))}
       </div>
-      <div className="border-t border-white/10 px-4 py-6 text-center text-xs leading-relaxed text-plum-300">
+      <div className="hidden border-t border-white/10 px-4 py-6 text-center text-xs leading-relaxed text-plum-300 md:block">
         © {new Date().getFullYear()} Tyche. Lawyers on Tyche are independent practitioners verified by our team. · <Link to="/admin" className="text-plum-400 hover:text-white">Team</Link>
       </div>
     </footer>
