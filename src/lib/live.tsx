@@ -349,7 +349,7 @@ export function LiveProvider({ children }: { children: ReactNode }) {
 
   const loadAdmin = useCallback(async () => {
     if (!isAdmin) return;
-    const [{ data: profs }, { data: lws }, { data: reps }, { data: bks }, { data: pays }, { data: mems }, { data: log }] = await Promise.all([
+    const results = await Promise.all([
       sb.from("profiles").select("*").order("created_at", { ascending: false }),
       sb.from("lawyers").select("*").order("created_at", { ascending: false }),
       sb.from("reports").select("*, evidence(*)").order("created_at", { ascending: false }),
@@ -357,9 +357,15 @@ export function LiveProvider({ children }: { children: ReactNode }) {
       sb.from("payments").select("*").order("created_at", { ascending: false }),
       sb.from("community_members").select("*").order("created_at", { ascending: false }),
       sb.from("admin_log").select("*").order("at", { ascending: false }).limit(50),
+      sb.from("support_messages").select("*").order("created_at").limit(2000),
+      sb.from("lawyer_payouts").select("*").order("created_at", { ascending: false }).limit(500),
     ]);
-    const { data: sup } = await sb.from("support_messages").select("*").order("created_at").limit(2000);
-    const { data: pos } = await sb.from("lawyer_payouts").select("*").order("created_at", { ascending: false }).limit(500);
+    const failed = results.find((result) => result.error);
+    if (failed?.error) throw new Error(`Admin data could not load: ${failed.error.message}. Check Supabase table access and admin RLS policies.`);
+    const [
+      { data: profs }, { data: lws }, { data: reps }, { data: bks }, { data: pays },
+      { data: mems }, { data: log }, { data: sup }, { data: pos },
+    ] = results;
     const lawyerByUser = new Map((lws || []).map((l) => [l.user_id, l.id]));
     setAdmin({
       accounts: (profs || []).map(
