@@ -53,7 +53,9 @@ export default function App() {
         <Route path="about" element={<About />} />
         <Route path="safety" element={<Safety />} />
         <Route path="terms" element={<TermsOfUse />} />
+        <Route path="terms-of-use" element={<TermsOfUse />} />
         <Route path="privacy" element={<PrivacyPolicy />} />
+        <Route path="privacy-policy" element={<PrivacyPolicy />} />
         <Route path="*" element={<NotFound />} />
       </Route>
     </Routes>
