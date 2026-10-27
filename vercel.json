@@ -21,8 +21,7 @@
     }
   ],
   "crons": [
-    { "path": "/api/payout", "schedule": "0 8 * * *" },
-    { "path": "/api/email-worker", "schedule": "*/5 * * * *" }
+    { "path": "/api/payout", "schedule": "0 8 * * *" }
   ],
   "functions": {
     "api/sync.ts": { "maxDuration": 60 }
