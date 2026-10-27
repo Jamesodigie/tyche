@@ -67,6 +67,11 @@ async function render(job: Job, email: string, name: string) {
       if (job.event_type === "booking_reminder_1h") return { subject: "Your Tyche session starts in 1 hour", html: emailHtml("Your session starts in 1 hour", `${greeting} your Tyche session is coming up at ${when}.`, `Lawyer: ${lawyerName} · Format: ${bk.channel}`, "View booking", `${base}/me`) };
       return { subject: "Your Tyche booking is confirmed", html: emailHtml("Your booking is confirmed", `${greeting} your ${bk.kind} with ${lawyerName} has been confirmed.`, `Date and time: ${when}\nFormat: ${bk.channel}\nBooking reference: ${bk.id}`, "View booking", `${base}/me`) };
     }
+    case "payment_failed": {
+      const { data: pay } = await db().from("payments").select("reference, status").eq("reference", job.entity_id).maybeSingle();
+      if (!pay || pay.status !== "failed") return null;
+      return { subject: "Payment not completed — Tyche", html: emailHtml("Your payment wasn't completed", `${greeting} we couldn't confirm your payment for this Tyche transaction.`, `Reference: ${pay.reference}\\nIf your bank or payment provider debited you, please contact Tyche support with this reference before trying again.`, "Open Tyche", `${base}/me`) };
+    }
     case "payment_received": {
       const { data: pay } = await db().from("payments").select("reference, amount, status, purpose").eq("reference", job.entity_id).maybeSingle();
       if (!pay || pay.status !== "success") return null;
