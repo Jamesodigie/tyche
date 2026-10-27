@@ -23,7 +23,7 @@ export function About() {
 export function Safety() {
   const items = [
     { i: EyeOff, t: "Anonymous by default", d: "Lawyers see a nickname and your story — never your name or contact — until you book them." },
-    { i: Lock, t: "Private evidence vault", d: "Your uploads are only visible to you and the lawyers you choose to share with." },
+    { i: Lock, t: "Private evidence vault", d: "Your uploads are only visible to you, the lawyers you choose to share with, and Tyche's safety team, who keep a secure private backup." },
     { i: UserCheck, t: "Verified lawyers only", d: "We confirm every lawyer's enrolment with the Bar before they can see a single case." },
     { i: KeyRound, t: "You hold the keys", d: "Nothing is reported to police, employers or schools unless you ask us to help you do it." },
     { i: Trash2, t: "Delete anytime", d: "Remove a file, a report or your whole account whenever you want." },

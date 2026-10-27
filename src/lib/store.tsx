@@ -39,7 +39,7 @@ export type EvidenceUpload = { ev: Evidence; file?: File | Blob };
 export type BookInput = { lawyerId: string; kind: SessionKind; date: string; time: string; channel: Channel; note?: string; reportId?: string; bidId?: string };
 export type BookResult = { bookingId?: string; payUrl?: string; error?: string };
 export type CommunityInput = { name: string; phone: string; email: string; state: string; heard?: string };
-/** Membership looked up by Paystack reference — works without an account. */
+/** Membership looked up by payment reference — works without an account. */
 export type CommunityStatus = { active: boolean; name?: string; phone?: string; expiresAt?: string | null; reference?: string; inviteUrl: string | null };
 /** Where a guest's last community payment reference is remembered on this device. */
 export const COMMUNITY_REF_KEY = "tyche:community-ref";
@@ -62,7 +62,10 @@ export type AdminData = {
   members: CommunityRow[];
   log: { at: string; text: string }[];
   support: SupportMessage[];
+  payouts: LawyerPayout[];
 };
+/** 80% of a paid session, sent to the lawyer's bank by Bachs. */
+export type LawyerPayout = { bookingId: string; lawyerId: string; amount: number; status: "queued" | "waiting" | "sent" | "completed" | "failed"; error?: string; updatedAt: string };
 
 export type PushState = "unsupported" | "unconfigured" | "off" | "on" | "denied";
 /** signIn() result meaning "this email still needs its verification code". */
@@ -130,6 +133,9 @@ export type Ctx = {
   enablePush: () => Promise<string | null>;
   disablePush: () => Promise<void>;
   sendBroadcast: (b: Broadcast) => Promise<{ sent?: number; error?: string }>; // admins
+  retryPayouts: () => Promise<string | null>; // admins
+  googleAdmin: (action: "ping" | "backfill") => Promise<{ error?: string; more?: boolean; configured?: boolean }>; // admins
+  myPayouts: LawyerPayout[]; // lawyers: their own payouts
 
   isAdmin: boolean;
   admin: AdminData | null;

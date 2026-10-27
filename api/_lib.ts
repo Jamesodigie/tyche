@@ -3,7 +3,7 @@
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 
-/** Tyche keeps this share of every paid consultation/booking. Must match the Paystack subaccount setting. */
+/** Tyche keeps this share of every paid consultation/booking; the lawyer is paid the rest automatically. */
 export const TYCHE_PERCENT = 20;
 
 export class HttpError extends Error {
@@ -85,46 +85,89 @@ export function siteUrl(req: VercelRequest): string {
 }
 
 // ---------------------------------------------------------------------------
-// Paystack
+// Bachs (payments + payouts) — https://docs.bachs.io
+// Keys: sk_sandbox_… → sandbox, sk_live_… → live. BACHS_API_URL overrides (tests).
 // ---------------------------------------------------------------------------
 
-type PaystackResponse<T> = { status: boolean; message: string; data: T };
+function bachsBase(key: string) {
+  const fixed = env("BACHS_API_URL");
+  if (fixed) return fixed.replace(/\/$/, "");
+  return key.startsWith("sk_sandbox_") ? "https://sandbox-api.bachs.io" : "https://api.bachs.io";
+}
 
-export async function paystack<T = any>(path: string, init?: { method?: string; body?: unknown }): Promise<T> {
-  const r = await fetch(`https://api.paystack.co${path}`, {
+export async function bachs<T = any>(path: string, init?: { method?: string; body?: unknown; idempotencyKey?: string }): Promise<T> {
+  const key = need("BACHS_SECRET_KEY");
+  const r = await fetch(`${bachsBase(key)}${path}`, {
     method: init?.method || "GET",
-    headers: { Authorization: `Bearer ${need("PAYSTACK_SECRET_KEY")}`, "Content-Type": "application/json" },
+    headers: {
+      Authorization: `Bearer ${key}`,
+      Accept: "application/json",
+      "Content-Type": "application/json",
+      ...(init?.idempotencyKey ? { "Idempotency-Key": init.idempotencyKey } : {}),
+    },
     body: init?.body ? JSON.stringify(init.body) : undefined,
   });
-  const json = (await r.json().catch(() => ({}))) as PaystackResponse<T>;
-  if (!r.ok || !json.status) throw new HttpError(r.status >= 500 ? 502 : 400, json.message || "Payment provider error");
-  return json.data;
+  const json = (await r.json().catch(() => ({}))) as any;
+  if (!r.ok) {
+    const msg = json?.detail || json?.message || json?.error || `Payment provider error (${r.status})`;
+    throw new HttpError(r.status >= 500 ? 502 : 400, typeof msg === "string" ? msg : "Payment provider error");
+  }
+  return json as T;
 }
 
 export const reference = (prefix: string) =>
   `${prefix}_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`.toUpperCase();
 
+const money = (naira: number) => naira.toFixed(2);
+
+/** Opens a Bachs hosted checkout for a fixed naira amount and returns its URL. */
 export async function startPayment(opts: {
   req: VercelRequest;
   reference: string;
   email: string;
+  name?: string;
   amountNaira: number;
+  description?: string;
   metadata: Record<string, unknown>;
-  subaccount?: string | null;
 }): Promise<string> {
-  const data = await paystack<{ authorization_url: string }>("/transaction/initialize", {
+  const site = siteUrl(opts.req);
+  const out = await bachs<{ checkout_id: string; checkout_url: string }>("/v1/checkout-sessions", {
     method: "POST",
+    idempotencyKey: opts.reference,
     body: {
-      email: opts.email,
-      amount: Math.round(opts.amountNaira * 100), // kobo
-      currency: "NGN",
+      pricing: { currency: "NGN", price_type: "fixed", amount: money(opts.amountNaira) },
+      customer: { email: opts.email, ...(opts.name ? { name: opts.name } : {}) },
       reference: opts.reference,
-      callback_url: `${siteUrl(opts.req)}/pay/callback`,
-      metadata: opts.metadata,
-      ...(opts.subaccount ? { subaccount: opts.subaccount, bearer: "account" } : {}),
+      metadata: { ...opts.metadata, reference: opts.reference, ...(opts.description ? { description: opts.description } : {}) },
+      success_url: `${site}/pay/callback?reference=${encodeURIComponent(opts.reference)}`,
+      cancel_url: `${site}/pay/callback?reference=${encodeURIComponent(opts.reference)}&cancelled=1`,
+      expires_in_minutes: 30,
     },
   });
-  return data.authorization_url;
+  if (!out.checkout_url) throw new HttpError(502, "The payment page didn't open. Please try again.");
+  const { error } = await db().from("payments").update({ checkout_id: out.checkout_id }).eq("reference", opts.reference);
+  if (error) throw new HttpError(500, `Couldn't start the payment: ${error.message}`);
+  return out.checkout_url;
+}
+
+const PAID = new Set(["succeeded", "paid", "accepted", "overpaid", "success", "successful"]);
+const DEAD = new Set(["failed", "expired", "cancelled", "canceled", "refunded", "auto_refunded", "abandoned"]);
+
+/** Reads a checkout session from Bachs and says whether it's paid, still open, or dead. */
+async function checkoutState(checkoutId: string) {
+  const s = await bachs<any>(`/v1/checkout-sessions/${encodeURIComponent(checkoutId)}`);
+  const ps = String(s.payment_status || s.charge?.status || "").toLowerCase();
+  const st = String(s.status || "").toLowerCase();
+  const amount = Number(s.charge?.amount_paid ?? s.charge?.amount ?? s.amount);
+  const currency = String(s.charge?.currency || s.currency || "NGN").toUpperCase();
+  const state = PAID.has(ps) || (!ps && (st === "completed" || PAID.has(st)))
+    ? "paid"
+    : ps === "underpaid"
+      ? "underpaid"
+      : DEAD.has(ps) || DEAD.has(st)
+        ? "failed"
+        : "pending";
+  return { state, amount, currency, raw: s };
 }
 
 export type FulfilResult =
@@ -133,7 +176,7 @@ export type FulfilResult =
   | { purpose: "booking" | "community"; status: "pending" | "failed"; message: string };
 
 /**
- * Confirms a payment with Paystack and applies its effect exactly once.
+ * Confirms a payment with Bachs and applies its effect exactly once.
  * Called by the browser after checkout AND by the webhook — whichever comes first wins.
  */
 export async function fulfil(ref: string): Promise<FulfilResult> {
@@ -141,24 +184,25 @@ export async function fulfil(ref: string): Promise<FulfilResult> {
   if (!pay) throw new HttpError(404, "We couldn't find that payment.");
 
   if (pay.status !== "success") {
-    const tx = await paystack<{ status: string; amount: number; currency: string; gateway_response?: string }>(
-      `/transaction/verify/${encodeURIComponent(ref)}`,
-    );
-    if (tx.status !== "success") {
-      if (tx.status === "failed" || tx.status === "abandoned" || tx.status === "reversed") {
-        await db().from("payments").update({ status: "failed", raw: tx }).eq("reference", ref);
-        return { purpose: pay.purpose, status: "failed", message: tx.gateway_response || "Payment was not completed." };
-      }
-      return { purpose: pay.purpose, status: "pending", message: "Payment is still processing." };
+    if (!pay.checkout_id) return { purpose: pay.purpose, status: "pending", message: "Payment is still processing." };
+    const cs = await checkoutState(pay.checkout_id);
+    if (cs.state === "failed") {
+      await db().from("payments").update({ status: "failed", raw: cs.raw }).eq("reference", ref);
+      return { purpose: pay.purpose, status: "failed", message: "Payment was not completed." };
     }
-    if (tx.currency !== "NGN" || tx.amount !== pay.amount * 100) {
-      await db().from("payments").update({ status: "failed", raw: tx }).eq("reference", ref);
+    if (cs.state === "underpaid") {
+      await db().from("payments").update({ raw: cs.raw }).eq("reference", ref);
+      return { purpose: pay.purpose, status: "failed", message: "The amount paid was less than the price. Please message Tyche support and we'll sort it out." };
+    }
+    if (cs.state !== "paid") return { purpose: pay.purpose, status: "pending", message: "Payment is still processing." };
+    if (cs.currency !== "NGN" || !(Math.round(cs.amount) >= pay.amount)) {
+      await db().from("payments").update({ status: "failed", raw: cs.raw }).eq("reference", ref);
       throw new HttpError(400, "Payment amount didn't match. Please contact support.");
     }
     // Claim the payment atomically so concurrent callers don't apply it twice.
     const { data: claimed } = await db()
       .from("payments")
-      .update({ status: "success", raw: tx })
+      .update({ status: "success", raw: cs.raw })
       .eq("reference", ref)
       .neq("status", "success")
       .select("id");
@@ -169,7 +213,7 @@ export async function fulfil(ref: string): Promise<FulfilResult> {
   return { purpose: "community", status: "success", inviteUrl: communityInvite() };
 }
 
-async function applyEffects(pay: { purpose: string; reference: string; booking_id: string | null; user_id: string | null; raw?: unknown }) {
+async function applyEffects(pay: { purpose: string; reference: string; booking_id: string | null; user_id: string | null; lawyer_share?: number; raw?: unknown }) {
   if (pay.purpose === "booking" && pay.booking_id) {
     const { data: bk } = await db()
       .from("bookings")
@@ -177,18 +221,96 @@ async function applyEffects(pay: { purpose: string; reference: string; booking_i
       .eq("id", pay.booking_id)
       .select("*, lawyers(user_id)")
       .single();
-    if (bk) await afterBookingConfirmed(bk);
+    if (bk) {
+      await afterBookingConfirmed(bk);
+      if ((pay.lawyer_share || 0) > 0) await queuePayout(bk.id, bk.lawyer_id, pay.lawyer_share!).catch((e) => console.error("payout queue failed", e));
+    }
   }
   if (pay.purpose === "community") {
     const now = new Date();
     const expires = new Date(now);
     expires.setFullYear(now.getFullYear() + 1);
     // Members are found by the payment reference, so guests (no Tyche account) work too.
-    await db()
+    const { data: m } = await db()
       .from("community_members")
       .update({ status: "active", joined_at: now.toISOString(), expires_at: expires.toISOString() })
-      .eq("reference", pay.reference);
+      .eq("reference", pay.reference)
+      .select("*")
+      .maybeSingle();
+    if (m) await toGoogle("community", { date: now.toISOString(), name: m.name, phone: m.phone, email: m.email, state: m.state, heard: m.heard, reference: m.reference, expires: m.expires_at }).catch(() => {});
   }
+}
+
+// ---------------------------------------------------------------------------
+// Lawyer payouts — 80% of every paid session goes to the lawyer's bank automatically.
+// ---------------------------------------------------------------------------
+
+/** Records the payout (once per booking) and tries to send it straight away. */
+export async function queuePayout(bookingId: string, lawyerId: string, amount: number) {
+  const ref = `TYP_${bookingId}`.toUpperCase();
+  await db().from("lawyer_payouts").upsert({ booking_id: bookingId, lawyer_id: lawyerId, amount, reference: ref, status: "queued" }, { onConflict: "booking_id", ignoreDuplicates: true });
+  await sendPayout(bookingId);
+}
+
+/** Sends one queued payout if the lawyer's bank is ready. Safe to call repeatedly. */
+export async function sendPayout(bookingId: string): Promise<string> {
+  const { data: p } = await db().from("lawyer_payouts").select("*, lawyers(payout_destination, name)").eq("booking_id", bookingId).single();
+  if (!p) return "missing";
+  if (["sent", "completed"].includes(p.status)) return p.status;
+  const dest = (p as any).lawyers?.payout_destination;
+  const note = async (status: string, last_error: string | null, extra: Record<string, unknown> = {}) =>
+    db().from("lawyer_payouts").update({ status, last_error, attempts: (p.attempts || 0) + 1, updated_at: new Date().toISOString(), ...extra }).eq("booking_id", bookingId);
+  if (!dest) {
+    await note("waiting", "Lawyer hasn't added a bank account yet.");
+    return "waiting";
+  }
+  try {
+    const d = await bachs<{ is_usable?: boolean; status?: string; status_reason?: string }>(`/v1/payouts/destinations/${encodeURIComponent(dest)}`);
+    if (d.is_usable === false) {
+      await note("waiting", `Bank account is ${d.status || "under review"} at Bachs${d.status_reason ? `: ${d.status_reason}` : ""}.`);
+      return "waiting";
+    }
+    const out = await bachs<{ id: string; status: string }>("/v1/payouts", {
+      method: "POST",
+      idempotencyKey: p.reference,
+      body: { destination: dest, amount: money(p.amount), reference: p.reference, metadata: { booking_id: bookingId, lawyer_id: p.lawyer_id } },
+    });
+    const done = ["completed", "paid", "succeeded"].includes(String(out.status).toLowerCase());
+    await note(done ? "completed" : "sent", null, { bachs_payout_id: out.id });
+    return done ? "completed" : "sent";
+  } catch (e) {
+    await note("failed", e instanceof Error ? e.message : "Payout failed");
+    return "failed";
+  }
+}
+
+/** Retries every payout that hasn't gone out yet (daily job + admin button). */
+export async function runPayouts() {
+  const { data } = await db().from("lawyer_payouts").select("booking_id").in("status", ["queued", "waiting", "failed"]).order("created_at").limit(50);
+  const out: Record<string, number> = {};
+  for (const r of data || []) {
+    const s = await sendPayout(r.booking_id);
+    out[s] = (out[s] || 0) + 1;
+  }
+  return out;
+}
+
+// ---------------------------------------------------------------------------
+// Google Sheets / Photos — via the Tyche Apps Script web app (GOOGLE_SCRIPT_URL).
+// Best effort: never blocks a payment or sign-up.
+// ---------------------------------------------------------------------------
+
+export async function toGoogle(kind: "signup" | "community" | "file" | "ping", data: Record<string, unknown>) {
+  const url = env("GOOGLE_SCRIPT_URL");
+  if (!url) return false;
+  const r = await fetch(url, {
+    method: "POST",
+    headers: { "Content-Type": "text/plain;charset=utf-8" }, // Apps Script reads e.postData.contents
+    body: JSON.stringify({ secret: env("GOOGLE_SCRIPT_SECRET"), kind, data }),
+    redirect: "follow",
+  });
+  const text = await r.text().catch(() => "");
+  return r.ok && /"ok"\s*:\s*true/.test(text);
 }
 
 /** Accepts the related offer, opens the chat thread and pings the lawyer. */

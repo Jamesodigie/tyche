@@ -250,5 +250,28 @@ check("anon can't read push subscriptions", fails("select * from public.push_sub
 as_user(ids["alice"])
 check("users can't write push subscriptions directly", fails("insert into public.push_subscriptions (endpoint, p256dh, auth) values ('x','y','z')"))
 
+# --- payouts (Bachs) ------------------------------------------------------------
+as_user(ids["bob"])
+q("update public.lawyers set payout_destination = 'pd_hacked', subaccount_code = 'x' where slug = 'bob'")
+as_service()
+r = q("select payout_destination, subaccount_code from public.lawyers where slug='bob'")[0]
+check("lawyer can't set own payout destination directly", r[0] is None and r[1] is None)
+q("update public.lawyers set payout_destination = 'pd_1' where slug='bob'")
+bk = q("""insert into public.bookings (client_id, lawyer_id, client_name, kind, date, time, channel, fee, status)
+         values (%s, %s, 'Alice', 'consultation', '2030-01-07', '9:00am', 'chat', 10000, 'confirmed') returning id""", (str(ids["alice"]), str(bob_lawyer)))[0][0]
+q("insert into public.lawyer_payouts (booking_id, lawyer_id, amount, reference) values (%s, %s, 8000, %s)", (bk, str(bob_lawyer), "TYP_" + str(bk)))
+as_user(ids["bob"])
+check("lawyer sees own payouts", q("select count(*) from public.lawyer_payouts")[0][0] == 1)
+check("lawyer can't change payouts", fails("update public.lawyer_payouts set amount = 999999") or q("select amount from public.lawyer_payouts")[0][0] == 8000)
+as_user(ids["carol"])
+check("other lawyer can't see payouts", q("select count(*) from public.lawyer_payouts")[0][0] == 0)
+as_user(ids["alice"])
+check("client can't see payouts", q("select count(*) from public.lawyer_payouts")[0][0] == 0)
+check("client can't create payouts", fails("insert into public.lawyer_payouts (booking_id, lawyer_id, amount, reference) values ('x', %s, 1, 'r')", (str(bob_lawyer),)))
+as_user(None)
+q("select * from public.lawyer_directory")
+dcols = [d[0] for d in cur.description]
+check("directory shows payout_ready, hides payout destination", "payout_ready" in dcols and "payout_destination" not in dcols)
+
 print(f"\n{passed} passed, {failed} failed")
 sys.exit(1 if failed else 0)

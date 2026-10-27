@@ -1,9 +1,9 @@
 // Live mode: real accounts (Supabase Auth), data (Postgres + row-level security),
-// evidence files (Storage), realtime chat/offers, and payments through /api (Paystack).
+// evidence files (Storage), realtime chat/offers, and payments through /api (Bachs).
 import type { Session } from "@supabase/supabase-js";
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import type { Account, Bid, Booking, CommunityMember, Evidence, Lawyer, Message, Payment, Report, SupportMessage } from "./data";
-import { COMMUNITY_REF_KEY, NEEDS_CODE, StoreCtx, findIn, slugify, type AdminData, type Ctx, type LawyerInput, type User } from "./store";
+import { COMMUNITY_REF_KEY, NEEDS_CODE, StoreCtx, findIn, slugify, type AdminData, type LawyerPayout, type Ctx, type LawyerInput, type User } from "./store";
 import { supabase } from "./supabase";
 import { usePush } from "./usePush";
 
@@ -105,6 +105,8 @@ const toCommunity = (c: any): CommunityMember => ({
   name: c.name, phone: c.phone, city: c.state || "", joinedAt: c.joined_at || c.created_at, ref: c.reference || "", status: c.status, expiresAt: c.expires_at || undefined, email: c.email || undefined,
 });
 
+const toPayout = (p: any): LawyerPayout => ({ bookingId: p.booking_id, lawyerId: p.lawyer_id, amount: p.amount, status: p.status, error: p.last_error || undefined, updatedAt: p.updated_at });
+
 const toSupport = (m: any): SupportMessage => ({ id: m.id, userId: m.user_id, fromAdmin: m.from_admin, text: m.body, at: m.created_at, readAt: m.read_at || undefined });
 
 const toPayment = (p: any): Payment => ({
@@ -143,6 +145,7 @@ export function LiveProvider({ children }: { children: ReactNode }) {
   const [extraLawyers, setExtraLawyers] = useState<Lawyer[]>([]);
   const [admin, setAdmin] = useState<AdminData | null>(null);
   const [support, setSupport] = useState<SupportMessage[]>([]);
+  const [myPayouts, setMyPayouts] = useState<LawyerPayout[]>([]);
   const bookingsRef = useRef<Booking[]>([]);
   bookingsRef.current = bookings;
   const uidRef = useRef<string | null>(null);
@@ -213,6 +216,11 @@ export function LiveProvider({ children }: { children: ReactNode }) {
       setExtraLawyers((extra || []).map(toLawyer));
     }
 
+    if (lawyer) {
+      const { data: pos } = await sb.from("lawyer_payouts").select("*").order("created_at", { ascending: false });
+      setMyPayouts((pos || []).map(toPayout));
+    } else setMyPayouts([]);
+
     if (lawyer?.verified) {
       const [{ data: board }, { data: ev }] = await Promise.all([
         sb.from("case_board").select("*").order("created_at", { ascending: false }),
@@ -236,6 +244,16 @@ export function LiveProvider({ children }: { children: ReactNode }) {
     return data;
   }, []);
 
+  /** Copies new sign-ups / uploads to Google (server decides what's new). Never blocks the UI. */
+  const syncGoogle = useCallback(() => {
+    let rounds = 0;
+    const go = () =>
+      api<{ more?: boolean }>("sync", { method: "POST", body: {} })
+        .then((r) => { if (r.more && ++rounds < 4) go(); })
+        .catch(() => {});
+    go();
+  }, [api]);
+
   const loadUser = useCallback(async (s: Session) => {
     const uid = s.user.id;
     uidRef.current = uid;
@@ -251,7 +269,8 @@ export function LiveProvider({ children }: { children: ReactNode }) {
     setMyLawyer(lawyer);
     setReports((reps || []).map((r) => toReport(r, true)));
     await loadActivity(uid, lawyer);
-  }, [ensureLawyerFromDraft, loadActivity]);
+    syncGoogle();
+  }, [ensureLawyerFromDraft, loadActivity, syncGoogle]);
 
   const clearUser = () => {
     uidRef.current = null;
@@ -340,6 +359,7 @@ export function LiveProvider({ children }: { children: ReactNode }) {
       sb.from("admin_log").select("*").order("at", { ascending: false }).limit(50),
     ]);
     const { data: sup } = await sb.from("support_messages").select("*").order("created_at").limit(2000);
+    const { data: pos } = await sb.from("lawyer_payouts").select("*").order("created_at", { ascending: false }).limit(500);
     const lawyerByUser = new Map((lws || []).map((l) => [l.user_id, l.id]));
     setAdmin({
       accounts: (profs || []).map(
@@ -355,6 +375,7 @@ export function LiveProvider({ children }: { children: ReactNode }) {
       members: (mems || []).map((m) => ({ ...toCommunity(m), userId: m.user_id || "" })),
       log: (log || []).map((l) => ({ at: l.at, text: l.text })),
       support: (sup || []).map(toSupport),
+      payouts: (pos || []).map(toPayout),
     });
   }, [isAdmin]);
 
@@ -489,9 +510,10 @@ export function LiveProvider({ children }: { children: ReactNode }) {
         const path = `${uid}/${Date.now()}-${safeName(file.name)}`;
         const up = await sb.storage.from("licences").upload(path, file);
         if (up.error) return friendly(up.error.message);
-        const { error } = await sb.from("lawyers").update({ licence_path: path }).eq("id", row.id);
+        const { error } = await sb.from("lawyers").update({ licence_path: path, licence_synced_at: null }).eq("id", row.id);
         if (error) return friendly(error.message);
         setMyLawyer((m) => (m ? { ...m, hasLicence: true } : m));
+        syncGoogle();
         return null;
       },
 
@@ -519,6 +541,7 @@ export function LiveProvider({ children }: { children: ReactNode }) {
           if (row) uploaded.push({ ...toEvidence(row), preview: f.ev.preview });
         }
         setReports((p) => [{ ...toReport(data, true), evidence: uploaded }, ...p]);
+        if (files.length) syncGoogle();
         return { id: data.id, error: failed.length ? `Saved, but ${failed.length} file(s) didn't upload: ${failed.join(", ")}` : undefined };
       },
 
@@ -655,6 +678,25 @@ export function LiveProvider({ children }: { children: ReactNode }) {
       pushState: push.state,
       enablePush: push.enable,
       disablePush: push.disable,
+      retryPayouts: async () => {
+        try {
+          await api("payout", { method: "PUT" });
+          await loadAdmin();
+          return null;
+        } catch (e) {
+          return (e as Error).message;
+        }
+      },
+      myPayouts,
+      googleAdmin: async (action) => {
+        try {
+          const out = await api<{ ok?: boolean; more?: boolean; configured?: boolean }>("sync", { method: "POST", body: { action } });
+          if (out.configured === false) return { configured: false, error: "Google isn't connected yet — add GOOGLE_SCRIPT_URL and GOOGLE_SCRIPT_SECRET in Vercel." };
+          return { more: !!out.more };
+        } catch (e) {
+          return { error: (e as Error).message };
+        }
+      },
       sendBroadcast: async (b) => {
         try {
           const out = await api<{ sent: number }>("push", { method: "POST", body: { action: "send", ...b } });
@@ -699,7 +741,7 @@ export function LiveProvider({ children }: { children: ReactNode }) {
       },
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [ready, user, directory, extraLawyers, myLawyer, reports, caseBoard, bids, bookings, messages, community, communityInfo, admin, isAdmin, session, support, push.state, push.enable, push.disable, loadAdminSupport]);
+  }, [ready, user, directory, extraLawyers, myLawyer, reports, caseBoard, bids, bookings, messages, community, communityInfo, admin, isAdmin, session, support, myPayouts, push.state, push.enable, push.disable, loadAdminSupport]);
 
   void token;
   return <StoreCtx.Provider value={value}>{children}</StoreCtx.Provider>;

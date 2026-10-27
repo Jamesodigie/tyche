@@ -4,7 +4,7 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import { Blobs, Button } from "../components/ui";
 import { COMMUNITY_REF_KEY, useStore, type VerifyResult } from "../lib/store";
 
-/** Paystack sends people back here (?reference=…) after checkout. */
+/** Bachs sends people back here (?reference=…) after checkout. */
 export default function PayCallback() {
   const [params] = useSearchParams();
   const ref = params.get("reference") || params.get("trxref") || "";

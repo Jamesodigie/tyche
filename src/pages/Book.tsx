@@ -56,7 +56,7 @@ export default function Book() {
     setErr("");
     const out = await book({ lawyerId: l.id, kind, date, time, channel, note: note.trim() || undefined, reportId: reportId || undefined, bidId: bid?.id });
     if (out.payUrl) {
-      window.location.assign(out.payUrl); // Paystack checkout → back to /pay/callback
+      window.location.assign(out.payUrl); // Bachs checkout → back to /pay/callback
       return;
     }
     setPaying(false);
@@ -215,7 +215,7 @@ export default function Book() {
                 {fee > 0 && (
                   <div className="flex items-start gap-3 rounded-3xl bg-lagoon-50 p-4 text-sm text-lagoon-600">
                     <ShieldCheck className="mt-0.5 shrink-0" size={18} />
-                    <span>You pay securely through Tyche with Paystack — never into a stranger's personal account. If your session doesn't happen, message us and we'll make it right.</span>
+                    <span>You pay securely through Tyche with Bachs — never into a stranger's personal account. If your session doesn't happen, message us and we'll make it right.</span>
                   </div>
                 )}
               </div>
@@ -232,7 +232,7 @@ export default function Book() {
                 </Button>
               )}
             </div>}
-            {step === 3 && fee > 0 && <p className="mt-3 flex items-center justify-end gap-1.5 text-xs text-plum-400"><Lock size={12} /> Card, transfer or USSD · secured by Paystack</p>}
+            {step === 3 && fee > 0 && <p className="mt-3 flex items-center justify-end gap-1.5 text-xs text-plum-400"><Lock size={12} /> Card or bank transfer · secured by Bachs</p>}
           </Card>
         </div>
 

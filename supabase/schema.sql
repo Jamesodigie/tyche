@@ -169,6 +169,29 @@ create table if not exists public.community_members (
   created_at  timestamptz not null default now()
 );
 
+-- Payments run on Bachs (bachs.io). The lawyer's bank is a Bachs payout destination.
+alter table public.lawyers   add column if not exists payout_destination text;   -- Bachs payout destination id (private)
+alter table public.payments  add column if not exists checkout_id text;          -- Bachs checkout session id
+create index if not exists payments_checkout_idx on public.payments (checkout_id);
+alter table public.profiles  add column if not exists google_logged_at timestamptz;  -- copied to the sign-ups sheet
+alter table public.evidence  add column if not exists google_synced_at timestamptz;  -- copied to Google Photos/Drive
+alter table public.lawyers   add column if not exists licence_synced_at timestamptz;
+
+-- 80% of every paid session is paid to the lawyer automatically (one row per booking).
+create table if not exists public.lawyer_payouts (
+  booking_id       text primary key references public.bookings (id) on delete cascade,
+  lawyer_id        uuid not null references public.lawyers (id) on delete cascade,
+  amount           int not null,                 -- naira
+  reference        text not null unique,
+  status           text not null default 'queued' check (status in ('queued', 'waiting', 'sent', 'completed', 'failed')),
+  bachs_payout_id  text,
+  last_error       text,
+  attempts         int not null default 0,
+  created_at       timestamptz not null default now(),
+  updated_at       timestamptz not null default now()
+);
+alter table public.lawyer_payouts enable row level security;
+
 -- Upgrade older databases: members no longer need a Tyche account (guest checkout).
 alter table public.community_members add column if not exists id uuid default gen_random_uuid();
 alter table public.community_members add column if not exists email text;
@@ -349,6 +372,7 @@ begin
       new.rating := 5.0;
       new.reviews := 0;
       new.subaccount_code := null;
+      new.payout_destination := null;
       new.payout_bank := null;
       new.payout_account_name := null;
       new.payout_last4 := null;
@@ -358,6 +382,7 @@ begin
       new.rating := old.rating;
       new.reviews := old.reviews;
       new.subaccount_code := old.subaccount_code;
+      new.payout_destination := old.payout_destination;
       new.payout_bank := old.payout_bank;
       new.payout_account_name := old.payout_account_name;
       new.payout_last4 := old.payout_last4;
@@ -514,6 +539,9 @@ create policy "messages: participants send" on public.messages for insert
   with check (sender_id = auth.uid() and public.is_booking_participant(booking_id) and not public.is_suspended());
 
 -- community (server writes)
+drop policy if exists "payouts: own lawyer or admin" on public.lawyer_payouts;
+create policy "payouts: own lawyer or admin" on public.lawyer_payouts for select using (lawyer_id = public.my_lawyer_id() or public.is_admin());
+
 drop policy if exists "community: own or admin" on public.community_members;
 create policy "community: own or admin" on public.community_members for select using (user_id = auth.uid() or public.is_admin());
 
@@ -540,7 +568,7 @@ create or replace view public.lawyer_directory as
   select l.id, l.slug, l.name, l.title, l.state, l.city, l.year_called, l.areas, l.languages, l.bio,
          l.consult_fee, l.consult_free, l.booking_fee, l.booking_free, l.session_mins, l.days,
          l.time_from, l.time_to, l.channels, l.rating, l.reviews, l.responds, l.hue,
-         (l.subaccount_code is not null) as payout_ready
+         (l.payout_destination is not null or l.subaccount_code is not null) as payout_ready
   from public.lawyers l
   join public.profiles p on p.id = l.user_id
   where l.status = 'approved' and not p.suspended;
@@ -613,3 +641,6 @@ end $$;
 --
 --   update public.profiles set role = 'admin' where email = 'you@example.com';
 -- =============================================================================
+
+-- Make the API notice new tables/columns right away.
+notify pgrst, 'reload schema';

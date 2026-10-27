@@ -203,7 +203,7 @@ export default function LawyerJoin() {
             {step === 2 && (
               <div className="space-y-5">
                 <p className="rounded-3xl bg-tangerine-50 p-4 text-sm text-ink">
-                  <b>How fees work:</b> clients pay through Tyche when they book. Paystack splits each payment automatically —
+                  <b>How fees work:</b> clients pay through Tyche when they book. After each paid session we pay you automatically —
                   you receive {100 - TYCHE_FEE * 100}% in your bank account and Tyche keeps {TYCHE_FEE * 100}%. Consultation and booking are priced separately.
                   You'll add your bank account from your dashboard.
                 </p>
@@ -287,7 +287,7 @@ export default function LawyerJoin() {
           {[
             { icon: Gavel, t: "Cases come to you", d: "Women share anonymised reports. You see the evidence and send an offer." },
             { icon: BadgeCheck, t: "You set the terms", d: "Your fees, your hours, free or paid — change them any time." },
-            { icon: Sparkles, t: "Paid through Tyche", d: `Clients pay upfront. You keep ${100 - TYCHE_FEE * 100}%, paid straight to your bank by Paystack.` },
+            { icon: Sparkles, t: "Paid through Tyche", d: `Clients pay upfront. You keep ${100 - TYCHE_FEE * 100}%, paid straight to your bank automatically.` },
           ].map((x) => (
             <div key={x.t} className="rounded-4xl bg-white/80 p-5 ring-1 ring-plum-100">
               <x.icon className="text-tangerine-500" />

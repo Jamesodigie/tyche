@@ -196,7 +196,7 @@ function SetupCards({ me }: { me: Lawyer }) {
         <Card className="p-5 sm:p-6">
           <p className="flex items-center gap-2 font-display text-xl font-semibold text-ink"><Banknote className="text-tangerine-500" /> {me.payoutReady ? "Change payout account" : "Add your payout account"}</p>
           <p className="mt-1 text-sm text-plum-600">
-            Paystack pays your {100 - TYCHE_FEE * 100}% straight into this account. {!me.payoutReady && "Until you add it, paid bookings with you can't be split automatically."}
+            Your {100 - TYCHE_FEE * 100}% of every paid session is paid into this account automatically. {!me.payoutReady && "Until you add it, your earnings wait safely with Tyche."}
           </p>
           <div className="mt-4 grid gap-3 sm:grid-cols-2">
             <Select value={bank} onChange={(e) => setBank(e.target.value)} aria-label="Bank">
@@ -267,8 +267,11 @@ function LawyerBookingCard({ b, report }: { b: Booking; report?: Report }) {
   );
 }
 
+const payoutLabel = (s?: string) =>
+  ({ queued: "Sending", waiting: "Waiting for your bank", sent: "On its way", completed: "Paid ✓", failed: "Delayed — we're on it" } as Record<string, string>)[s || ""] || "Processing";
+
 export default function LawyerDashboard() {
-  const { user, myLawyer: me, caseBoard, bids, bookings, lawyerState, ready } = useStore();
+  const { user, myLawyer: me, caseBoard, bids, bookings, lawyerState, ready, myPayouts } = useStore();
   const [tab, setTab] = useState<(typeof TABS)[number]["id"]>("cases");
   const [area, setArea] = useState("");
 
@@ -399,7 +402,7 @@ export default function LawyerDashboard() {
               <Card className="overflow-hidden">
                 <div className="overflow-x-auto">
                 <table className="w-full min-w-[520px] text-left text-sm">
-                  <thead className="bg-plum-50 text-plum-500"><tr><th className="px-5 py-3">Client</th><th className="px-5 py-3">Type</th><th className="px-5 py-3">Paid</th><th className="px-5 py-3">Tyche</th><th className="px-5 py-3">You</th></tr></thead>
+                  <thead className="bg-plum-50 text-plum-500"><tr><th className="px-5 py-3">Client</th><th className="px-5 py-3">Type</th><th className="px-5 py-3">Paid</th><th className="px-5 py-3">Tyche</th><th className="px-5 py-3">You</th><th className="px-5 py-3">Payout</th></tr></thead>
                   <tbody>
                     {myBookings.length ? myBookings.map((b) => (
                       <tr key={b.id} className="border-t border-plum-50">
@@ -408,13 +411,14 @@ export default function LawyerDashboard() {
                         <td className="px-5 py-3">{b.fee ? naira(b.fee) : "Free"}</td>
                         <td className="px-5 py-3 text-plum-500">{naira(tycheTake(b.fee))}</td>
                         <td className="px-5 py-3 font-semibold text-lagoon-600">{naira(lawyerTake(b.fee))}</td>
+                        <td className="px-5 py-3 text-xs text-plum-500">{b.fee ? payoutLabel(myPayouts.find((p) => p.bookingId === b.id)?.status) : "—"}</td>
                       </tr>
-                    )) : <tr><td colSpan={5} className="px-5 py-8 text-center text-plum-400">No payments yet</td></tr>}
+                    )) : <tr><td colSpan={6} className="px-5 py-8 text-center text-plum-400">No payments yet</td></tr>}
                   </tbody>
                 </table>
                 </div>
               </Card>
-              <p className="text-sm text-plum-500">Paystack pays your 80% straight into your bank account on its normal settlement schedule (usually the next working day).</p>
+              <p className="text-sm text-plum-500">Your 80% is paid into your bank account automatically after each paid session (new bank accounts are checked by our payment partner first).</p>
             </div>
           )}
 

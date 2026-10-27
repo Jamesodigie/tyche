@@ -21,7 +21,7 @@ function HeroArt() {
         <span className="grid h-8 w-8 place-items-center rounded-full bg-lagoon-100 text-lagoon-600 sm:h-10 sm:w-10"><FileLock2 size={18} /></span>
         <span className="text-left">
           <span className="block text-[13px] font-semibold text-ink sm:text-sm">3 files saved</span>
-          <span className="block text-[11px] text-plum-500 sm:text-xs">Only you can see them</span>
+          <span className="block text-[11px] text-plum-500 sm:text-xs">Private &amp; backed up</span>
         </span>
       </div>
       <div className="absolute -right-3 bottom-[24%] flex max-w-[220px] animate-float items-center gap-2 rounded-2xl bg-white px-3 py-2 shadow-soft [animation-delay:1.5s] sm:-right-10 sm:max-w-[240px] sm:gap-3 sm:rounded-3xl sm:px-4 sm:py-3">
@@ -40,10 +40,10 @@ function HeroArt() {
 }
 
 const features = [
-  { icon: Lock, title: "Your evidence, kept safe", text: "Screenshots, voice notes, videos, documents — upload them once and they stay in your private vault. Delete anything, anytime.", tone: "bg-lagoon-100 text-lagoon-600" },
+  { icon: Lock, title: "Your evidence, kept safe", text: "Screenshots, voice notes, videos, documents — upload them once and they stay private, with a secure backup kept by the Tyche team. Ask us to delete anything, anytime.", tone: "bg-lagoon-100 text-lagoon-600" },
   { icon: BadgeCheck, title: "Lawyers we've actually checked", text: "Every lawyer is verified with the Nigerian Bar before they can see a single case. No randoms, no time-wasters.", tone: "bg-plum-100 text-plum-700" },
   { icon: CalendarHeart, title: "Talk the way you're comfortable", text: "Voice call, private chat, or Google Meet — all inside Tyche. You never have to share your number.", tone: "bg-tangerine-100 text-tangerine-600" },
-  { icon: Wallet, title: "Pay safely, through Tyche", text: "You pay through Tyche with Paystack — card, transfer or USSD — never into a stranger's personal account.", tone: "bg-blush-200 text-plum-700" },
+  { icon: Wallet, title: "Pay safely, through Tyche", text: "You pay through Tyche with Bachs — card or bank transfer — never into a stranger's personal account.", tone: "bg-blush-200 text-plum-700" },
 ];
 
 const faqs = [
@@ -77,7 +77,7 @@ export default function Home() {
               <Button size="lg" variant="outline" to="/hire">Hire a lawyer</Button>
             </div>
             <p className="mt-5 flex items-center justify-center gap-2 text-sm text-plum-500 sm:mt-6 lg:justify-start">
-              <EyeOff size={16} /> Nobody sees your report unless you say so.
+              <EyeOff size={16} /> Lawyers only see your report if you say so.
             </p>
           </div>
           <HeroArt />

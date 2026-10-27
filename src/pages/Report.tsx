@@ -157,7 +157,7 @@ export default function Report() {
                     <AccountForm
                       cta="Create & continue"
                       nameLabel="Your name or a nickname"
-                      nameHint="Only you and a lawyer you choose to book will see this."
+                      nameHint="Lawyers only see it if you book them. The Tyche team keeps it private."
                       defaultName={r.alias}
                       onDone={() => r.alias.trim().length > 1 && setStep(1)}
                     />
@@ -226,7 +226,7 @@ export default function Report() {
                     })}
                   </ul>
                 )}
-                <p className="flex items-center gap-2 text-sm text-plum-500"><Lock size={14} /> Evidence lives in your private vault. No evidence yet? That's okay — you can add it later.</p>
+                <p className="flex items-center gap-2 text-sm text-plum-500"><Lock size={14} /> Evidence is private: only you, lawyers you choose, and the Tyche team (who keep a secure backup) can see it. No evidence yet? That's okay — you can add it later.</p>
               </div>
             )}
 

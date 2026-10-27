@@ -511,6 +511,44 @@ function ReportsView() {
 // bookings & payments
 // ---------------------------------------------------------------------------
 
+const PAYOUT_LABEL: Record<string, string> = { queued: "Sending", waiting: "Waiting for bank", sent: "Sent", completed: "Paid", failed: "Failed" };
+
+function PayoutsCard() {
+  const { admin, lawyers, retryPayouts } = useAdmin();
+  const [busy, setBusy] = useState(false);
+  const [msg, setMsg] = useState("");
+  const list = admin?.payouts || [];
+  const name = (id: string) => lawyers.find((l) => l.id === id)?.name || "—";
+  const stuck = list.filter((p) => ["queued", "waiting", "failed"].includes(p.status)).length;
+  return (
+    <Card className="mb-5 p-4 sm:p-5">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <div>
+          <p className="font-semibold text-ink">Lawyer payouts</p>
+          <p className="text-xs text-plum-500">80% of each paid session goes to the lawyer's bank automatically. Waiting ones retry daily.</p>
+        </div>
+        <Button size="sm" variant="outline" disabled={busy || !stuck} onClick={async () => { setBusy(true); setMsg(""); const e = await retryPayouts(); setBusy(false); setMsg(e || "Done — statuses updated."); }}>
+          <RotateCcw size={15} /> {busy ? "Sending…" : `Send waiting payouts${stuck ? ` (${stuck})` : ""}`}
+        </Button>
+      </div>
+      {msg && <p className="mt-2 text-xs text-plum-600">{msg}</p>}
+      {list.length ? (
+        <div className="mt-3 space-y-2">
+          {list.slice(0, 30).map((p) => (
+            <div key={p.bookingId} className="flex flex-wrap items-center gap-x-3 gap-y-1 rounded-2xl bg-cream px-3 py-2 text-sm">
+              <span className="min-w-0 flex-1 truncate"><b className="text-ink">{name(p.lawyerId)}</b> · {naira(p.amount)} · <span className="font-mono text-xs text-plum-400">{p.bookingId}</span></span>
+              <Badge tone={p.status === "completed" ? "teal" : p.status === "failed" ? "warm" : "plum"}>{PAYOUT_LABEL[p.status] || p.status}</Badge>
+              {p.error && <span className="w-full text-xs text-plum-500">{p.error}</span>}
+            </div>
+          ))}
+        </div>
+      ) : (
+        <p className="mt-2 text-sm text-plum-400">Payouts appear here after the first paid session.</p>
+      )}
+    </Card>
+  );
+}
+
 function Payments() {
   const { allBookings, lawyers, payments } = useAdmin();
   const [kind, setKind] = useState("");
@@ -527,18 +565,19 @@ function Payments() {
     b.status === "pending_payment" ? "Awaiting payment" : b.status === "cancelled" ? "Cancelled" : b.status === "done" ? "Completed" : b.fee ? "Paid · upcoming" : "Free · upcoming";
   return (
     <>
-      <SectionTitle title="Bookings & payments" sub="Every session booked through Tyche, with the Paystack split.">
+      <SectionTitle title="Bookings & payments" sub="Every session booked through Tyche, with Tyche's 20% and the lawyer's 80% payout.">
         <Select value={kind} onChange={(e) => setKind(e.target.value)} className="!w-44 py-2"><option value="">All types</option><option value="consultation">Consultations</option><option value="booking">Bookings</option></Select>
-        <Button variant="outline" size="sm" onClick={() => downloadCsv("tyche-payments.csv", [["Booking", "Date", "Client", "Lawyer", "Type", "Fee", "Tyche", "Lawyer share", "Status", "Paystack ref"], ...list.map((b) => { const p = payByBooking.get(b.id); return [b.id, b.date, b.clientName, name(b.lawyerId), b.kind, b.fee, p?.tycheShare ?? 0, p?.lawyerShare ?? 0, statusOf(b), p?.reference || ""]; })])}>
+        <Button variant="outline" size="sm" onClick={() => downloadCsv("tyche-payments.csv", [["Booking", "Date", "Client", "Lawyer", "Type", "Fee", "Tyche", "Lawyer share", "Status", "Payment ref"], ...list.map((b) => { const p = payByBooking.get(b.id); return [b.id, b.date, b.clientName, name(b.lawyerId), b.kind, b.fee, p?.tycheShare ?? 0, p?.lawyerShare ?? 0, statusOf(b), p?.reference || ""]; })])}>
           <Download size={16} /> Export CSV
         </Button>
       </SectionTitle>
       <div className="mb-5 grid grid-cols-2 gap-3 sm:gap-4 xl:grid-cols-4">
         <Stat label="Clients paid (sessions)" value={naira(gross)} icon={Wallet} tone="bg-plum-100 text-plum-600" />
         <Stat label={`Tyche share (${TYCHE_FEE * 100}%)`} value={naira(tyche)} icon={Wallet} tone="bg-tangerine-100 text-tangerine-600" />
-        <Stat label="Lawyers' share" value={naira(lawyersShare)} sub="Sent by Paystack to lawyers with payout accounts" icon={Wallet} tone="bg-lagoon-100 text-lagoon-600" />
+        <Stat label="Lawyers' share" value={naira(lawyersShare)} sub="Paid out automatically to lawyers' banks via Bachs" icon={Wallet} tone="bg-lagoon-100 text-lagoon-600" />
         <Stat label="Community fees" value={naira(community)} icon={HeartHandshake} tone="bg-blush-200 text-plum-700" />
       </div>
+      <PayoutsCard />
       <Table
         head={["Booking", "Date", "Client", "Lawyer", "Type", "Fee", "Tyche", "Lawyer", "Status"]}
         empty={!list.length}
@@ -627,6 +666,32 @@ function CommunityView() {
 // settings
 // ---------------------------------------------------------------------------
 
+function GoogleCard() {
+  const { googleAdmin } = useAdmin();
+  const [busy, setBusy] = useState("");
+  const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
+  const run = async (action: "ping" | "backfill") => {
+    setBusy(action);
+    setMsg(null);
+    let out = await googleAdmin(action);
+    let rounds = 0;
+    while (action === "backfill" && !out.error && out.more && rounds++ < 10) out = await googleAdmin(action);
+    setBusy("");
+    setMsg(out.error ? { ok: false, text: out.error } : { ok: true, text: action === "ping" ? "Connected — Google answered." : out.more ? "Sent a big batch — press again to continue." : "Everything is in your Google sheets and Photos/Drive." });
+  };
+  return (
+    <Card className="p-6">
+      <p className="font-display text-xl font-semibold text-ink">Google Sheets & Photos</p>
+      <p className="mt-1 text-sm text-plum-600">New sign-ups and paid community members go to your Google Sheets; uploads go to Google Photos (or Drive → "Tyche uploads").</p>
+      <div className="mt-4 flex flex-wrap gap-2">
+        <Button size="sm" variant="outline" disabled={!!busy} onClick={() => run("ping")}>{busy === "ping" ? "Checking…" : "Test connection"}</Button>
+        <Button size="sm" disabled={!!busy} onClick={() => run("backfill")}>{busy === "backfill" ? "Sending…" : "Send everything now"}</Button>
+      </div>
+      {msg && <div className="mt-3"><Notice tone={msg.ok ? "success" : undefined}>{msg.text}</Notice></div>}
+    </Card>
+  );
+}
+
 function SettingsView() {
   const { reset, adminSignOut, signOut, mode, communityPrice, refresh, loadAdmin } = useAdmin();
   const navigate = useNavigate();
@@ -636,12 +701,13 @@ function SettingsView() {
     <>
       <SectionTitle title="Settings" />
       <div className="grid gap-5 lg:grid-cols-2">
+        <GoogleCard />
         <Card className="p-6">
           <p className="font-display text-xl font-semibold text-ink">Business rules</p>
           <dl className="mt-4 space-y-3 text-sm">
             {[
               ["Tyche service fee", `${TYCHE_FEE * 100}% of every consultation and booking`],
-              ["Lawyer payout", `${100 - TYCHE_FEE * 100}%, split automatically by Paystack`],
+              ["Lawyer payout", `${100 - TYCHE_FEE * 100}%, paid out automatically via Bachs`],
               ["Community price", `${naira(communityPrice)} per year`],
             ].map(([k, v]) => (
               <div key={k} className="flex justify-between gap-4 rounded-2xl bg-cream px-4 py-3"><dt className="text-plum-500">{k}</dt><dd className="text-right font-semibold text-ink">{v}</dd></div>

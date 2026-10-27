@@ -141,7 +141,7 @@ export default function CommunityJoin() {
               <Button variant="warm" size="lg" disabled={paying} onClick={pay}>{paying ? "Opening secure checkout…" : <><CreditCard size={18} /> Pay {naira(communityPrice)}</>}</Button>
             )}
           </div>
-          {step === 2 && <p className="mt-3 flex items-center justify-end gap-1.5 text-xs text-plum-400"><Lock size={12} /> Card, transfer or USSD · secured by Paystack</p>}
+          {step === 2 && <p className="mt-3 flex items-center justify-end gap-1.5 text-xs text-plum-400"><Lock size={12} /> Card or bank transfer · secured by Bachs</p>}
         </Card>
       </div>
     </section>

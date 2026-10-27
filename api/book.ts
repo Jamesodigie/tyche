@@ -1,6 +1,6 @@
 // POST /api/book — create a booking with a lawyer. Prices are always taken from the
 // database (never from the browser). Free sessions are confirmed immediately; paid
-// ones return a Paystack checkout URL.
+// ones return a Bachs checkout URL. After payment the lawyer's share is paid out automatically.
 import { HttpError, TYCHE_PERCENT, afterBookingConfirmed, body, db, handler, reference, requireUser, startPayment } from "./_lib.js";
 
 const DAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
@@ -104,7 +104,6 @@ export default handler(["POST"], async (req) => {
     amount: fee,
     tyche_share: tyche,
     lawyer_share: fee - tyche,
-    subaccount_code: lawyer.subaccount_code,
   });
   await db().from("bookings").update({ paystack_reference: ref }).eq("id", booking.id);
 
@@ -112,8 +111,9 @@ export default handler(["POST"], async (req) => {
     req,
     reference: ref,
     email: me.email,
+    name: me.name || undefined,
     amountNaira: fee,
-    subaccount: lawyer.subaccount_code,
+    description: `${kind === "booking" ? "Booking" : "Consultation"} with ${lawyer.name}`,
     metadata: { purpose: "booking", booking_id: booking.id, user_id: me.id, lawyer: lawyer.name },
   });
   return { bookingId: booking.id, status: "pending_payment", payUrl, reference: ref };

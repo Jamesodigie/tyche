@@ -1,8 +1,8 @@
 // /api/community — joining the paid WhatsApp community. No Tyche account needed.
 //   GET              — public price + member count
-//   GET ?ref=…       — status of the membership paid with that Paystack reference (+ invite link once paid)
+//   GET ?ref=…       — status of the membership paid with that payment reference (+ invite link once paid)
 //   GET (signed in)  — your membership status (+ invite link once paid)
-//   POST             — start joining: saves your details and returns a Paystack checkout URL.
+//   POST             — start joining: saves your details and returns a Bachs checkout URL.
 //                      Works signed in or as a guest (name, WhatsApp number and email).
 import type { VercelRequest } from "@vercel/node";
 import { HttpError, body, communityInvite, db, env, handler, reference, requireUser, startPayment, type Profile } from "./_lib.js";
@@ -23,7 +23,7 @@ export default handler(["GET", "POST"], async (req) => {
   if (req.method === "GET") {
     const ref = typeof req.query?.ref === "string" ? req.query.ref : "";
     if (ref) {
-      // The Paystack reference is only known to the person who paid, so it unlocks their own invite.
+      // The payment reference is only known to the person who paid, so it unlocks their own invite.
       const { data: m } = await db().from("community_members").select("*").eq("reference", ref).maybeSingle();
       if (!m) throw new HttpError(404, "We couldn't find that membership.");
       const active = isActive(m);
@@ -75,7 +75,9 @@ export default handler(["GET", "POST"], async (req) => {
     req,
     reference: ref,
     email,
+    name,
     amountNaira: price(),
+    description: "Tyche community — 12 months",
     metadata: { purpose: "community", user_id: me?.id ?? null, name, phone },
   });
   return { payUrl, reference: ref };

@@ -59,7 +59,8 @@ The site must be served over **HTTPS** to be installable (Vercel/Netlify do this
 Tyche runs in **preview mode** (sample data in the browser) until Supabase keys are set. Follow **[GO-LIVE.md](GO-LIVE.md)** to connect:
 
 - **Supabase** — accounts, database, private evidence storage, realtime chat. Schema + security rules: `supabase/schema.sql` (tests: `supabase/tests/rls_test.py`).
-- **Paystack** — checkout for bookings and the community, with automatic 80/20 split via lawyer subaccounts (`api/`).
+- **Bachs** — checkout for bookings and the community; lawyers get 80% paid out automatically after each paid session (`api/`).
+- **Google** — sign-ups and community members to Google Sheets, uploads to Google Photos/Drive via an Apps Script (`google/`).
 - **Admin** — real admin accounts (`profiles.role = 'admin'`) instead of the preview passcode.
 
 Sessions run in a private in-app video/voice room (Jitsi) or on the lawyer's Google Meet link.

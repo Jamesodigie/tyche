@@ -15,8 +15,8 @@ export const SUPPORT_FAQ: [string, string][] = [
   ["Will lawyers see my name?", "No. Lawyers only see your nickname and your story. Your name and contact are shared only with a lawyer you choose to book."],
   ["How do I report harassment?", "Tap Report, write what happened in your own words and add any evidence (screenshots, voice notes, videos). You decide whether verified lawyers can see it."],
   ["Consultation or booking — what's the difference?", "A consultation is a first conversation to understand your options. A booking is when you engage the lawyer to work on your case. Many lawyers offer free consultations."],
-  ["How do payments work?", "You pay securely through Tyche with Paystack — card, bank transfer or USSD. If a session doesn't happen, message us here and we'll make it right."],
-  ["Can I delete my report or evidence?", "Yes. Send us a message here or on WhatsApp and we'll remove it for you."],
+  ["How do payments work?", "You pay securely through Tyche with Bachs — card, bank transfer and more. If a session doesn't happen, message us here and we'll make it right."],
+  ["Can I delete my report or evidence?", "Yes. Send us a message here or on WhatsApp and we'll remove it for you — including our backup copy."],
   ["How do I join the community?", "Go to Community → Join the community. After payment you'll get a private WhatsApp invite."],
   ["I'm a lawyer. How do I get verified?", "Create a lawyer account and upload your call-to-bar certificate. Our team checks it, usually within 24–48 hours."],
 ];

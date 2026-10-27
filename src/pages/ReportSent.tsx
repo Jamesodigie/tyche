@@ -21,7 +21,7 @@ export default function ReportSent() {
           <p className="mt-6 font-script text-3xl text-tangerine-500">we've got you</p>
           <h1 className="h-page font-display font-semibold text-ink">Your report is safely saved.</h1>
           <p className="mx-auto mt-3 max-w-lg text-lg text-plum-700/80">
-            Reference <b className="text-ink">{id}</b>. {r?.shareWithLawyers ? "Verified lawyers can now see it anonymously and send you offers." : "It's private — only you can see it."}
+            Reference <b className="text-ink">{id}</b>. {r?.shareWithLawyers ? "Verified lawyers can now see it anonymously and send you offers." : "It's private — no lawyer can see it unless you share it."}
           </p>
         </div>
 

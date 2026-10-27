@@ -283,6 +283,9 @@ export function PreviewProvider({ children }: { children: ReactNode }) {
       pushState: push.state,
       enablePush: push.enable,
       disablePush: push.disable,
+      retryPayouts: async () => "Preview mode — payouts run once Bachs is connected.",
+      myPayouts: [],
+      googleAdmin: async () => ({ error: "Preview mode — Google connects once Tyche is live." }),
       sendBroadcast: async () => ({ error: "Preview mode — connect Supabase and add the push keys to send real notifications." }),
 
       isAdmin: s.admin,
@@ -299,6 +302,7 @@ export function PreviewProvider({ children }: { children: ReactNode }) {
             members: s.community && s.user ? [{ ...s.community, userId: s.user.id }] : [],
             log: s.adminLog,
             support: s.support,
+            payouts: [],
           }
         : null,
       loadAdmin: async () => {},

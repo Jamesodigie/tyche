@@ -58,7 +58,7 @@ export function AccountForm({
           <Input required minLength={2} value={f.name} onChange={(e) => setF({ ...f, name: e.target.value })} placeholder={namePlaceholder} autoComplete="nickname" />
         </Field>
       )}
-      <Field label="Email" hint={mode === "new" ? "So you can get back in. Never shown to anyone." : undefined}>
+      <Field label="Email" hint={mode === "new" ? "So you can get back in. Never shown to lawyers or the public." : undefined}>
         <Input required type="email" value={f.email} onChange={(e) => setF({ ...f, email: e.target.value })} placeholder="you@example.com" autoComplete="email" />
       </Field>
       {askPhone && mode === "new" && (
