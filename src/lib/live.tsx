@@ -440,6 +440,12 @@ export function LiveProvider({ children }: { children: ReactNode }) {
           },
         });
         if (error) return { error: friendly(error.message) };
+        // Supabase may intentionally return a user with no identities for an email
+        // that is already registered, rather than returning a duplicate-email error.
+        // Catch that here so every signup entry point shows the same clear message.
+        if (data.user && Array.isArray(data.user.identities) && data.user.identities.length === 0) {
+          return { error: friendly("already registered") };
+        }
         if (!data.session) return { needsConfirm: true };
         await loadUser(data.session);
         return {};
