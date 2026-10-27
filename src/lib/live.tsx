@@ -121,7 +121,10 @@ const friendly = (msg?: string) => {
   if (/email not confirmed/i.test(msg)) return "Please verify your email first — enter the code we sent you.";
   if (/token has expired|otp.*expired|invalid.*(token|otp)|expired or is invalid/i.test(msg)) return "That code is wrong or has expired. Check the latest email from Tyche, or send a new code.";
   if (/password/i.test(msg) && /6/.test(msg)) return "Your password needs at least 6 characters.";
+  if (/email rate limit/i.test(msg)) return "We're sending a lot of codes right now. Please try again in a few minutes.";
   if (/rate limit/i.test(msg)) return "Too many tries — please wait a minute and try again.";
+  if (/error sending (confirmation|recovery|magic link)? ?email|sending.*email|not authorized/i.test(msg))
+    return "We couldn't send your code email just now. Please try again in a few minutes — if it keeps happening, message Tyche support.";
   return msg;
 };
 
