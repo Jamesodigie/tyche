@@ -1042,7 +1042,7 @@ export default function Admin() {
     { to: "/admin/settings", label: "Settings", icon: Settings },
   ];
   return (
-    <div className="min-h-screen bg-cream font-sans text-ink lg:grid lg:grid-cols-[260px_1fr]">
+    <div className="min-h-screen bg-cream font-sans text-ink lg:grid lg:grid-cols-[240px_minmax(0,1fr)]">
       <aside className="sticky top-0 z-30 border-b border-plum-100 bg-white lg:h-screen lg:border-b-0 lg:border-r">
         <div className="flex items-center justify-between px-4 py-3 sm:px-5 lg:block lg:px-6 lg:py-6">
           <Link to="/admin" className="flex min-h-[40px] items-center gap-2">
@@ -1069,7 +1069,7 @@ export default function Admin() {
           <button onClick={leave} className="flex w-full items-center gap-2 rounded-2xl px-4 py-2.5 text-sm text-plum-500 hover:bg-plum-50"><LogOut size={16} /> Sign out</button>
         </div>
       </aside>
-      <main className="mx-auto w-full min-w-0 max-w-7xl px-4 pb-16 pt-5 sm:px-6 sm:pt-8 lg:px-10">
+      <main className="w-full min-w-0 px-3 pb-12 pt-4 sm:px-5 sm:pt-6 lg:px-6 xl:px-8">
         <Routes>
           <Route index element={<Overview />} />
           <Route path="approvals" element={<Approvals />} />
