@@ -77,11 +77,11 @@ export default function LawyerProfile() {
                 ))}
               </div>
               <p className="mt-2 text-sm text-plum-600 sm:mt-3 sm:text-base">{l.from} – {l.to} · {l.sessionMins}-minute consultations</p>
-              <div className="mt-3 flex flex-wrap gap-2 sm:mt-5 sm:grid sm:grid-cols-3 sm:gap-3">
+              <div className="mt-3 flex flex-wrap gap-2 sm:mt-5 sm:gap-3">
                 {l.channels.map((c) => {
                   const I = channelIcon[c];
                   return (
-                    <div key={c} className="flex items-center gap-2 rounded-full bg-cream py-1.5 pl-1.5 pr-3 sm:gap-3 sm:rounded-3xl sm:p-4">
+                    <div key={c} className="flex items-center gap-2 rounded-full bg-cream py-1.5 pl-1.5 pr-3 sm:gap-3 sm:py-2 sm:pl-2 sm:pr-5">
                       <span className="grid h-7 w-7 place-items-center rounded-full bg-white text-plum-600 sm:h-10 sm:w-10"><I size={15} /></span>
                       <span className="text-xs font-semibold text-ink sm:text-sm">{CHANNEL_LABEL[c]}</span>
                     </div>
@@ -92,7 +92,7 @@ export default function LawyerProfile() {
 
             {mode === "preview" && <Card className="p-4 sm:p-8">
               <h2 className="font-display text-xl font-semibold text-ink sm:text-2xl">What women say</h2>
-              <div className="rail mt-3 sm:mt-5 md:grid-cols-3 md:gap-4">
+              <div className="rail mt-3 sm:mt-5 md:grid-cols-2 md:gap-3 xl:grid-cols-1">
                 {REVIEWS.map((r) => (
                   <div key={r.t} className="rounded-3xl bg-blush-50 p-4 sm:p-5">
                     <Quote className="text-tangerine-300" size={20} />

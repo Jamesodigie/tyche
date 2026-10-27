@@ -41,9 +41,9 @@ export const PATHS = [
   },
 ];
 
-export function PathBubbles({ onPick, compact }: { onPick?: () => void; compact?: boolean }) {
+export function PathBubbles({ onPick, compact, single }: { onPick?: () => void; compact?: boolean; single?: boolean }) {
   return (
-    <div className="grid gap-2 sm:grid-cols-2 sm:gap-4">
+    <div className={cx("grid gap-2 sm:gap-4", single ? "sm:grid-cols-2 lg:grid-cols-1 lg:gap-3" : "sm:grid-cols-2")}>
       {PATHS.map((p, i) => (
         <Link
           key={p.to}

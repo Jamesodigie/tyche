@@ -62,24 +62,24 @@ function Header() {
 
   return (
     <header className="safe-top sticky top-0 z-40 border-b border-plum-100/60 bg-cream/85 backdrop-blur-md">
-      <div className="mx-auto flex h-16 max-w-5xl items-center justify-between gap-3 px-4 sm:h-[72px] sm:px-6">
+      <div className="mx-auto flex h-16 max-w-6xl items-center justify-between gap-3 px-4 sm:h-[72px] sm:px-6">
         <Link to="/" className="flex min-h-[44px] items-center" aria-label="Tyche home">
           <img src="/tyche-logo.png" alt="Tyche" className="h-8 w-auto sm:h-10" />
         </Link>
-        <nav className="hidden items-center gap-1 lg:flex">
+        <nav className="hidden items-center gap-0.5 lg:flex xl:gap-1">
           {nav.map((n) => (
             <NavLink
               key={n.to}
               to={n.to}
               className={({ isActive }) =>
-                cx("rounded-full px-4 py-2 text-[15px] font-medium transition", isActive ? "bg-plum-100 text-plum-700" : "text-ink/80 hover:text-plum-600")
+                cx("whitespace-nowrap rounded-full px-3 py-2 text-[15px] font-medium transition xl:px-4", isActive ? "bg-plum-100 text-plum-700" : "text-ink/80 hover:text-plum-600")
               }
             >
               {n.label}
             </NavLink>
           ))}
         </nav>
-        <div className="hidden items-center gap-2 lg:flex">
+        <div className="hidden shrink-0 items-center gap-2 lg:flex">
           {user ? (
             <>
               <Link to="/messages" className="rounded-full p-2.5 text-plum-600 hover:bg-plum-50" title="Messages">

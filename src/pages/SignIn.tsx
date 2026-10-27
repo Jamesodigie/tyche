@@ -106,7 +106,7 @@ export default function SignIn() {
         <div className="hidden rounded-[2rem] bg-white/70 p-4 ring-1 ring-plum-100 sm:block sm:rounded-5xl sm:p-8">
           <p className="font-script text-2xl text-tangerine-500">new here?</p>
           <h2 className="mb-6 font-display text-2xl font-semibold text-ink">Start with what you need</h2>
-          <PathBubbles compact />
+          <PathBubbles compact single />
         </div>
       </div>
     </section>
