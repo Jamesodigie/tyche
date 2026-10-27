@@ -5,6 +5,7 @@
 create table if not exists public.tyche_email_jobs (
   id uuid primary key default gen_random_uuid(),
   event_type text not null check (event_type in (
+    'welcome',
     'report_saved',
     'lawyer_offer_received',
     'booking_confirmed',
@@ -46,6 +47,21 @@ begin
   on conflict (event_type, entity_id, recipient_user_id) do nothing;
 end;
 $$;
+
+
+-- Send a separate welcome email once the user's email address is verified.
+create or replace function public.tyche_welcome_email_trigger()
+returns trigger language plpgsql security definer set search_path = public as $
+begin
+  if old.email_confirmed_at is null and new.email_confirmed_at is not null then
+    perform public.tyche_queue_email('welcome', new.id, new.id::text, now());
+  end if;
+  return new;
+end;
+$;
+drop trigger if exists tyche_welcome_email on auth.users;
+create trigger tyche_welcome_email after update of email_confirmed_at on auth.users
+for each row execute function public.tyche_welcome_email_trigger();
 
 -- Notify a client that their report has been saved. The email deliberately contains no report details.
 create or replace function public.tyche_report_email_trigger()
