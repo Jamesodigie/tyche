@@ -19,6 +19,7 @@ import Session from "./pages/Session";
 import HowItWorks from "./pages/HowItWorks";
 import ForLawyers from "./pages/ForLawyers";
 import { About, Safety, NotFound } from "./pages/Static";
+import { TermsOfUse, PrivacyPolicy } from "./pages/Legal";
 import Admin from "./pages/Admin";
 import { AppStatus } from "./components/AppChrome";
 
@@ -51,6 +52,8 @@ export default function App() {
         <Route path="for-lawyers" element={<ForLawyers />} />
         <Route path="about" element={<About />} />
         <Route path="safety" element={<Safety />} />
+        <Route path="terms" element={<TermsOfUse />} />
+        <Route path="privacy" element={<PrivacyPolicy />} />
         <Route path="*" element={<NotFound />} />
       </Route>
     </Routes>
