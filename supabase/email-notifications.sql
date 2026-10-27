@@ -11,7 +11,8 @@ create table if not exists public.tyche_email_jobs (
     'booking_reminder_24h',
     'booking_reminder_1h',
     'booking_cancelled',
-    'payment_received'
+    'payment_received',
+    'payment_failed'
   )),
   recipient_user_id uuid references public.profiles(id) on delete set null,
   entity_id text not null,
@@ -125,6 +126,8 @@ returns trigger language plpgsql security definer set search_path = public as $$
 begin
   if new.status = 'success' and old.status is distinct from 'success' then
     perform public.tyche_queue_email('payment_received', new.user_id, new.reference, now());
+  elsif new.status = 'failed' and old.status is distinct from 'failed' then
+    perform public.tyche_queue_email('payment_failed', new.user_id, new.reference, now());
   end if;
   return new;
 end;
