@@ -51,14 +51,15 @@ $$;
 
 -- Send a separate welcome email once the user's email address is verified.
 create or replace function public.tyche_welcome_email_trigger()
-returns trigger language plpgsql security definer set search_path = public as $
+returns trigger language plpgsql security definer set search_path = public, auth as $$
 begin
-  if old.email_confirmed_at is null and new.email_confirmed_at is not null then
+  if old.email_confirmed_at is null and new.email_confirmed_at is not null
+     and exists (select 1 from public.profiles where id = new.id) then
     perform public.tyche_queue_email('welcome', new.id, new.id::text, now());
   end if;
   return new;
 end;
-$;
+$$;
 drop trigger if exists tyche_welcome_email on auth.users;
 create trigger tyche_welcome_email after update of email_confirmed_at on auth.users
 for each row execute function public.tyche_welcome_email_trigger();
