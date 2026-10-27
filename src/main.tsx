@@ -1,5 +1,6 @@
 import React from "react";
 import ReactDOM from "react-dom/client";
+import { Analytics } from "@vercel/analytics/react";
 import { BrowserRouter } from "react-router-dom";
 import App from "./App";
 import { StoreProvider } from "./lib/store";
@@ -14,6 +15,7 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
       <StoreProvider>
         <PwaProvider>
           <App />
+          <Analytics />
         </PwaProvider>
       </StoreProvider>
     </BrowserRouter>
