@@ -118,6 +118,13 @@ export default function Report() {
   const next = () => setStep(step + 1);
 
   const submit = async () => {
+    // Never save a report until the visitor has completed account creation and
+    // email verification (or is already signed in to a verified account).
+    if (!user) {
+      setErr("Please create your account and verify your email before saving your report.");
+      setStep(0);
+      return;
+    }
     setSaving(true);
     setErr("");
     const { evidence, ...fields } = r;
