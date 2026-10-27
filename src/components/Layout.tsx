@@ -85,9 +85,6 @@ function Header() {
               <Link to="/messages" className="rounded-full p-2.5 text-plum-600 hover:bg-plum-50" title="Messages">
                 <MessageCircleHeart size={22} />
               </Link>
-              {user.role === "admin" && (
-                <Link to="/admin" className="rounded-full px-3 py-2 text-sm font-semibold text-plum-600 hover:bg-plum-50">Admin</Link>
-              )}
               <Link to={dash} className="flex items-center gap-2 rounded-full bg-white py-1 pl-1 pr-4 shadow-sm ring-1 ring-plum-100 hover:ring-plum-300">
                 <Avatar name={user.name} size={34} hue={user.role === "lawyer" ? 185 : 285} className="ring-0" />
                 <span className="text-sm font-semibold text-ink">{user.name.replace(/^(barr|dr|mrs?|ms)\.?\s+/i, "").split(" ")[0]}</span>
@@ -128,7 +125,6 @@ function Header() {
               <>
                 <Button variant="soft" to={dash}><LayoutDashboard size={18} /> My dashboard</Button>
                 <Button variant="soft" to="/messages"><MessageCircleHeart size={18} /> Messages</Button>
-                {user.role === "admin" && <Button variant="soft" to="/admin">Admin dashboard</Button>}
                 <Button variant="ghost" onClick={async () => { await signOut(); navigate("/"); }}><LogOut size={18} /> Sign out</Button>
               </>
             ) : (
@@ -182,7 +178,7 @@ function Footer({ compactOnPhones }: { compactOnPhones?: boolean }) {
           <InstallButton className="inline-block py-1.5 font-semibold text-white" label="Get the app" />
         </nav>
         <p className="text-[11px] leading-relaxed text-plum-300">
-          © {new Date().getFullYear()} Tyche · Lawyers are independent, verified by our team · <Link to="/admin" className="text-plum-400">Team</Link>
+          © {new Date().getFullYear()} Tyche · Lawyers are independent, verified by our team
         </p>
       </div>
       <div className="mx-auto hidden max-w-5xl grid-cols-2 gap-x-6 gap-y-8 px-4 py-10 sm:px-6 md:grid md:grid-cols-[1.4fr_1fr_1fr_1fr]">
@@ -224,7 +220,7 @@ function Footer({ compactOnPhones }: { compactOnPhones?: boolean }) {
         ))}
       </div>
       <div className="hidden border-t border-white/10 px-4 py-6 text-center text-xs leading-relaxed text-plum-300 md:block">
-        © {new Date().getFullYear()} Tyche. Lawyers on Tyche are independent practitioners verified by our team. · <Link to="/admin" className="text-plum-400 hover:text-white">Team</Link>
+        © {new Date().getFullYear()} Tyche. Lawyers on Tyche are independent practitioners verified by our team.
       </div>
     </footer>
   );
