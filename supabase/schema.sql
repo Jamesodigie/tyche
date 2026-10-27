@@ -155,9 +155,11 @@ create table if not exists public.messages (
 );
 
 create table if not exists public.community_members (
-  user_id     uuid primary key references public.profiles (id) on delete cascade,
+  id          uuid primary key default gen_random_uuid(),
+  user_id     uuid unique references public.profiles (id) on delete cascade,  -- null for guests (no Tyche account)
   name        text not null,
   phone       text not null,
+  email       text,
   state       text,
   heard       text,
   status      text not null default 'pending' check (status in ('pending', 'active', 'expired')),
@@ -166,6 +168,25 @@ create table if not exists public.community_members (
   expires_at  timestamptz,
   created_at  timestamptz not null default now()
 );
+
+-- Upgrade older databases: members no longer need a Tyche account (guest checkout).
+alter table public.community_members add column if not exists id uuid default gen_random_uuid();
+alter table public.community_members add column if not exists email text;
+do $$
+begin
+  if exists (
+    select 1 from pg_index i join pg_attribute a on a.attrelid = i.indrelid and a.attnum = any (i.indkey)
+    where i.indrelid = 'public.community_members'::regclass and i.indisprimary and a.attname = 'user_id'
+  ) then
+    alter table public.community_members drop constraint community_members_pkey;
+    update public.community_members set id = gen_random_uuid() where id is null;
+    alter table public.community_members alter column id set not null;
+    alter table public.community_members add primary key (id);
+    alter table public.community_members alter column user_id drop not null;
+    alter table public.community_members add constraint community_members_user_id_key unique (user_id);
+  end if;
+end $$;
+create unique index if not exists community_members_reference_idx on public.community_members (reference);
 
 create table if not exists public.support_messages (
   id          uuid primary key default gen_random_uuid(),

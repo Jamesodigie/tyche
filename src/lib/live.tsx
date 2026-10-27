@@ -3,7 +3,7 @@
 import type { Session } from "@supabase/supabase-js";
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import type { Account, Bid, Booking, CommunityMember, Evidence, Lawyer, Message, Payment, Report, SupportMessage } from "./data";
-import { StoreCtx, findIn, slugify, type AdminData, type Ctx, type LawyerInput, type User } from "./store";
+import { COMMUNITY_REF_KEY, NEEDS_CODE, StoreCtx, findIn, slugify, type AdminData, type Ctx, type LawyerInput, type User } from "./store";
 import { supabase } from "./supabase";
 import { usePush } from "./usePush";
 
@@ -102,7 +102,7 @@ const toBooking = (b: any): Booking => ({
 });
 
 const toCommunity = (c: any): CommunityMember => ({
-  name: c.name, phone: c.phone, city: c.state || "", joinedAt: c.joined_at || c.created_at, ref: c.reference || "", status: c.status, expiresAt: c.expires_at || undefined,
+  name: c.name, phone: c.phone, city: c.state || "", joinedAt: c.joined_at || c.created_at, ref: c.reference || "", status: c.status, expiresAt: c.expires_at || undefined, email: c.email || undefined,
 });
 
 const toSupport = (m: any): SupportMessage => ({ id: m.id, userId: m.user_id, fromAdmin: m.from_admin, text: m.body, at: m.created_at, readAt: m.read_at || undefined });
@@ -116,7 +116,8 @@ const friendly = (msg?: string) => {
   if (!msg) return "Something went wrong. Please try again.";
   if (/invalid login/i.test(msg)) return "That email and password don't match. Please try again.";
   if (/already registered|already exists/i.test(msg)) return "There's already an account with this email. Try signing in instead.";
-  if (/email not confirmed/i.test(msg)) return "Please confirm your email first — check your inbox for the link from Tyche.";
+  if (/email not confirmed/i.test(msg)) return "Please verify your email first — enter the code we sent you.";
+  if (/token has expired|otp.*expired|invalid.*(token|otp)|expired or is invalid/i.test(msg)) return "That code is wrong or has expired. Check the latest email from Tyche, or send a new code.";
   if (/password/i.test(msg) && /6/.test(msg)) return "Your password needs at least 6 characters.";
   if (/rate limit/i.test(msg)) return "Too many tries — please wait a minute and try again.";
   return msg;
@@ -351,7 +352,7 @@ export function LiveProvider({ children }: { children: ReactNode }) {
       reports: (reps || []).map((r) => toReport(r)),
       bookings: (bks || []).map(toBooking),
       payments: (pays || []).map(toPayment),
-      members: (mems || []).map((m) => ({ ...toCommunity(m), userId: m.user_id })),
+      members: (mems || []).map((m) => ({ ...toCommunity(m), userId: m.user_id || "" })),
       log: (log || []).map((l) => ({ at: l.at, text: l.text })),
       support: (sup || []).map(toSupport),
     });
@@ -424,9 +425,27 @@ export function LiveProvider({ children }: { children: ReactNode }) {
       },
       signIn: async (email, password) => {
         const { data, error } = await sb.auth.signInWithPassword({ email: email.trim(), password });
+        if (error) {
+          if (/email not confirmed/i.test(error.message)) {
+            await sb.auth.resend({ type: "signup", email: email.trim() }).catch(() => {});
+            return NEEDS_CODE;
+          }
+          return friendly(error.message);
+        }
+        if (data.session) await loadUser(data.session);
+        return null;
+      },
+      verifyEmailCode: async (email, code) => {
+        const token = code.replace(/\D/g, "");
+        let { data, error } = await sb.auth.verifyOtp({ email: email.trim(), token, type: "email" });
+        if (error) ({ data, error } = await sb.auth.verifyOtp({ email: email.trim(), token, type: "signup" }));
         if (error) return friendly(error.message);
         if (data.session) await loadUser(data.session);
         return null;
+      },
+      resendEmailCode: async (email) => {
+        const { error } = await sb.auth.resend({ type: "signup", email: email.trim() });
+        return error ? friendly(error.message) : null;
       },
       signOut: async () => {
         await sb.auth.signOut();
@@ -527,7 +546,8 @@ export function LiveProvider({ children }: { children: ReactNode }) {
       },
       joinCommunity: async (i) => {
         try {
-          const out = await api<{ payUrl?: string; active?: boolean }>("community", { method: "POST", body: i });
+          const out = await api<{ payUrl?: string; active?: boolean; reference?: string }>("community", { method: "POST", body: i });
+          if (out.reference) try { localStorage.setItem(COMMUNITY_REF_KEY, out.reference); } catch { /* private mode */ }
           return out.payUrl ? { payUrl: out.payUrl } : { done: !!out.active };
         } catch (e) {
           return { error: (e as Error).message };
@@ -537,6 +557,14 @@ export function LiveProvider({ children }: { children: ReactNode }) {
         try {
           const out = await api<{ inviteUrl: string | null }>("community");
           return out.inviteUrl;
+        } catch {
+          return null;
+        }
+      },
+      communityByRef: async (reference) => {
+        try {
+          const out = await api<{ active: boolean; inviteUrl: string | null; member?: { name: string; phone: string; expires_at: string | null; reference: string } }>(`community?ref=${encodeURIComponent(reference)}`);
+          return { active: out.active, inviteUrl: out.inviteUrl, name: out.member?.name, phone: out.member?.phone, expiresAt: out.member?.expires_at, reference: out.member?.reference };
         } catch {
           return null;
         }

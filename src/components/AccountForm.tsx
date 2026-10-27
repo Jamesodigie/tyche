@@ -1,7 +1,7 @@
-import { ArrowRight, MailCheck } from "lucide-react";
+import { ArrowRight } from "lucide-react";
 import { useState } from "react";
-import { Link, useLocation } from "react-router-dom";
-import { useStore } from "../lib/store";
+import { NEEDS_CODE, useStore } from "../lib/store";
+import { CodeStep } from "./CodeStep";
 import { Button, Field, Input, Notice, PasswordInput } from "./ui";
 
 /**
@@ -26,7 +26,6 @@ export function AccountForm({
   askPhone?: boolean;
 }) {
   const { signUp, signIn } = useStore();
-  const loc = useLocation();
   const [mode, setMode] = useState<"new" | "existing">("new");
   const [f, setF] = useState({ name: defaultName, email: "", phone: "", password: "" });
   const [busy, setBusy] = useState(false);
@@ -40,6 +39,7 @@ export function AccountForm({
     if (mode === "existing") {
       const error = await signIn(f.email, f.password);
       setBusy(false);
+      if (error === NEEDS_CODE) return setConfirm(true);
       return error ? setErr(error) : onDone();
     }
     const out = await signUp({ name: f.name.trim(), email: f.email.trim(), password: f.password, phone: f.phone || undefined, role: "client" });
@@ -49,17 +49,7 @@ export function AccountForm({
     onDone();
   };
 
-  if (confirm)
-    return (
-      <div className="rounded-3xl bg-lagoon-50 p-5 text-center">
-        <MailCheck className="mx-auto text-lagoon-600" size={36} />
-        <p className="mt-2 font-display text-lg font-semibold text-ink">Confirm your email</p>
-        <p className="mt-1 text-sm text-plum-700">
-          We sent a link to <b>{f.email}</b>. Tap it, then{" "}
-          <Link to={`/signin?next=${encodeURIComponent(loc.pathname + loc.search)}`} className="font-semibold underline">sign in</Link> to carry on.
-        </p>
-      </div>
-    );
+  if (confirm) return <CodeStep email={f.email.trim()} onVerified={onDone} onBack={() => setConfirm(false)} />;
 
   return (
     <form onSubmit={submit} className="space-y-3">

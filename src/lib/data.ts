@@ -491,6 +491,7 @@ export type CommunityMember = {
   ref: string;
   status?: "pending" | "active" | "expired";
   expiresAt?: string;
+  email?: string;
 };
 
 export type SupportMessage = { id: string; userId: string; fromAdmin: boolean; text: string; at: string; readAt?: string };

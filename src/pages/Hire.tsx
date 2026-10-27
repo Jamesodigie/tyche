@@ -68,9 +68,6 @@ export default function Hire() {
             <p className="mt-1 text-sm text-plum-700/80 sm:text-base">So your bookings, chats and payments stay in one safe place. A nickname is totally fine.</p>
             <Card className="mt-4 p-4 sm:p-6">
               <AccountForm cta={`See lawyers for a ${kind}`} onDone={() => navigate(`/lawyers?kind=${kind}`)} />
-              <div className="mt-4 text-center text-sm">
-                <Link to={`/lawyers?kind=${kind}`} className="inline-block py-2 text-plum-500 hover:underline">Just browse for now</Link>
-              </div>
             </Card>
           </div>
         )}

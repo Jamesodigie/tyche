@@ -169,7 +169,7 @@ export async function fulfil(ref: string): Promise<FulfilResult> {
   return { purpose: "community", status: "success", inviteUrl: communityInvite() };
 }
 
-async function applyEffects(pay: { purpose: string; booking_id: string | null; user_id: string | null; raw?: unknown }) {
+async function applyEffects(pay: { purpose: string; reference: string; booking_id: string | null; user_id: string | null; raw?: unknown }) {
   if (pay.purpose === "booking" && pay.booking_id) {
     const { data: bk } = await db()
       .from("bookings")
@@ -179,14 +179,15 @@ async function applyEffects(pay: { purpose: string; booking_id: string | null; u
       .single();
     if (bk) await afterBookingConfirmed(bk);
   }
-  if (pay.purpose === "community" && pay.user_id) {
+  if (pay.purpose === "community") {
     const now = new Date();
     const expires = new Date(now);
     expires.setFullYear(now.getFullYear() + 1);
+    // Members are found by the payment reference, so guests (no Tyche account) work too.
     await db()
       .from("community_members")
       .update({ status: "active", joined_at: now.toISOString(), expires_at: expires.toISOString() })
-      .eq("user_id", pay.user_id);
+      .eq("reference", pay.reference);
   }
 }
 

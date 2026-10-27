@@ -1,11 +1,14 @@
 // Preview mode: everything lives in this browser's localStorage, with sample lawyers and cases.
 // Used only while VITE_SUPABASE_URL / VITE_SUPABASE_ANON_KEY aren't set.
-import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import {
   COMMUNITY_CAP, COMMUNITY_MEMBERS, COMMUNITY_PRICE, LAWYERS, SEED_ACCOUNTS, SEED_APPLICANTS, SEED_BOOKINGS, SEED_REPORTS, uid,
   type Account, type Bid, type Booking, type CommunityMember, type Lawyer, type Message, type Report, type SupportMessage,
 } from "./data";
-import { StoreCtx, findIn, slugify, type Ctx, type User } from "./store";
+import { COMMUNITY_REF_KEY, StoreCtx, findIn, slugify, type Ctx, type SignUpInput, type User } from "./store";
+
+/** Preview mode has no email server: every sign-up code is this. */
+export const PREVIEW_CODE = "123456";
 import { usePush } from "./usePush";
 
 export const ADMIN_PASSCODE = "tyche-admin";
@@ -66,6 +69,8 @@ export function PreviewProvider({ children }: { children: ReactNode }) {
     }
   }, [s, push.state, push.enable, push.disable]);
 
+  const pendingSignUp = useRef<SignUpInput | null>(null);
+
   const value = useMemo<Ctx>(() => {
     const mine = new Set(s.myLawyers.map((l) => l.id));
     const raw = [...s.myLawyers, ...[...LAWYERS, ...SEED_APPLICANTS].filter((l) => !mine.has(l.id))];
@@ -110,23 +115,33 @@ export function PreviewProvider({ children }: { children: ReactNode }) {
       communityCap: COMMUNITY_CAP,
 
       signUp: async (i) => {
-        if (i.role === "lawyer" && i.lawyer) {
-          const l = i.lawyer;
-          const id = slugify(l.name);
-          const lawyer: Lawyer = {
-            id, slug: id, name: l.name, title: "Barrister & Solicitor", state: l.state, city: l.city, yearCalled: l.yearCalled,
-            areas: l.areas, languages: l.languages, bio: l.bio || "Verified Tyche lawyer.", rating: 5, reviews: 0,
-            consultFee: l.consultFree ? 0 : l.consultFee, consultFree: l.consultFree, bookingFee: l.bookingFree ? 0 : l.bookingFee,
-            bookingFree: l.bookingFree, sessionMins: l.sessionMins, days: l.days, from: l.from, to: l.to, channels: l.channels,
-            verified: false, status: "pending", responds: "within a day", hue: 200 + Math.floor(Math.random() * 120), meetLink: l.meetLink,
-          };
-          setS((p) => ({ ...p, myLawyers: [lawyer, ...p.myLawyers] }));
-          signInAs({ name: l.name, email: i.email, phone: i.phone, role: "lawyer", lawyerId: id });
-        } else {
-          signInAs({ name: i.name, email: i.email, phone: i.phone, role: i.role });
-        }
-        return {};
+        pendingSignUp.current = i;
+        return { needsConfirm: true };
       },
+      verifyEmailCode: async (email, code) => {
+        if (code.replace(/\D/g, "") !== PREVIEW_CODE) return "That code is wrong. (Preview mode: the code is always " + PREVIEW_CODE + ".)";
+        const i = pendingSignUp.current;
+        if (i && i.email.toLowerCase() === email.toLowerCase()) {
+          pendingSignUp.current = null;
+          if (i.role === "lawyer" && i.lawyer) {
+            const l = i.lawyer;
+            const id = slugify(l.name);
+            const lawyer: Lawyer = {
+              id, slug: id, name: l.name, title: "Barrister & Solicitor", state: l.state, city: l.city, yearCalled: l.yearCalled,
+              areas: l.areas, languages: l.languages, bio: l.bio || "Verified Tyche lawyer.", rating: 5, reviews: 0,
+              consultFee: l.consultFree ? 0 : l.consultFee, consultFree: l.consultFree, bookingFee: l.bookingFree ? 0 : l.bookingFee,
+              bookingFree: l.bookingFree, sessionMins: l.sessionMins, days: l.days, from: l.from, to: l.to, channels: l.channels,
+              verified: false, status: "pending", responds: "within a day", hue: 200 + Math.floor(Math.random() * 120), meetLink: l.meetLink,
+            };
+            setS((p) => ({ ...p, myLawyers: [lawyer, ...p.myLawyers] }));
+            signInAs({ name: l.name, email: i.email, phone: i.phone, role: "lawyer", lawyerId: id });
+          } else {
+            signInAs({ name: i.name, email: i.email, phone: i.phone, role: i.role });
+          }
+        } else signInAs({ name: email.split("@")[0], email, role: "client" });
+        return null;
+      },
+      resendEmailCode: async () => null,
       signIn: async (email) => {
         const acct = s.accounts.find((a) => a.email.toLowerCase() === email.toLowerCase());
         if (acct) {
@@ -203,11 +218,14 @@ export function PreviewProvider({ children }: { children: ReactNode }) {
       },
       joinCommunity: async (i) => {
         await new Promise((r) => setTimeout(r, 1200));
-        if (!s.user) signInAs({ name: i.name, email: `${i.phone}@preview.tyche`, phone: i.phone, role: "client" });
-        setS((p) => ({ ...p, community: { name: i.name, phone: i.phone, city: i.state, joinedAt: new Date().toISOString(), ref: uid("CM-"), status: "active" } }));
+        const ref = uid("CM-");
+        setS((p) => ({ ...p, community: { name: i.name, phone: i.phone, city: i.state, joinedAt: new Date().toISOString(), ref, status: "active" } }));
+        try { localStorage.setItem(COMMUNITY_REF_KEY, ref); } catch { /* ignore */ }
         return { done: true };
       },
-      communityInvite: async () => "https://wa.me/",
+      communityInvite: async () => null,
+      communityByRef: async (reference) =>
+        s.community && s.community.ref === reference ? { active: true, inviteUrl: null, name: s.community.name, phone: s.community.phone, reference } : null,
       verifyPayment: async () => ({ status: "success" }),
       sendMessage: async (bookingId, text) => {
         const b = s.bookings.find((x) => x.id === bookingId);

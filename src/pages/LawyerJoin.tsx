@@ -1,4 +1,5 @@
-import { ArrowLeft, ArrowRight, BadgeCheck, FileCheck2, Gavel, MailCheck, Sparkles, Upload } from "lucide-react";
+import { CodeStep } from "../components/CodeStep";
+import { ArrowLeft, ArrowRight, BadgeCheck, FileCheck2, Gavel, Sparkles, Upload } from "lucide-react";
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { channelIcon } from "../components/LawyerCard";
@@ -109,14 +110,18 @@ export default function LawyerJoin() {
     return (
       <section className="relative overflow-hidden">
         <Blobs />
-        <div className="relative mx-auto max-w-xl px-4 py-12 text-center sm:px-6 sm:py-20">
-          <div className="mx-auto grid h-20 w-20 place-items-center rounded-full bg-lagoon-100 text-lagoon-600"><MailCheck size={38} /></div>
-          <h1 className="h-page mt-6 font-display font-semibold text-ink">One last step — confirm your email</h1>
-          <p className="mt-4 text-lg text-plum-700/80">
-            We sent a link to <b>{f.email}</b>. Tap it, then sign in — your lawyer profile will be created automatically and sent to our team for verification.
-            {licence && " You can upload your licence from your dashboard."}
-          </p>
-          <Button className="mt-8" size="lg" to="/signin?as=lawyer">Go to sign in</Button>
+        <div className="relative mx-auto max-w-md px-4 py-8 sm:px-6 sm:py-14">
+          <Card className="p-5 sm:p-8">
+            <CodeStep
+              email={f.email.trim()}
+              onBack={() => { setDone(""); setStep(0); }}
+              onVerified={async () => {
+                // Signed in now: the lawyer profile is created from the sign-up details. Attach the licence if given.
+                if (licence) await uploadLicence(licence).catch(() => null);
+                setDone("created");
+              }}
+            />
+          </Card>
         </div>
       </section>
     );

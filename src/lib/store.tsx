@@ -38,7 +38,11 @@ export type ReportInput = Omit<Report, "id" | "createdAt" | "evidence" | "mine" 
 export type EvidenceUpload = { ev: Evidence; file?: File | Blob };
 export type BookInput = { lawyerId: string; kind: SessionKind; date: string; time: string; channel: Channel; note?: string; reportId?: string; bidId?: string };
 export type BookResult = { bookingId?: string; payUrl?: string; error?: string };
-export type CommunityInput = { name: string; phone: string; state: string; heard?: string };
+export type CommunityInput = { name: string; phone: string; email: string; state: string; heard?: string };
+/** Membership looked up by Paystack reference — works without an account. */
+export type CommunityStatus = { active: boolean; name?: string; phone?: string; expiresAt?: string | null; reference?: string; inviteUrl: string | null };
+/** Where a guest's last community payment reference is remembered on this device. */
+export const COMMUNITY_REF_KEY = "tyche:community-ref";
 export type VerifyResult = {
   purpose?: "booking" | "community";
   status?: "success" | "pending" | "failed";
@@ -61,6 +65,9 @@ export type AdminData = {
 };
 
 export type PushState = "unsupported" | "unconfigured" | "off" | "on" | "denied";
+/** signIn() result meaning "this email still needs its verification code". */
+export const NEEDS_CODE = "__needs_code__";
+
 export type Broadcast = { title: string; body: string; url?: string; audience: "all" | "clients" | "lawyers" };
 
 export type Ctx = {
@@ -82,8 +89,12 @@ export type Ctx = {
   communityPrice: number;
   communityCap: number;
 
+  /** needsConfirm: a 6-digit code was emailed; finish with verifyEmailCode(). */
   signUp: (i: SignUpInput) => Promise<{ error?: string; needsConfirm?: boolean }>;
+  /** Returns NEEDS_CODE when the account exists but the email hasn't been verified yet. */
   signIn: (email: string, password: string) => Promise<string | null>;
+  verifyEmailCode: (email: string, code: string) => Promise<string | null>;
+  resendEmailCode: (email: string) => Promise<string | null>;
   signOut: () => Promise<void>;
   resetPassword: (email: string) => Promise<string | null>;
 
@@ -97,6 +108,7 @@ export type Ctx = {
   book: (i: BookInput) => Promise<BookResult>;
   joinCommunity: (i: CommunityInput) => Promise<{ payUrl?: string; done?: boolean; error?: string }>;
   communityInvite: () => Promise<string | null>;
+  communityByRef: (reference: string) => Promise<CommunityStatus | null>;
   verifyPayment: (reference: string) => Promise<VerifyResult>;
   sendMessage: (bookingId: string, text: string) => Promise<void>;
   setMeetLink: (bookingId: string, link: string) => Promise<string | null>;

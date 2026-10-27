@@ -12,9 +12,10 @@ Time needed: about 30–40 minutes.
    - Name: `tyche` · Region: **West EU (London)** or **Central EU (Frankfurt)** (closest to Nigeria) · set a strong database password and save it somewhere safe.
 2. When it's ready, open **SQL Editor → New query**.
 3. Open [`supabase/schema.sql`](supabase/schema.sql) from this repo, copy **everything**, paste it in, click **Run**. You should see "Success. No rows returned".
-4. **Authentication → Sign In / Providers → Email**:
-   - Keep **Email** enabled.
-   - Turn **Confirm email OFF** for launch (recommended). Tyche asks people to create an account in the middle of reporting or booking — an email-confirmation detour loses people at a hard moment. You can turn it on later; the app handles both.
+4. **Sign-up codes (email verification).** Everyone who reports, hires a lawyer or joins as a lawyer verifies their email with a 6-digit code. (Joining the community needs no account.)
+   - **Authentication → Sign In / Providers → Email**: keep **Email** enabled and turn **Confirm email ON**. Save.
+   - **Authentication → Emails → Templates → Confirm signup**: set the subject to `Your Tyche code` and replace the message with the contents of [`supabase/email-templates/confirm-signup.html`](supabase/email-templates/confirm-signup.html) (it shows the code with `{{ .Token }}`). Save.
+   - **Authentication → Emails → SMTP Settings**: turn on custom SMTP. Supabase's built-in mailer only delivers to your own team's emails, so real users won't get codes without this. Easiest: a Gmail address with an **App password** (Google Account → Security → 2-Step Verification → App passwords) — host `smtp.gmail.com`, port `465`, username = the Gmail address, password = the 16-letter app password, sender email = the same Gmail address, sender name `Tyche`. Later you can switch to a domain sender (e.g. Resend or Zoho with hello@your-domain).
 5. **Authentication → URL Configuration**:
    - Site URL: `https://YOUR-DOMAIN` (or `https://tyche-phi.vercel.app` until you have a domain)
    - Redirect URLs: add `https://YOUR-DOMAIN/**` and `https://tyche-phi.vercel.app/**`

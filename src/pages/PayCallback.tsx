@@ -2,7 +2,7 @@ import { CalendarCheck2, HeartHandshake, Hourglass, MessageCircle, XCircle } fro
 import { useEffect, useRef, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { Blobs, Button } from "../components/ui";
-import { useStore, type VerifyResult } from "../lib/store";
+import { COMMUNITY_REF_KEY, useStore, type VerifyResult } from "../lib/store";
 
 /** Paystack sends people back here (?reference=…) after checkout. */
 export default function PayCallback() {
@@ -15,7 +15,7 @@ export default function PayCallback() {
 
   useEffect(() => {
     if (!ready || !ref) return;
-    if (!user) return setRes({ error: "Please sign in with the account you paid with to finish." });
+    // Community payments can be made without an account; bookings need the account that paid (the server checks).
     let alive = true;
     const run = async () => {
       const out = await verifyPayment(ref);
@@ -26,6 +26,8 @@ export default function PayCallback() {
         setTimeout(run, 2500);
         return;
       }
+      if (out.error && !user) out.error = "Please sign in with the account you paid with to finish.";
+      if (out.status === "success" && out.purpose === "community") try { localStorage.setItem(COMMUNITY_REF_KEY, ref); } catch { /* ignore */ }
       setRes(out);
       if (out.status === "success" && out.purpose === "booking" && out.bookingId) {
         setTimeout(() => alive && navigate(`/messages/${out.bookingId}`, { replace: true }), 1800);

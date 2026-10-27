@@ -607,9 +607,9 @@ function CommunityView() {
         {members.length ? (
           <div className="mt-3 space-y-2">
             {members.map((m) => (
-              <div key={m.userId} className="flex flex-wrap items-center gap-3 rounded-3xl bg-cream p-3 text-sm">
+              <div key={m.ref || m.userId} className="flex flex-wrap items-center gap-3 rounded-3xl bg-cream p-3 text-sm">
                 <Avatar name={m.name} hue={185} size={40} className="ring-2" />
-                <span className="min-w-0 flex-1"><b className="text-ink">{m.name}</b> · {m.phone}{m.city ? ` · ${m.city}` : ""}</span>
+                <span className="min-w-0 flex-1"><b className="text-ink">{m.name}</b> · {m.phone}{m.city ? ` · ${m.city}` : ""}{m.email ? <span className="block truncate text-xs text-plum-400">{m.email}{m.userId ? "" : " · no account"}</span> : null}</span>
                 <Badge tone={m.status === "active" ? "teal" : "warm"}>{m.status === "active" ? `Active${m.expiresAt ? ` · until ${fmtDate(m.expiresAt)}` : ""}` : "Unpaid"}</Badge>
                 {m.status === "active" && <a href={wa(m.phone)} target="_blank" rel="noreferrer" className="rounded-full bg-lagoon-500 px-3.5 py-2 text-xs font-semibold text-white">WhatsApp</a>}
               </div>

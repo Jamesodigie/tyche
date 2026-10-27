@@ -3,7 +3,8 @@ import { useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { PathBubbles } from "../components/PathBubbles";
 import { Blobs, Button, Field, Input, Notice, PasswordInput, cx } from "../components/ui";
-import { useStore } from "../lib/store";
+import { NEEDS_CODE, useStore } from "../lib/store";
+import { CodeStep } from "../components/CodeStep";
 import { supabase } from "../lib/supabase";
 
 export default function SignIn() {
@@ -18,6 +19,7 @@ export default function SignIn() {
   const [sent, setSent] = useState(false);
   const { signIn, resetPassword, mode: appMode } = useStore();
   const navigate = useNavigate();
+  const [needCode, setNeedCode] = useState(false);
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -32,9 +34,22 @@ export default function SignIn() {
     }
     const error = await signIn(email, pw);
     setBusy(false);
+    if (error === NEEDS_CODE) return setNeedCode(true);
     if (error) return setErr(error);
     navigate(next || (as === "lawyer" ? "/lawyer/dashboard" : "/me"));
   };
+
+  if (needCode)
+    return (
+      <section className="relative overflow-hidden">
+        <Blobs />
+        <div className="relative mx-auto max-w-md px-4 py-8 sm:px-6 sm:py-14">
+          <div className="rounded-[2rem] bg-white p-5 shadow-soft ring-1 ring-plum-100 sm:p-8">
+            <CodeStep email={email.trim()} onBack={() => setNeedCode(false)} onVerified={() => navigate(next || (as === "lawyer" ? "/lawyer/dashboard" : "/me"))} />
+          </div>
+        </div>
+      </section>
+    );
 
   return (
     <section className="relative overflow-hidden">
