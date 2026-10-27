@@ -34,7 +34,7 @@ async function send(to: string, subject: string, html: string) {
   const response = await fetch("https://api.resend.com/emails", {
     method: "POST",
     headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
-    body: JSON.stringify({ from, to: [to], subject, html }),
+    body: JSON.stringify({ from, to: [to], subject, html, ...(process.env.TYCHE_EMAIL_REPLY_TO ? { reply_to: process.env.TYCHE_EMAIL_REPLY_TO } : {}) }),
   });
   if (!response.ok) throw new Error(`Resend returned ${response.status}: ${(await response.text()).slice(0, 300)}`);
 }
