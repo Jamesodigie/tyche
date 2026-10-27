@@ -127,7 +127,7 @@ Then swap `BACHS_SECRET_KEY` to the live key (and the live webhook secret), rede
 
 ### Privacy, in short
 
-- Reports and evidence are readable only by the person who filed them (and admins).
+- Reports and evidence are readable only by the person who filed them and admins. Copies of uploads are backed up to the Tyche Google account (see 2b).
 - Approved lawyers see shared reports through an anonymised case board with no name, email or phone. A lawyer only sees a client's name once that client books them.
 - Evidence files sit in a private storage bucket and open via short-lived links.
 - Bookings, payments and memberships can only be created by the server after Bachs confirms the money.
