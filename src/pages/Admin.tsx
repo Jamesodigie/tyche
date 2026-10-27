@@ -1042,7 +1042,7 @@ export default function Admin() {
   if (!admin && !loadError) return <div className="grid min-h-screen place-items-center bg-cream text-plum-400">Loading admin data…</div>;
   const leave = async () => { if (adminSignOut) adminSignOut(); else await signOut(); navigate("/"); };
   const pending = lawyers.filter((l) => lawyerState(l) === "pending").length;
-  const unreadSupport = new Set((admin.support || []).filter((m) => !m.fromAdmin && !m.readAt).map((m) => m.userId)).size;
+  const unreadSupport = new Set((admin?.support || []).filter((m) => !m.fromAdmin && !m.readAt).map((m) => m.userId)).size;
   const nav = [
     { to: "/admin", label: "Overview", icon: LayoutDashboard, end: true },
     { to: "/admin/approvals", label: "Lawyer approvals", icon: BadgeCheck, count: pending },
