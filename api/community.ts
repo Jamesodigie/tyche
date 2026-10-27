@@ -1,7 +1,7 @@
 // /api/community
 //   GET  — your membership status (+ the private WhatsApp invite link once paid)
 //   POST — start joining: saves your details and returns a Paystack checkout URL
-import { HttpError, body, db, env, handler, reference, requireUser, startPayment } from "./_lib.js";
+import { HttpError, body, communityInvite, db, env, handler, reference, requireUser, startPayment } from "./_lib.js";
 
 const price = () => Number(env("COMMUNITY_PRICE", "5000"));
 const cap = () => Number(env("COMMUNITY_CAP", "0")); // 0 = no limit
@@ -17,10 +17,10 @@ export default handler(["GET", "POST"], async (req) => {
   const active = !!member && member.status === "active" && (!member.expires_at || member.expires_at > new Date().toISOString());
 
   if (req.method === "GET") {
-    return { active, member, inviteUrl: active ? env("COMMUNITY_INVITE_URL") || null : null, price: price(), cap: cap() };
+    return { active, member, inviteUrl: active ? communityInvite() : null, price: price(), cap: cap() };
   }
 
-  if (active) return { active: true, inviteUrl: env("COMMUNITY_INVITE_URL") || null };
+  if (active) return { active: true, inviteUrl: communityInvite() };
 
   const b = body<{ name?: string; phone?: string; state?: string; heard?: string }>(req);
   const name = (b.name || "").trim().slice(0, 80);

@@ -5,6 +5,14 @@
 html { scroll-behavior: smooth; }
 /* Slightly smaller everything on phones so screens fit without scrolling */
 @media (max-width: 639px) { html { font-size: 15px; } }
+/* Grid/flex children may shrink below their content width, so a scrollable row inside
+   (dates, time slots, chips) scrolls instead of stretching the page off-screen. */
+.grid > *, .flex > * { min-width: 0; }
+/* Never let anything drag the page sideways. */
+html, body { max-width: 100%; overflow-x: clip; }
+img, video, iframe { max-width: 100%; }
+/* Icons keep their size even in tight rows. */
+.flex > svg, .grid > svg { flex-shrink: 0; }
 body { -webkit-font-smoothing: antialiased; }
 ::selection { background: #FFE6D3; color: #4C1E71; }
 .font-display { font-optical-sizing: auto; }

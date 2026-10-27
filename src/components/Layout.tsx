@@ -157,7 +157,7 @@ function InstagramIcon({ size = 16 }: { size?: number }) {
 
 function Footer({ compactOnPhones }: { compactOnPhones?: boolean }) {
   return (
-    <footer className={cx(compactOnPhones && "hidden lg:block", "section bg-plum-900 pb-[calc(5rem+env(safe-area-inset-bottom))] text-plum-100 lg:pb-0")}>
+    <footer className={cx(compactOnPhones && "hidden lg:block", "section bg-plum-900 pb-[calc(6rem+env(safe-area-inset-bottom))] text-plum-100 lg:pb-0")}>
       {/* phones: short footer */}
       <div className="space-y-4 px-4 py-6 md:hidden">
         <p className="flex items-center gap-2 text-xs text-plum-100">
@@ -274,6 +274,7 @@ export function Layout() {
     try { window.scrollTo(0, 0); } catch { /* noop */ }
   }, [pathname]);
   const bare = pathname.startsWith("/session/");
+  const appScreen = ["/me", "/lawyer/dashboard", "/messages", "/hire", "/signin", "/report", "/join", "/book", "/community/join", "/reset-password", "/pay"].some((r) => pathname === r || pathname.startsWith(r + "/"));
   const { user, mode } = useStore();
   return (
     <div className="min-h-screen bg-cream font-sans text-ink">
@@ -288,8 +289,10 @@ export function Layout() {
           Your account is paused while our team reviews it. You can still read your saved reports. Questions? Reach the Tyche team.
         </div>
       )}
-      <main><Outlet /></main>
-      {!bare && <Footer compactOnPhones={["/me", "/lawyer/dashboard", "/messages", "/hire", "/signin", "/report", "/join", "/book", "/community/join", "/reset-password"].some((r) => pathname === r || pathname.startsWith(r + "/"))} />}
+      {/* When the footer is hidden on phones, main is the last thing on the page, so it needs room
+          for the bottom tab bar (and the floating Help button) or its last buttons sit underneath. */}
+      <main className={cx(!bare && appScreen && "pb-[calc(7.5rem+env(safe-area-inset-bottom))] lg:pb-0")}><Outlet /></main>
+      {!bare && <Footer compactOnPhones={appScreen} />}
       <QuickExit floatingOnPhones={bare} />
       <WelcomeBubbles />
       {!bare && <BottomTabs />}

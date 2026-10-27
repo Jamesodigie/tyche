@@ -47,7 +47,7 @@ Vercel → your **tyche** project → **Settings → Environment Variables**. Ad
 | `SUPABASE_URL` | Supabase Project URL (same as above) |
 | `SUPABASE_SERVICE_ROLE_KEY` | Supabase service_role / secret key |
 | `PAYSTACK_SECRET_KEY` | Paystack secret key (`sk_test_…` first, then `sk_live_…`) |
-| `COMMUNITY_INVITE_URL` | Your WhatsApp group invite link (`https://chat.whatsapp.com/…`) — shown only to paid members |
+| `COMMUNITY_INVITE_URL` | Optional. Tyche's WhatsApp group link is already built in (shown only to paid members). Set this only if you change the group link. |
 | `COMMUNITY_PRICE` | Yearly price in naira, e.g. `5000` |
 | `SITE_URL` | `https://YOUR-DOMAIN` (no trailing slash) |
 | `VITE_VAPID_PUBLIC_KEY` | Push notifications — see step 3b |

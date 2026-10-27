@@ -130,25 +130,25 @@ export default function Book() {
             )}
 
             {step === 1 && (
-              <div className="space-y-6">
+              <div className="space-y-5">
                 <div>
                   <p className="mb-3 text-sm font-semibold text-ink">Pick a day</p>
                   <div className="no-scrollbar -mx-1 flex gap-2 overflow-x-auto px-1 pb-1">
                     {dates.map((d) => (
-                      <button key={d.iso} onClick={() => setDate(d.iso)} className={cx("min-w-[78px] rounded-3xl border-2 px-3 py-3 text-center transition", date === d.iso ? "border-plum-600 bg-plum-600 text-white" : "border-plum-100 bg-white text-ink hover:border-plum-300")}>
+                      <button key={d.iso} onClick={() => setDate(d.iso)} className={cx("min-w-[72px] shrink-0 rounded-2xl border-2 px-2 py-2 text-center transition sm:rounded-3xl sm:px-3 sm:py-3", date === d.iso ? "border-plum-600 bg-plum-600 text-white" : "border-plum-100 bg-white text-ink hover:border-plum-300")}>
                         <span className={cx("block text-xs font-semibold uppercase", date === d.iso ? "text-plum-100" : "text-plum-400")}>{d.day}</span>
-                        <span className="block font-display text-lg font-semibold">{d.label}</span>
+                        <span className="block whitespace-nowrap font-display text-base font-semibold sm:text-lg">{d.label}</span>
                       </button>
                     ))}
                   </div>
                 </div>
                 <div>
                   <p className="mb-3 text-sm font-semibold text-ink">Pick a time</p>
-                  <div className="flex flex-wrap gap-2">
+                  <div className="grid grid-cols-3 gap-2 sm:flex sm:flex-wrap">
                     {slots.map((s, i) => {
                       const isTaken = taken.has(`${date}|${s}`);
                       return (
-                        <button key={s} disabled={isTaken || !date} onClick={() => setTime(s)} className={cx("rounded-full border-2 px-4 py-2 text-sm font-medium transition disabled:cursor-not-allowed disabled:opacity-40", time === s ? "border-tangerine-500 bg-tangerine-500 text-white" : "border-plum-100 bg-white text-ink hover:border-plum-300", isTaken && "line-through")}>
+                        <button key={s} disabled={isTaken || !date} onClick={() => setTime(s)} className={cx("rounded-full border-2 px-2 py-2 text-sm font-medium transition disabled:cursor-not-allowed sm:px-4 disabled:opacity-40", time === s ? "border-tangerine-500 bg-tangerine-500 text-white" : "border-plum-100 bg-white text-ink hover:border-plum-300", isTaken && "line-through")}>
                           {s}
                         </button>
                       );
@@ -158,13 +158,13 @@ export default function Book() {
                 </div>
                 <div>
                   <p className="mb-3 text-sm font-semibold text-ink">How would you like to talk?</p>
-                  <div className="grid gap-3 sm:grid-cols-3">
+                  <div className="grid grid-cols-3 gap-2 sm:gap-3">
                     {l.channels.map((c) => {
                       const I = channelIcon[c];
                       return (
-                        <button key={c} onClick={() => setChannel(c)} className={cx("rounded-3xl border-2 p-4 text-left transition", channel === c ? "border-lagoon-400 bg-lagoon-50" : "border-plum-100 bg-white")}>
+                        <button key={c} onClick={() => setChannel(c)} className={cx("rounded-2xl border-2 p-2.5 text-left transition sm:rounded-3xl sm:p-4", channel === c ? "border-lagoon-400 bg-lagoon-50" : "border-plum-100 bg-white")}>
                           <I className={channel === c ? "text-lagoon-600" : "text-plum-300"} />
-                          <p className="mt-2 text-sm font-semibold text-ink">{CHANNEL_LABEL[c]}</p>
+                          <p className="mt-1.5 text-xs font-semibold leading-tight text-ink sm:mt-2 sm:text-sm">{CHANNEL_LABEL[c]}</p>
                         </button>
                       );
                     })}

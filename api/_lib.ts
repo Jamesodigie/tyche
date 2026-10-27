@@ -16,6 +16,9 @@ export function env(name: string, fallback = ""): string {
   return process.env[name] || fallback;
 }
 
+/** Private WhatsApp group link. Only ever sent to members who have paid. Override with COMMUNITY_INVITE_URL. */
+export const communityInvite = () => env("COMMUNITY_INVITE_URL", "https://chat.whatsapp.com/H8Ma7LGUNGLF3gBDGH4cw9");
+
 function need(name: string): string {
   const v = process.env[name];
   if (!v) throw new HttpError(500, `Server is missing the ${name} setting. Add it in Vercel → Settings → Environment Variables.`);
@@ -163,7 +166,7 @@ export async function fulfil(ref: string): Promise<FulfilResult> {
   }
 
   if (pay.purpose === "booking") return { purpose: "booking", status: "success", bookingId: pay.booking_id };
-  return { purpose: "community", status: "success", inviteUrl: env("COMMUNITY_INVITE_URL") || null };
+  return { purpose: "community", status: "success", inviteUrl: communityInvite() };
 }
 
 async function applyEffects(pay: { purpose: string; booking_id: string | null; user_id: string | null; raw?: unknown }) {
