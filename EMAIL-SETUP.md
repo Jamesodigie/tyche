@@ -60,7 +60,7 @@ The confirmation template is the welcome/verification message. A separate welcom
 
 The protected endpoint is `GET /api/email-worker`. It checks `Authorization: Bearer <CRON_SECRET>`, processes up to 50 due jobs per run and retries transient failures up to five attempts.
 
-The branch adds a Vercel cron every five minutes. Cron frequency depends on your Vercel plan. If Vercel rejects the schedule, use an external scheduler such as cron-job.org:
+To avoid breaking deployments on Vercel plans that do not support frequent cron schedules, the email worker is not added to vercel.json by default. Use an external scheduler such as cron-job.org to run it every five minutes. If your Vercel plan supports a five-minute Cron Job, you can add this schedule in vercel.json:
 
 - URL: `https://gettyche.com.ng/api/email-worker`
 - Method: GET
