@@ -172,7 +172,7 @@ function Footer({ compactOnPhones }: { compactOnPhones?: boolean }) {
           </button>
         </div>
         <nav className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-plum-200">
-          {[["/how-it-works", "How it works"], ["/community", "Community"], ["/for-lawyers", "For lawyers"], ["/safety", "Safety"], ["/about", "About"], ["/signin", "Sign in"]].map(([to, label]) => (
+          {[["/how-it-works", "How it works"], ["/community", "Community"], ["/for-lawyers", "For lawyers"], ["/safety", "Safety"], ["/about", "About"], ["/terms", "Terms of Use"], ["/privacy", "Privacy Policy"], ["/signin", "Sign in"]].map(([to, label]) => (
             <Link key={to} to={to} className="inline-block py-1.5 hover:text-white">{label}</Link>
           ))}
           <InstallButton className="inline-block py-1.5 font-semibold text-white" label="Get the app" />
@@ -207,7 +207,7 @@ function Footer({ compactOnPhones }: { compactOnPhones?: boolean }) {
         {[
           { h: "Get help", l: [["/report", "Report harassment"], ["/hire", "Hire a lawyer"], ["/community", "Join the community"], ["/me", "My space"]] },
           { h: "Lawyers", l: [["/for-lawyers", "Why Tyche"], ["/join/lawyer", "Create a lawyer account"], ["/lawyer/dashboard", "Case board"]] },
-          { h: "Tyche", l: [["/how-it-works", "How it works"], ["/safety", "Safety & privacy"], ["/about", "About us"], ["/signin", "Sign in"]] },
+          { h: "Tyche", l: [["/how-it-works", "How it works"], ["/safety", "Safety & privacy"], ["/about", "About us"], ["/terms", "Terms of Use"], ["/privacy", "Privacy Policy"], ["/signin", "Sign in"]] },
         ].map((c) => (
           <div key={c.h}>
             <p className="font-display text-lg text-white">{c.h}</p>
