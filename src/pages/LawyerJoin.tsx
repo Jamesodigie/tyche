@@ -97,7 +97,7 @@ export default function LawyerJoin() {
     setDone("created");
   };
 
-  if (myLawyer && !done)
+  if (user && myLawyer && !done)
     return (
       <div className="mx-auto max-w-xl px-4 py-12 text-center sm:px-6 sm:py-20">
         <BadgeCheck className="mx-auto text-lagoon-500" size={44} />
