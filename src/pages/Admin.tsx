@@ -1019,14 +1019,27 @@ function NotificationsView() {
 // ---------------------------------------------------------------------------
 
 export default function Admin() {
-  const { admin, lawyers, lawyerState, adminSignOut, signOut, isAdmin, loadAdmin, ready } = useAdmin();
+  const { admin, lawyers, lawyerState, adminSignOut, signOut, isAdmin, loadAdmin, ready, mode } = useAdmin();
   const navigate = useNavigate();
+  const [loadError, setLoadError] = useState("");
+  const [refreshing, setRefreshing] = useState(false);
+  const refreshAdminData = async () => {
+    setRefreshing(true);
+    setLoadError("");
+    try {
+      await loadAdmin();
+    } catch (e) {
+      setLoadError(e instanceof Error ? e.message : "Could not load live admin data.");
+    } finally {
+      setRefreshing(false);
+    }
+  };
   useEffect(() => {
-    if (isAdmin) loadAdmin();
-  }, [isAdmin, loadAdmin]);
+    if (isAdmin) refreshAdminData();
+  }, [isAdmin]);
   if (!ready) return <div className="grid min-h-screen place-items-center bg-plum-900 text-plum-200">Loading…</div>;
   if (!isAdmin) return <AdminLogin />;
-  if (!admin) return <div className="grid min-h-screen place-items-center bg-cream text-plum-400">Loading admin data…</div>;
+  if (!admin && !loadError) return <div className="grid min-h-screen place-items-center bg-cream text-plum-400">Loading admin data…</div>;
   const leave = async () => { if (adminSignOut) adminSignOut(); else await signOut(); navigate("/"); };
   const pending = lawyers.filter((l) => lawyerState(l) === "pending").length;
   const unreadSupport = new Set((admin.support || []).filter((m) => !m.fromAdmin && !m.readAt).map((m) => m.userId)).size;
@@ -1070,7 +1083,21 @@ export default function Admin() {
         </div>
       </aside>
       <main className="w-full min-w-0 px-3 pb-12 pt-4 sm:px-5 sm:pt-6 lg:px-6 xl:px-8">
-        <Routes>
+        <div className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-2xl bg-white px-4 py-3 ring-1 ring-plum-100">
+          <div>
+            <p className="text-sm font-semibold text-ink">{mode === "live" ? "Connected to Tyche live data" : "Preview mode — sample data only"}</p>
+            <p className="text-xs text-plum-500">{mode === "live" ? "Records are loaded from Supabase." : "This dashboard is not connected to production records."}</p>
+          </div>
+          <button onClick={refreshAdminData} disabled={refreshing} className="inline-flex min-h-[38px] items-center gap-2 rounded-full bg-plum-50 px-4 text-sm font-semibold text-plum-700 disabled:opacity-50">
+            <RotateCcw size={15} className={refreshing ? "animate-spin" : ""} /> {refreshing ? "Refreshing…" : "Refresh data"}
+          </button>
+        </div>
+        {loadError && <div role="alert" className="mb-4 rounded-2xl border border-red-200 bg-red-50 p-4 text-sm text-red-800">
+          <p className="font-semibold">Live data could not be loaded</p>
+          <p className="mt-1 break-words">{loadError}</p>
+          <p className="mt-1">Check Supabase table permissions and the admin RLS policies, then refresh.</p>
+        </div>}
+        {admin && <Routes>
           <Route index element={<Overview />} />
           <Route path="approvals" element={<Approvals />} />
           <Route path="users" element={<UsersView />} />
@@ -1081,7 +1108,7 @@ export default function Admin() {
           <Route path="community" element={<CommunityView />} />
           <Route path="settings" element={<SettingsView />} />
           <Route path="*" element={<Navigate to="/admin" replace />} />
-        </Routes>
+        </Routes>}
       </main>
       <ActivityAlerts />
     </div>
