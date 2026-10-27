@@ -15,7 +15,8 @@ export default handler(["GET", "POST", "PUT"], async (req) => {
   if (req.method === "GET") {
     if (!banksCache || Date.now() - banksCache.at > 12 * 3600 * 1000) {
       const out = await bachs<{ banks: { name: string; code: string }[] }>("/v1/reference/banks?country=NG");
-      banksCache = { at: Date.now(), list: (out.banks || []).map(({ name, code }) => ({ name, code })).sort((a, b) => a.name.localeCompare(b.name)) };
+      const clean = (t: string) => t.replace(/&amp;/g, "&").replace(/&#39;|&apos;/g, "'").replace(/&quot;/g, '"').trim();
+      banksCache = { at: Date.now(), list: (out.banks || []).map(({ name, code }) => ({ name: clean(name), code })).sort((a, b) => a.name.localeCompare(b.name)) };
     }
     return { banks: banksCache.list };
   }
