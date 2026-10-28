@@ -39,13 +39,14 @@ export default handler(["GET", "POST"], async (req) => {
   }
 
   // ---- POST: start joining ----
-  const b = body<{ name?: string; phone?: string; email?: string; state?: string; heard?: string }>(req);
+  const b = body<{ name?: string; phone?: string; email?: string; state?: string; heard?: string; consent?: { adult_confirmed?: boolean; terms_version?: string } }>(req);
   const name = (b.name || "").trim().slice(0, 80);
   const phone = (b.phone || "").replace(/[^\d+]/g, "");
   const email = (me?.email || b.email || "").trim().toLowerCase();
   if (name.length < 2) throw new HttpError(400, "Please tell us what to call you.");
   if (phone.replace(/\D/g, "").length < 10) throw new HttpError(400, "Please enter your WhatsApp number.");
   if (!/^\S+@\S+\.\S+$/.test(email)) throw new HttpError(400, "Please enter your email — your receipt is sent there.");
+  if (!b.consent?.adult_confirmed || !b.consent?.terms_version) throw new HttpError(400, "Please confirm you're 18 or older and agree to the Terms and Privacy Policy.");
 
   if (me) {
     const { data: member } = await db().from("community_members").select("*").eq("user_id", me.id).maybeSingle();
@@ -61,7 +62,7 @@ export default handler(["GET", "POST"], async (req) => {
   if (cap() > 0 && (count as number) >= cap()) throw new HttpError(409, "The circle is full right now. We'll let you know when a spot opens.");
 
   const ref = reference("TYC");
-  const row = { name, phone, email, state: b.state || null, heard: b.heard || null, status: "pending", reference: ref };
+  const row = { name, phone, email, state: b.state || null, heard: b.heard || null, status: "pending", reference: ref, terms_version: String(b.consent.terms_version).slice(0, 20), consented_at: new Date().toISOString() };
   if (me) {
     const { error } = await db().from("community_members").upsert({ ...row, user_id: me.id }, { onConflict: "user_id" });
     if (error) throw new HttpError(500, error.message);

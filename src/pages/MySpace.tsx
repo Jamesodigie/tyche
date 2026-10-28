@@ -1,4 +1,5 @@
 import { CalendarHeart, FileLock2, FileText, Gavel, HeartHandshake, MessageCircleHeart, Plus, Video } from "lucide-react";
+import { YourData } from "../components/YourData";
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { channelIcon } from "../components/LawyerCard";
@@ -103,6 +104,7 @@ export default function MySpace() {
             </span>
           </button>
         </div>
+        <YourData className="mt-3" />
         <div className="no-scrollbar mt-6 flex gap-2 overflow-x-auto">
           {TABS.map((t) => (
             <button key={t} onClick={() => setTab(t)} className={cx("whitespace-nowrap rounded-full px-5 py-2.5 text-sm font-semibold transition", tab === t ? "bg-plum-600 text-white" : "bg-white text-plum-600 ring-1 ring-plum-100")}>

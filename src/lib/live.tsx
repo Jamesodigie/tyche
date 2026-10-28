@@ -3,7 +3,7 @@
 import type { Session } from "@supabase/supabase-js";
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import type { Account, Bid, Booking, CommunityMember, Evidence, Lawyer, Message, Payment, Report, SupportMessage } from "./data";
-import { COMMUNITY_REF_KEY, NEEDS_CODE, StoreCtx, findIn, slugify, type AdminData, type LawyerPayout, type Ctx, type LawyerInput, type User } from "./store";
+import { COMMUNITY_REF_KEY, CONSENT_VERSION, NEEDS_CODE, StoreCtx, findIn, slugify, type AdminData, type LawyerPayout, type Ctx, type LawyerInput, type User } from "./store";
 import { supabase } from "./supabase";
 import { usePush } from "./usePush";
 
@@ -345,6 +345,8 @@ export function LiveProvider({ children }: { children: ReactNode }) {
       role,
       lawyerId: myLawyer?.id,
       suspended: !!profile?.suspended,
+      // Profile loaded and no consent on record → ask once (accounts made before 28 Oct 2026).
+      needsConsent: !!profile && (!profile.consented_at || profile.terms_version !== CONSENT_VERSION),
     };
   }, [session, profile, myLawyer]);
 
@@ -445,7 +447,7 @@ export function LiveProvider({ children }: { children: ReactNode }) {
           password: i.password,
           options: {
             emailRedirectTo: `${window.location.origin}/signin`,
-            data: { name: i.name.trim(), phone: i.phone || null, role: i.role, lawyer_draft: i.lawyer || null },
+            data: { name: i.name.trim(), phone: i.phone || null, role: i.role, lawyer_draft: i.lawyer || null, consent: i.consent || null },
           },
         });
         if (error) return { error: friendly(error.message) };
@@ -469,6 +471,14 @@ export function LiveProvider({ children }: { children: ReactNode }) {
           return friendly(error.message);
         }
         if (data.session) await loadUser(data.session);
+        return null;
+      },
+      saveConsent: async (record) => {
+        if (!session) return "Please sign in first.";
+        const now = new Date().toISOString();
+        const { error } = await sb.from("profiles").update({ adult_confirmed: !!record.adult_confirmed, terms_version: record.terms_version, consented_at: now }).eq("id", session.user.id);
+        if (error) return friendly(error.message);
+        setProfile((p: any) => (p ? { ...p, adult_confirmed: !!record.adult_confirmed, terms_version: record.terms_version, consented_at: now } : p));
         return null;
       },
       verifyEmailCode: async (email, code) => {
@@ -541,6 +551,7 @@ export function LiveProvider({ children }: { children: ReactNode }) {
             alias: r.alias.trim(), category: r.category, setting: r.setting, when_text: r.when || null, state: r.state,
             relation: r.relation || null, description: r.description, wants: r.wants, share_with_lawyers: r.shareWithLawyers,
             hide_name: r.hideName, authorities: r.authorities,
+            sensitive_consent_at: new Date().toISOString(),
           })
           .select("*")
           .single();

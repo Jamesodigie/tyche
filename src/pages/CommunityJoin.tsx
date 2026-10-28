@@ -2,6 +2,7 @@ import { ArrowLeft, ArrowRight, CreditCard, HeartHandshake, Lock, MessageCircle 
 import { useEffect, useState } from "react";
 import { Blobs, Button, Card, Field, Input, Notice, Select, Stepper } from "../components/ui";
 import { STATES, naira } from "../lib/data";
+import { ConsentChecks, consentRecord } from "../components/Consent";
 import { COMMUNITY_REF_KEY, useStore, type CommunityStatus } from "../lib/store";
 
 const STEPS = ["About you", "House rules", "Pay & join"];
@@ -22,7 +23,7 @@ export default function CommunityJoin() {
     if (ref) communityByRef(ref).then((g) => g?.active && setGuest(g)).catch(() => {});
   }, [communityByRef]);
   const [step, setStep] = useState(0);
-  const [f, setF] = useState({ name: user?.name || "", phone: "", email: user?.email || "", state: "Lagos", heard: "", adult: false });
+  const [f, setF] = useState({ name: user?.name || "", phone: "", email: user?.email || "", state: "Lagos", heard: "", adult: false, terms: false });
   const [agreed, setAgreed] = useState<boolean[]>(RULES.map(() => false));
   const [paying, setPaying] = useState(false);
   const [err, setErr] = useState("");
@@ -76,12 +77,12 @@ export default function CommunityJoin() {
       </section>
     );
 
-  const valid = [f.name.trim().length > 1 && f.phone.replace(/\D/g, "").length >= 10 && /^\S+@\S+\.\S+$/.test(f.email.trim()) && f.adult, agreed.every(Boolean), true][step];
+  const valid = [f.name.trim().length > 1 && f.phone.replace(/\D/g, "").length >= 10 && /^\S+@\S+\.\S+$/.test(f.email.trim()) && f.adult && f.terms, agreed.every(Boolean), true][step];
 
   const pay = async () => {
     setPaying(true);
     setErr("");
-    const out = await joinCommunity({ name: f.name.trim(), phone: f.phone, email: f.email.trim(), state: f.state, heard: f.heard || undefined });
+    const out = await joinCommunity({ name: f.name.trim(), phone: f.phone, email: f.email.trim(), state: f.state, heard: f.heard || undefined, consent: consentRecord({ adult: f.adult, terms: f.terms }) });
     if (out.payUrl) {
       window.location.assign(out.payUrl);
       return;
@@ -106,10 +107,7 @@ export default function CommunityJoin() {
               <Field label="Email" hint="Your receipt is sent here."><Input type="email" value={f.email} onChange={(e) => setF({ ...f, email: e.target.value })} placeholder="you@example.com" disabled={!!user} /></Field>
               <Field label="Where are you based?"><Select value={f.state} onChange={(e) => setF({ ...f, state: e.target.value })}>{[...STATES, "Outside Nigeria"].map((s) => <option key={s}>{s}</option>)}</Select></Field>
               <Field label="How did you hear about us?" optional><Select value={f.heard} onChange={(e) => setF({ ...f, heard: e.target.value })}><option value="">Choose one</option>{["Instagram", "TikTok", "X (Twitter)", "A friend", "A lawyer", "Somewhere else"].map((s) => <option key={s}>{s}</option>)}</Select></Field>
-              <label className="flex cursor-pointer items-center gap-3 rounded-3xl bg-cream p-4 text-sm sm:col-span-2">
-                <input type="checkbox" className="h-5 w-5 accent-plum-600" checked={f.adult} onChange={(e) => setF({ ...f, adult: e.target.checked })} />
-                <span className="text-ink">I'm 18 or older</span>
-              </label>
+              <ConsentChecks className="sm:col-span-2" value={{ adult: f.adult, terms: f.terms }} onChange={(c) => setF({ ...f, adult: c.adult, terms: c.terms })} />
             </div>
           )}
           {step === 1 && (

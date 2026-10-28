@@ -118,6 +118,7 @@ export function PreviewProvider({ children }: { children: ReactNode }) {
         pendingSignUp.current = i;
         return { needsConfirm: true };
       },
+      saveConsent: async () => null,
       verifyEmailCode: async (email, code) => {
         if (code.replace(/\D/g, "") !== PREVIEW_CODE) return "That code is wrong. (Preview mode: the code is always " + PREVIEW_CODE + ".)";
         const i = pendingSignUp.current;

@@ -2,6 +2,7 @@ import { ArrowRight } from "lucide-react";
 import { useState } from "react";
 import { NEEDS_CODE, useStore } from "../lib/store";
 import { CodeStep } from "./CodeStep";
+import { ConsentChecks, consentOk, consentRecord } from "./Consent";
 import { Button, Field, Input, Notice, PasswordInput } from "./ui";
 
 /**
@@ -31,6 +32,7 @@ export function AccountForm({
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState("");
   const [confirm, setConfirm] = useState(false);
+  const [consent, setConsent] = useState({ adult: false, terms: false });
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -42,7 +44,11 @@ export function AccountForm({
       if (error === NEEDS_CODE) return setConfirm(true);
       return error ? setErr(error) : onDone();
     }
-    const out = await signUp({ name: f.name.trim(), email: f.email.trim(), password: f.password, phone: f.phone || undefined, role: "client" });
+    if (!consentOk(consent)) {
+      setBusy(false);
+      return setErr(consent.adult ? "Please agree to the Terms and Privacy Policy to continue." : "Please confirm you're 18 or older to create an account.");
+    }
+    const out = await signUp({ name: f.name.trim(), email: f.email.trim(), password: f.password, phone: f.phone || undefined, role: "client", consent: consentRecord(consent) });
     setBusy(false);
     if (out.error) return setErr(out.error);
     if (out.needsConfirm) return setConfirm(true);
@@ -69,8 +75,9 @@ export function AccountForm({
       <Field label="Password" hint={mode === "new" ? "At least 6 characters" : undefined}>
         <PasswordInput required minLength={6} value={f.password} onChange={(e) => setF({ ...f, password: e.target.value })} autoComplete={mode === "new" ? "new-password" : "current-password"} />
       </Field>
+      {mode === "new" && <ConsentChecks value={consent} onChange={setConsent} />}
       {err && <Notice>{err}</Notice>}
-      <Button className="w-full" size="lg" disabled={busy}>
+      <Button className="w-full" size="lg" disabled={busy || (mode === "new" && !consentOk(consent))}>
         {busy ? "Please wait…" : <>{mode === "new" ? cta : "Sign in & continue"} <ArrowRight size={18} /></>}
       </Button>
       <p className="text-center text-sm text-plum-600">

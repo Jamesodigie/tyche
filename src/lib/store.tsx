@@ -9,7 +9,7 @@ import { PreviewProvider } from "./preview";
 //   • PreviewProvider — in-browser demo, used only while the Supabase keys aren't set
 
 export type Role = "client" | "lawyer" | "admin";
-export type User = { id: string; name: string; email: string; phone?: string; role: Role; lawyerId?: string; suspended?: boolean };
+export type User = { id: string; name: string; email: string; phone?: string; role: Role; lawyerId?: string; suspended?: boolean; needsConsent?: boolean };
 
 export type LawyerInput = {
   name: string;
@@ -33,15 +33,17 @@ export type LawyerInput = {
   meetLink?: string;
 };
 
-export type SignUpInput = { name: string; email: string; password: string; phone?: string; role: "client" | "lawyer"; lawyer?: LawyerInput };
+export type SignUpInput = { name: string; email: string; password: string; phone?: string; role: "client" | "lawyer"; lawyer?: LawyerInput; consent?: Record<string, unknown> };
 export type ReportInput = Omit<Report, "id" | "createdAt" | "evidence" | "mine" | "hidden">;
 export type EvidenceUpload = { ev: Evidence; file?: File | Blob };
 export type BookInput = { lawyerId: string; kind: SessionKind; date: string; time: string; channel: Channel; note?: string; reportId?: string; bidId?: string };
 export type BookResult = { bookingId?: string; payUrl?: string; error?: string };
-export type CommunityInput = { name: string; phone: string; email: string; state: string; heard?: string };
+export type CommunityInput = { name: string; phone: string; email: string; state: string; heard?: string; consent?: Record<string, unknown> };
 /** Membership looked up by payment reference — works without an account. */
 export type CommunityStatus = { active: boolean; name?: string; phone?: string; expiresAt?: string | null; reference?: string; inviteUrl: string | null };
 /** Where a guest's last community payment reference is remembered on this device. */
+/** Bump when the Terms/Privacy text changes in a way people should agree to again (everyone is asked once more). */
+export const CONSENT_VERSION = "2026-10-28";
 export const COMMUNITY_REF_KEY = "tyche:community-ref";
 export type VerifyResult = {
   purpose?: "booking" | "community";
@@ -97,6 +99,8 @@ export type Ctx = {
   /** Returns NEEDS_CODE when the account exists but the email hasn't been verified yet. */
   signIn: (email: string, password: string) => Promise<string | null>;
   verifyEmailCode: (email: string, code: string) => Promise<string | null>;
+  /** Saves 18+ / Terms consent for an account created before consent was asked. */
+  saveConsent: (record: Record<string, unknown>) => Promise<string | null>;
   resendEmailCode: (email: string) => Promise<string | null>;
   signOut: () => Promise<void>;
   resetPassword: (email: string) => Promise<string | null>;

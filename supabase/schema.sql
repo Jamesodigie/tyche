@@ -169,6 +169,15 @@ create table if not exists public.community_members (
   created_at  timestamptz not null default now()
 );
 
+-- NDPA: record that people confirmed they're 18+ and agreed to the Terms/Privacy Policy, and
+-- explicit consent before saving a harassment report (sensitive personal data).
+alter table public.profiles add column if not exists adult_confirmed boolean not null default false;
+alter table public.profiles add column if not exists terms_version text;
+alter table public.profiles add column if not exists consented_at timestamptz;
+alter table public.reports  add column if not exists sensitive_consent_at timestamptz;
+alter table public.community_members add column if not exists terms_version text;
+alter table public.community_members add column if not exists consented_at timestamptz;
+
 -- Payments run on Bachs (bachs.io). The lawyer's bank is a Bachs payout destination.
 alter table public.lawyers   add column if not exists payout_destination text;   -- Bachs payout destination id (private)
 alter table public.payments  add column if not exists checkout_id text;          -- Bachs checkout session id
@@ -332,13 +341,16 @@ $$;
 create or replace function public.handle_new_user() returns trigger
 language plpgsql security definer set search_path = public as $$
 begin
-  insert into profiles (id, name, email, phone, role)
+  insert into profiles (id, name, email, phone, role, adult_confirmed, terms_version, consented_at)
   values (
     new.id,
     coalesce(new.raw_user_meta_data ->> 'name', split_part(new.email, '@', 1)),
     new.email,
     new.raw_user_meta_data ->> 'phone',
-    case when new.raw_user_meta_data ->> 'role' = 'lawyer' then 'lawyer' else 'client' end
+    case when new.raw_user_meta_data ->> 'role' = 'lawyer' then 'lawyer' else 'client' end,
+    coalesce((new.raw_user_meta_data -> 'consent' ->> 'adult_confirmed')::boolean, false),
+    new.raw_user_meta_data -> 'consent' ->> 'terms_version',
+    case when new.raw_user_meta_data -> 'consent' ->> 'consented_at' is not null then now() end
   )
   on conflict (id) do nothing;
   return new;

@@ -7,6 +7,8 @@ import { PathBubbles } from "./PathBubbles";
 import { BottomTabs, InstallButton, InstallSheet } from "./AppChrome";
 import { SupportWidget, openSupport, whatsappLink } from "./Support";
 import { ActivityAlerts } from "./Alerts";
+import { ConsentGate } from "./Consent";
+import { openPrivacyChoices } from "./PrivacyChoices";
 import { INSTAGRAM_HANDLE, SUPPORT_WHATSAPP_DISPLAY } from "../lib/data";
 
 /** Leaves Tyche instantly and removes it from the back button. */
@@ -175,6 +177,7 @@ function Footer({ compactOnPhones }: { compactOnPhones?: boolean }) {
           {[["/how-it-works", "How it works"], ["/community", "Community"], ["/for-lawyers", "For lawyers"], ["/safety", "Safety"], ["/about", "About"], ["/terms", "Terms of Use"], ["/privacy", "Privacy Policy"], ["/signin", "Sign in"]].map(([to, label]) => (
             <Link key={to} to={to} className="inline-block py-1.5 hover:text-white">{label}</Link>
           ))}
+          <button onClick={openPrivacyChoices} className="inline-block py-1.5 hover:text-white">Privacy choices</button>
           <InstallButton className="inline-block py-1.5 font-semibold text-white" label="Get the app" />
         </nav>
         <p className="text-[11px] leading-relaxed text-plum-300">
@@ -215,6 +218,7 @@ function Footer({ compactOnPhones }: { compactOnPhones?: boolean }) {
               {c.l.map(([to, label]) => (
                 <li key={to}><Link to={to} className="inline-block py-1 text-plum-200 hover:text-white">{label}</Link></li>
               ))}
+              {c.h === "Tyche" && <li><button onClick={openPrivacyChoices} className="inline-block py-1 text-plum-200 hover:text-white">Privacy choices</button></li>}
             </ul>
           </div>
         ))}
@@ -295,6 +299,7 @@ export function Layout() {
       <InstallSheet />
       <SupportWidget />
       <ActivityAlerts />
+      <ConsentGate />
     </div>
   );
 }

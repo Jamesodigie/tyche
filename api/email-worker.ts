@@ -15,6 +15,18 @@ const SITE = () => (process.env.SITE_URL || "https://gettyche.com.ng").replace(/
 const esc = (v: unknown) => String(v ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]!));
 const money = (n: number) => new Intl.NumberFormat("en-NG", { style: "currency", currency: "NGN", maximumFractionDigits: 2 }).format(n);
 
+/** Every email says why it was sent, how to stop non-essential ones, and how to reach us (NDPA / good practice). */
+function footerHtml() {
+  const base = SITE();
+  const address = process.env.COMPANY_ADDRESS ? `<br>${esc(process.env.COMPANY_ADDRESS)}` : "";
+  return `<div style="max-width:600px;margin:0 auto 32px;padding:0 28px;font-size:12px;line-height:1.6;color:#766b80">
+  You're getting this because you have a Tyche account and these messages are about your account, reports, bookings or payments.
+  To stop any non-essential emails, reply "STOP" or message us in the Help chat on <a href="${esc(base)}" style="color:#6f35a5">gettyche.com.ng</a>.
+  <br>Tyche · WhatsApp 0805 756 4242 · inform.tyche@gmail.com${address}
+  <br><a href="${esc(base + "/privacy")}" style="color:#6f35a5">Privacy Policy</a>
+  </div>`;
+}
+
 function emailHtml(title: string, intro: string, detail: string, cta: string, href: string) {
   return `<!doctype html><html><body style="margin:0;background:#f7f4fb;font-family:Arial,sans-serif;color:#20152e">
   <div style="max-width:600px;margin:32px auto;background:#fff;border:1px solid #eee6f5;border-radius:18px;overflow:hidden">
@@ -24,7 +36,7 @@ function emailHtml(title: string, intro: string, detail: string, cta: string, hr
   ${detail ? `<div style="margin:22px 0;padding:16px;background:#f7f4fb;border-radius:12px;line-height:1.7;white-space:pre-line">${esc(detail)}</div>` : ""}
   <p style="margin:28px 0"><a href="${esc(href)}" style="background:#6f35a5;color:#fff;text-decoration:none;padding:13px 18px;border-radius:9px;display:inline-block;font-weight:700">${esc(cta)}</a></p>
   <p style="font-size:13px;color:#766b80;line-height:1.6">Tyche helps people find support and connect with lawyers. For your privacy, this email does not include report details or evidence.</p>
-  </div></div></body></html>`;
+  </div></div>${footerHtml()}</body></html>`;
 }
 
 function founderWelcomeHtml(name: string) {
@@ -51,7 +63,7 @@ function founderWelcomeHtml(name: string) {
       <p style="margin:28px 0"><a href="${esc(base + "/me")}" style="background:#6f35a5;color:#fff;text-decoration:none;padding:13px 18px;border-radius:9px;display:inline-block;font-weight:700">Open my Tyche account</a></p>
       <p style="font-size:12px;color:#766b80">Please avoid replying with sensitive evidence or urgent safety information. Use your Tyche account to manage your report and contact the team.</p>
     </div>
-  </div></body></html>`;
+  </div>${footerHtml()}</body></html>`;
 }
 
 async function send(to: string, subject: string, html: string) {
@@ -61,7 +73,7 @@ async function send(to: string, subject: string, html: string) {
   const response = await fetch("https://api.resend.com/emails", {
     method: "POST",
     headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
-    body: JSON.stringify({ from, to: [to], subject, html, ...(process.env.TYCHE_EMAIL_REPLY_TO ? { reply_to: process.env.TYCHE_EMAIL_REPLY_TO } : {}) }),
+    body: JSON.stringify({ from, to: [to], subject, html, headers: { "List-Unsubscribe": "<mailto:inform.tyche@gmail.com?subject=unsubscribe>" }, ...(process.env.TYCHE_EMAIL_REPLY_TO ? { reply_to: process.env.TYCHE_EMAIL_REPLY_TO } : {}) }),
   });
   if (!response.ok) throw new Error(`Resend returned ${response.status}: ${(await response.text()).slice(0, 300)}`);
 }

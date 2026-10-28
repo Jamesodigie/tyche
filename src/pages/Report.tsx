@@ -76,6 +76,7 @@ export default function Report() {
   const [drag, setDrag] = useState(false);
   const blobs = useRef(new Map<string, Blob>()); // evidence id → file, uploaded on save
   const [saving, setSaving] = useState(false);
+  const [agreed, setAgreed] = useState(false);
   const [err, setErr] = useState("");
   const [r, setR] = useState<Omit<R, "id" | "createdAt" | "mine">>({
     alias: user?.name || "",
@@ -112,12 +113,13 @@ export default function Report() {
     r.category && r.setting && r.description.trim().length >= 10,
     true,
     true,
-    true,
+    agreed,
   ][step];
 
   const next = () => setStep(step + 1);
 
   const submit = async () => {
+    if (!agreed) return setErr("Please tick the box to confirm Tyche may keep this report and your evidence.");
     // Never save a report until the visitor has completed account creation and
     // email verification (or is already signed in to a verified account).
     if (!user) {
@@ -268,6 +270,10 @@ export default function Report() {
                   <div className="rounded-3xl bg-white p-4 ring-1 ring-plum-100"><p className="text-plum-400">Lawyers can bid</p><p className="font-semibold text-ink">{r.shareWithLawyers ? "Yes" : "No — private"}</p></div>
                   <div className="rounded-3xl bg-white p-4 ring-1 ring-plum-100"><p className="text-plum-400">Formal report</p><p className="font-semibold text-ink">{r.authorities.length ? AUTHORITIES.filter((a) => r.authorities.includes(a.id)).map((a) => a.name.split(" —")[0]).join(", ") : "Not now"}</p></div>
                 </div>
+                <label className="flex cursor-pointer items-start gap-2.5 rounded-2xl bg-cream p-3 text-ink">
+                  <input type="checkbox" className="mt-0.5 h-5 w-5 shrink-0 accent-plum-600" checked={agreed} onChange={(e) => setAgreed(e.target.checked)} aria-label="I agree Tyche may keep this report" />
+                  <span>I agree that Tyche may keep this report and my evidence safely, and share it only as I chose above (lawyers{r.authorities.length ? ", the authorities I picked" : ""} and Tyche's support team). I can ask for it to be deleted at any time.</span>
+                </label>
               </div>
             )}
 
@@ -278,7 +284,7 @@ export default function Report() {
                 {step < STEPS.length - 1 ? (
                   <Button disabled={!valid} onClick={next}>{step === 2 && !r.evidence.length ? "Skip for now" : "Continue"} <ArrowRight size={18} /></Button>
                 ) : (
-                  <Button variant="warm" size="lg" onClick={submit} disabled={saving}>
+                  <Button variant="warm" size="lg" onClick={submit} disabled={saving || !agreed}>
                     <ShieldCheck size={18} /> {saving ? (r.evidence.length ? "Uploading evidence…" : "Saving…") : "Save my report"}
                   </Button>
                 )}

@@ -1,3 +1,4 @@
+import { YourData } from "../components/YourData";
 import {
   BadgeCheck, Banknote, Briefcase, CalendarHeart, CheckCircle2, Clock, Eye, FileCheck2, Gavel, Link2, MessageCircleHeart, Save, Send, Settings2, Upload, Video, Wallet,
 } from "lucide-react";
@@ -340,6 +341,7 @@ export default function LawyerDashboard() {
             </span>
           </button>
         </div>
+        <YourData className="mt-3" />
         <div className="no-scrollbar mt-6 flex gap-2 overflow-x-auto">
           {TABS.map((t) => (
             <button key={t.id} onClick={() => setTab(t.id)} className={cx("flex items-center gap-2 whitespace-nowrap rounded-full px-5 py-2.5 text-sm font-semibold transition", tab === t.id ? "bg-plum-600 text-white" : "bg-white text-plum-600 ring-1 ring-plum-100")}>

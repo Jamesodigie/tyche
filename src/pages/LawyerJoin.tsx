@@ -1,4 +1,5 @@
 import { CodeStep } from "../components/CodeStep";
+import { ConsentChecks, consentOk, consentRecord } from "../components/Consent";
 import { ArrowLeft, ArrowRight, BadgeCheck, FileCheck2, Gavel, Sparkles, Upload } from "lucide-react";
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
@@ -50,6 +51,7 @@ export default function LawyerJoin() {
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState("");
   const [licence, setLicence] = useState<File | null>(null);
+  const [consent, setConsent] = useState({ adult: false, terms: false });
   const [f, setF] = useState({
     name: user?.name || "", email: user?.email || "", phone: "", password: "", meetLink: "",
     scn: "", branch: "", yearCalled: "", state: "Lagos", city: "",
@@ -61,7 +63,7 @@ export default function LawyerJoin() {
   const set = <K extends keyof typeof f>(k: K, v: (typeof f)[K]) => setF((p) => ({ ...p, [k]: v }));
 
   const valid = [
-    f.name.trim().length > 2 && (!!user || (/\S+@\S+\.\S+/.test(f.email) && f.phone.replace(/\D/g, "").length >= 10 && f.password.length >= 6)),
+    f.name.trim().length > 2 && (!!user || (/\S+@\S+\.\S+/.test(f.email) && f.phone.replace(/\D/g, "").length >= 10 && f.password.length >= 6 && consentOk(consent))),
     f.scn.trim() && f.yearCalled && f.city.trim() && f.areas.length > 0,
     (f.consultFree || f.consultFee > 0) && (f.bookingFree || f.bookingFee > 0),
     f.days.length > 0 && f.channels.length > 0 && f.from < f.to && (!f.meetLink || /^https:\/\/meet\.google\.com\//.test(f.meetLink.trim())),
@@ -82,7 +84,7 @@ export default function LawyerJoin() {
       setBusy(false);
       return error ? setErr(error) : setDone("created");
     }
-    const out = await signUp({ name: input.name, email: f.email.trim(), password: f.password, phone: f.phone, role: "lawyer", lawyer: input });
+    const out = await signUp({ name: input.name, email: f.email.trim(), password: f.password, phone: f.phone, role: "lawyer", lawyer: input, consent: consentRecord(consent) });
     if (out.error) {
       setBusy(false);
       return setErr(out.error);
@@ -167,6 +169,7 @@ export default function LawyerJoin() {
                     <Field label="Email"><Input type="email" value={f.email} onChange={(e) => set("email", e.target.value)} placeholder="you@chambers.ng" autoComplete="email" /></Field>
                     <Field label="Phone"><Input type="tel" value={f.phone} onChange={(e) => set("phone", e.target.value)} placeholder="0803 000 0000" autoComplete="tel" /></Field>
                     <div className="sm:col-span-2"><Field label="Create a password" hint="At least 6 characters"><PasswordInput value={f.password} onChange={(e) => set("password", e.target.value)} autoComplete="new-password" /></Field></div>
+                    <ConsentChecks className="sm:col-span-2" value={consent} onChange={setConsent} />
                     <p className="text-sm text-plum-500 sm:col-span-2">Already on Tyche? <Link to="/signin?as=lawyer&next=/join/lawyer" className="font-semibold text-plum-700 underline decoration-tangerine-400 underline-offset-4">Sign in first</Link></p>
                   </>
                 )}
