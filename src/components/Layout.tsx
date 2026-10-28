@@ -7,7 +7,6 @@ import { PathBubbles } from "./PathBubbles";
 import { BottomTabs, InstallButton, InstallSheet } from "./AppChrome";
 import { SupportWidget, openSupport, whatsappLink } from "./Support";
 import { ActivityAlerts } from "./Alerts";
-import { ConsentGate } from "./Consent";
 import { openPrivacyChoices } from "./PrivacyChoices";
 import { INSTAGRAM_HANDLE, SUPPORT_WHATSAPP_DISPLAY } from "../lib/data";
 
@@ -291,7 +290,17 @@ export function Layout() {
       )}
       {/* When the footer is hidden on phones, main is the last thing on the page, so it needs room
           for the bottom tab bar (and the floating Help button) or its last buttons sit underneath. */}
-      <main className={cx(!bare && appScreen && "pb-[calc(7.5rem+env(safe-area-inset-bottom))] lg:pb-0")}><Outlet /></main>
+      <main className={cx(!bare && appScreen && "pb-[calc(7.5rem+env(safe-area-inset-bottom))] lg:pb-0")}>
+        <Outlet />
+        {/* Phones on app screens have no big footer, so keep the legal pages one tap away. */}
+        {!bare && appScreen && (
+          <nav aria-label="Legal" className="mt-8 flex flex-wrap gap-x-4 gap-y-1 pl-4 pr-32 text-xs text-plum-500 lg:hidden">
+            <Link to="/privacy" className="py-1.5 underline-offset-2 hover:underline">Privacy Policy</Link>
+            <Link to="/terms" className="py-1.5 underline-offset-2 hover:underline">Terms of Use</Link>
+            <button onClick={openPrivacyChoices} className="py-1.5 underline-offset-2 hover:underline">Privacy choices</button>
+          </nav>
+        )}
+      </main>
       {!bare && <Footer compactOnPhones={appScreen} />}
       <QuickExit floatingOnPhones={bare} />
       <WelcomeBubbles />
@@ -299,7 +308,6 @@ export function Layout() {
       <InstallSheet />
       <SupportWidget />
       <ActivityAlerts />
-      <ConsentGate />
     </div>
   );
 }

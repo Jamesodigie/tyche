@@ -9,7 +9,7 @@ import { PreviewProvider } from "./preview";
 //   • PreviewProvider — in-browser demo, used only while the Supabase keys aren't set
 
 export type Role = "client" | "lawyer" | "admin";
-export type User = { id: string; name: string; email: string; phone?: string; role: Role; lawyerId?: string; suspended?: boolean; needsConsent?: boolean };
+export type User = { id: string; name: string; email: string; phone?: string; role: Role; lawyerId?: string; suspended?: boolean };
 
 export type LawyerInput = {
   name: string;

@@ -3,7 +3,7 @@
 import type { Session } from "@supabase/supabase-js";
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import type { Account, Bid, Booking, CommunityMember, Evidence, Lawyer, Message, Payment, Report, SupportMessage } from "./data";
-import { COMMUNITY_REF_KEY, CONSENT_VERSION, NEEDS_CODE, StoreCtx, findIn, slugify, type AdminData, type LawyerPayout, type Ctx, type LawyerInput, type User } from "./store";
+import { COMMUNITY_REF_KEY, NEEDS_CODE, StoreCtx, findIn, slugify, type AdminData, type LawyerPayout, type Ctx, type LawyerInput, type User } from "./store";
 import { supabase } from "./supabase";
 import { usePush } from "./usePush";
 
@@ -346,7 +346,6 @@ export function LiveProvider({ children }: { children: ReactNode }) {
       lawyerId: myLawyer?.id,
       suspended: !!profile?.suspended,
       // Profile loaded and no consent on record → ask once (accounts made before 28 Oct 2026).
-      needsConsent: !!profile && (!profile.consented_at || profile.terms_version !== CONSENT_VERSION),
     };
   }, [session, profile, myLawyer]);
 
@@ -545,16 +544,18 @@ export function LiveProvider({ children }: { children: ReactNode }) {
       // ---------- reports ----------
       addReport: async (r, files) => {
         if (!session) return { error: "Please sign in first." };
-        const { data, error } = await sb
-          .from("reports")
-          .insert({
-            alias: r.alias.trim(), category: r.category, setting: r.setting, when_text: r.when || null, state: r.state,
-            relation: r.relation || null, description: r.description, wants: r.wants, share_with_lawyers: r.shareWithLawyers,
-            hide_name: r.hideName, authorities: r.authorities,
-            sensitive_consent_at: new Date().toISOString(),
-          })
-          .select("*")
-          .single();
+        const row: Record<string, unknown> = {
+          alias: r.alias.trim(), category: r.category, setting: r.setting, when_text: r.when || null, state: r.state,
+          relation: r.relation || null, description: r.description, wants: r.wants, share_with_lawyers: r.shareWithLawyers,
+          hide_name: r.hideName, authorities: r.authorities,
+          sensitive_consent_at: new Date().toISOString(),
+        };
+        let { data, error } = await sb.from("reports").insert(row).select("*").single();
+        // Database not updated yet (schema.sql not re-run): save the report anyway.
+        if (error && /sensitive_consent_at/.test(error.message)) {
+          delete row.sensitive_consent_at;
+          ({ data, error } = await sb.from("reports").insert(row).select("*").single());
+        }
         if (error || !data) return { error: friendly(error?.message) };
         const uploaded: Evidence[] = [];
         const failed: string[] = [];

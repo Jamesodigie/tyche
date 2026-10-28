@@ -63,13 +63,15 @@ export default handler(["GET", "POST"], async (req) => {
 
   const ref = reference("TYC");
   const row = { name, phone, email, state: b.state || null, heard: b.heard || null, status: "pending", reference: ref, terms_version: String(b.consent.terms_version).slice(0, 20), consented_at: new Date().toISOString() };
-  if (me) {
-    const { error } = await db().from("community_members").upsert({ ...row, user_id: me.id }, { onConflict: "user_id" });
-    if (error) throw new HttpError(500, error.message);
-  } else {
-    const { error } = await db().from("community_members").insert(row);
-    if (error) throw new HttpError(500, error.message);
+  const save = (r: Record<string, unknown>) =>
+    me ? db().from("community_members").upsert({ ...r, user_id: me.id }, { onConflict: "user_id" }) : db().from("community_members").insert(r);
+  let { error } = await save(row);
+  if (error && /terms_version|consented_at/.test(error.message)) {
+    // Database not updated yet (schema.sql not re-run): still let them join.
+    const { terms_version: _t, consented_at: _c, ...rest } = row;
+    ({ error } = await save(rest));
   }
+  if (error) throw new HttpError(500, error.message);
   await db().from("payments").insert({ reference: ref, purpose: "community", user_id: me?.id ?? null, amount: price(), tyche_share: price() });
 
   const payUrl = await startPayment({
