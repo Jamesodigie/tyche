@@ -20,6 +20,28 @@ export default function SignIn() {
   const { signIn, resetPassword, mode: appMode } = useStore();
   const navigate = useNavigate();
   const [needCode, setNeedCode] = useState(false);
+  const [code, setCode] = useState("");
+  const [newPw, setNewPw] = useState("");
+
+  /** Reset with the 6-digit code from the email (works even if the link opens in another browser). */
+  const finishReset = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!supabase) return;
+    const token = code.replace(/\D/g, "");
+    if (token.length < 6) return setErr("Enter the 6-digit code from the email.");
+    if (newPw.length < 6) return setErr("Your new password needs at least 6 characters.");
+    setErr("");
+    setBusy(true);
+    const v = await supabase.auth.verifyOtp({ email: email.trim(), token, type: "recovery" });
+    if (v.error) {
+      setBusy(false);
+      return setErr(/expired|invalid/i.test(v.error.message) ? "That code is wrong or has expired. Check the latest email, or send a new code." : v.error.message);
+    }
+    const u = await supabase.auth.updateUser({ password: newPw });
+    setBusy(false);
+    if (u.error) return setErr(/different from the old/i.test(u.error.message) ? "Please choose a password you haven't used before." : u.error.message);
+    navigate(next || (as === "lawyer" ? "/lawyer/dashboard" : "/me"));
+  };
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -74,16 +96,29 @@ export default function SignIn() {
                 <ArrowLeft size={16} /> Back to sign in
               </button>
               <h1 className="h-page mt-2 font-display font-semibold text-ink">Reset your password</h1>
-              <p className="mt-2 text-plum-700/80">We'll email you a link to choose a new one.</p>
+              <p className="mt-2 text-plum-700/80">We'll email you a 6-digit code to choose a new one.</p>
             </>
           )}
 
           {sent ? (
-            <div className="mt-6 rounded-4xl bg-white p-6 text-center shadow-soft ring-1 ring-plum-100 sm:p-8">
-              <MailCheck className="mx-auto text-lagoon-500" size={40} />
-              <p className="mt-3 font-display text-xl font-semibold text-ink">Check your inbox</p>
-              <p className="mt-1 text-sm text-plum-600">If there's an account for <b>{email}</b>, a reset link is on its way.</p>
-            </div>
+            <form onSubmit={finishReset} className="mt-6 space-y-4 rounded-4xl bg-white p-6 shadow-soft ring-1 ring-plum-100 sm:p-8">
+              <div className="text-center">
+                <MailCheck className="mx-auto text-lagoon-500" size={40} />
+                <p className="mt-3 font-display text-xl font-semibold text-ink">Check your inbox</p>
+                <p className="mt-1 text-sm text-plum-600">If there's an account for <b>{email}</b>, we've sent a 6-digit code. Check spam too.</p>
+              </div>
+              <Field label="6-digit code">
+                <Input required inputMode="numeric" autoComplete="one-time-code" maxLength={8} value={code} onChange={(e) => setCode(e.target.value)} placeholder="123456" aria-label="Reset code" className="text-center text-xl tracking-[0.4em]" />
+              </Field>
+              <Field label="New password" hint="At least 6 characters">
+                <PasswordInput required minLength={6} value={newPw} onChange={(e) => setNewPw(e.target.value)} autoComplete="new-password" />
+              </Field>
+              {err && <Notice>{err}</Notice>}
+              <Button className="w-full" size="lg" disabled={busy}>{busy ? "Saving…" : "Save new password"}</Button>
+              <button type="button" disabled={busy} onClick={() => { setSent(false); setCode(""); setErr(""); }} className="block w-full py-2 text-center text-sm font-medium text-plum-600 hover:underline">
+                Didn't get it? Send a new code
+              </button>
+            </form>
           ) : (
             <form onSubmit={submit} className="mt-6 space-y-4 rounded-4xl bg-white p-6 shadow-soft ring-1 ring-plum-100 sm:p-8">
               <Field label="Email">
@@ -105,7 +140,7 @@ export default function SignIn() {
               )}
               {err && <Notice>{err}</Notice>}
               <Button className="w-full" size="lg" disabled={busy}>
-                {busy ? "Please wait…" : mode === "signin" ? "Sign in" : "Send reset link"}
+                {busy ? "Please wait…" : mode === "signin" ? "Sign in" : "Send reset code"}
               </Button>
               <p className="flex items-center justify-center gap-1.5 text-xs text-plum-400"><Lock size={12} /> Your session is private and encrypted.</p>
             </form>
