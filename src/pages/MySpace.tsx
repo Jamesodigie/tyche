@@ -17,7 +17,7 @@ export function BidCard({ b }: { b: Bid }) {
   return (
     <div className={cx("rounded-4xl border-2 p-5 transition", b.status === "pending" ? "border-plum-100 bg-white" : b.status === "accepted" ? "border-lagoon-200 bg-lagoon-50" : "border-transparent bg-plum-50 opacity-60")}>
       <div className="flex flex-wrap items-start gap-4">
-        <Avatar name={l.name} hue={l.hue} size={52} />
+        <Avatar src={l.photoUrl} name={l.name} hue={l.hue} size={52} />
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-2">
             <Link to={`/lawyers/${l.id}`} className="font-display text-lg font-semibold text-ink hover:text-plum-600">{l.name}</Link>
@@ -131,7 +131,7 @@ export default function MySpace() {
                   return (
                     <Card key={b.id} className="p-5">
                       <div className="flex items-center gap-4">
-                        <Avatar name={l.name} hue={l.hue} size={52} />
+                        <Avatar src={"photoUrl" in l ? l.photoUrl : undefined} name={l.name} hue={l.hue} size={52} />
                         <div className="flex-1"><p className="font-semibold text-ink">{l.name}</p><p className="text-sm text-plum-500">{KIND_COPY[b.kind].title} · {b.fee ? naira(b.fee) : "Free"}</p></div>
                         {unpaid ? <Badge tone="warm">Payment pending</Badge> : b.status === "done" ? <Badge tone="plum">Completed</Badge> : <Badge tone="teal">Upcoming</Badge>}
                       </div>

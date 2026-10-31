@@ -1,7 +1,7 @@
-import { LogOut, Menu, MessageCircleHeart, X, ShieldAlert, LayoutDashboard, MessageCircle, HelpCircle } from "lucide-react";
+import { LogOut, Menu, MessageCircleHeart, X, ShieldAlert, LayoutDashboard, MessageCircle, HelpCircle, Settings as SettingsIcon } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Link, NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
-import { useStore } from "../lib/store";
+import { REF_KEY, useStore } from "../lib/store";
 import { Avatar, Button, cx } from "./ui";
 import { PathBubbles } from "./PathBubbles";
 import { BottomTabs, InstallButton, InstallSheet } from "./AppChrome";
@@ -87,8 +87,11 @@ function Header() {
                 <MessageCircleHeart size={22} />
               </Link>
               <Link to={dash} className="flex items-center gap-2 rounded-full bg-white py-1 pl-1 pr-4 shadow-sm ring-1 ring-plum-100 hover:ring-plum-300">
-                <Avatar name={user.name} size={34} hue={user.role === "lawyer" ? 185 : 285} className="ring-0" />
+                <Avatar src={user.avatarUrl} name={user.name} size={34} hue={user.role === "lawyer" ? 185 : 285} className="ring-0" />
                 <span className="text-sm font-semibold text-ink">{user.name.replace(/^(barr|dr|mrs?|ms)\.?\s+/i, "").split(" ")[0]}</span>
+              </Link>
+              <Link to="/settings" className="grid h-10 w-10 place-items-center rounded-full text-plum-500 hover:bg-plum-50" title="Settings" aria-label="Settings">
+                <SettingsIcon size={19} />
               </Link>
               <button onClick={async () => { await signOut(); navigate("/"); }} className="grid h-10 w-10 place-items-center rounded-full text-plum-500 hover:bg-plum-50" title="Sign out" aria-label="Sign out">
                 <LogOut size={18} />
@@ -126,6 +129,7 @@ function Header() {
               <>
                 <Button variant="soft" to={dash}><LayoutDashboard size={18} /> My dashboard</Button>
                 <Button variant="soft" to="/messages"><MessageCircleHeart size={18} /> Messages</Button>
+                <Button variant="soft" to="/settings"><SettingsIcon size={18} /> Settings</Button>
                 <Button variant="ghost" onClick={async () => { await signOut(); navigate("/"); }}><LogOut size={18} /> Sign out</Button>
               </>
             ) : (
@@ -265,7 +269,19 @@ function WelcomeBubbles() {
   );
 }
 
+/** Remember an invite link (?ref=…) until the visitor signs up. */
+function useRememberInvite() {
+  const { search } = useLocation();
+  useEffect(() => {
+    const ref = new URLSearchParams(search).get("ref");
+    if (ref && /^[0-9a-f-]{36}$/i.test(ref)) {
+      try { localStorage.setItem(REF_KEY, ref); } catch { /* private mode */ }
+    }
+  }, [search]);
+}
+
 export function Layout() {
+  useRememberInvite();
   const { pathname } = useLocation();
   // Block body on purpose: newer Chrome makes scrollTo() return a Promise, and React would
   // try to call that Promise as the effect's cleanup ("n is not a function").
@@ -273,7 +289,7 @@ export function Layout() {
     try { window.scrollTo(0, 0); } catch { /* noop */ }
   }, [pathname]);
   const bare = pathname.startsWith("/session/");
-  const appScreen = ["/me", "/lawyer/dashboard", "/messages", "/hire", "/signin", "/report", "/join", "/book", "/community/join", "/reset-password", "/pay"].some((r) => pathname === r || pathname.startsWith(r + "/"));
+  const appScreen = ["/me", "/lawyer/dashboard", "/messages", "/hire", "/signin", "/report", "/join", "/book", "/community/join", "/reset-password", "/pay", "/settings"].some((r) => pathname === r || pathname.startsWith(r + "/"));
   const { user, mode } = useStore();
   return (
     <div className="min-h-screen bg-cream font-sans text-ink">

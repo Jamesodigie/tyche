@@ -109,8 +109,13 @@ export async function bachs<T = any>(path: string, init?: { method?: string; bod
   });
   const json = (await r.json().catch(() => ({}))) as any;
   if (!r.ok) {
-    const msg = json?.detail || json?.message || json?.error || `Payment provider error (${r.status})`;
-    throw new HttpError(r.status >= 500 ? 502 : 400, typeof msg === "string" ? msg : "Payment provider error");
+    const raw = json?.detail || json?.message || json?.error || `Payment provider error (${r.status})`;
+    const msg = typeof raw === "string" ? raw : "Payment provider error";
+    console.error("Bachs error", r.status, path, msg);
+    // Account/key problems are ours to fix — never show provider jargon (sandbox keys, onboarding) to the person paying.
+    if (r.status === 401 || r.status === 403 || /not yet approved|onboarding|activat|sandbox|live payments|api key|unauthori[sz]ed|forbidden/i.test(msg))
+      throw new HttpError(503, "Payments are being set up and aren't open yet. Please try again a little later, or message Tyche support and we'll help you book.");
+    throw new HttpError(r.status >= 500 ? 502 : 400, r.status >= 500 ? "The payment service is busy. Please try again in a minute." : msg);
   }
   return json as T;
 }

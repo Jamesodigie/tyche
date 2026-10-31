@@ -3,7 +3,7 @@ import { Link, useParams } from "react-router-dom";
 import { channelIcon, feeLabel } from "../components/LawyerCard";
 import { Avatar, Badge, Blobs, Button, Card, Empty } from "../components/ui";
 import { CHANNEL_LABEL, DAYS, KIND_COPY } from "../lib/data";
-import { useStore } from "../lib/store";
+import { findIn, useStore } from "../lib/store";
 
 const REVIEWS = [
   { n: "Chioma", t: "She listened without rushing me and explained everything in simple words. I finally felt like I had options.", s: 5 },
@@ -13,8 +13,11 @@ const REVIEWS = [
 
 export default function LawyerProfile() {
   const { id } = useParams();
-  const { findLawyer, mode, ready } = useStore();
-  const l = findLawyer(id);
+  const { publicLawyers, myLawyer, mode, ready } = useStore();
+  // People only see verified lawyers. A lawyer can still preview their own profile.
+  const listed = findIn(publicLawyers, id);
+  const own = !listed && myLawyer ? findIn([myLawyer], id) : undefined;
+  const l = listed || own;
   if (!l && !ready) return <div className="grid min-h-[50vh] place-items-center text-plum-400">Loading…</div>;
   if (!l)
     return <div className="mx-auto max-w-xl px-4 sm:px-6 py-12 sm:py-20"><Empty icon={<MessageCircleHeart />} title="We couldn't find that lawyer" action={<Button to="/lawyers">See all lawyers</Button>} /></div>;
@@ -27,8 +30,13 @@ export default function LawyerProfile() {
         <div className="mt-2 grid gap-3 sm:mt-6 sm:gap-8 lg:grid-cols-[1fr_340px] xl:grid-cols-[1fr_380px]">
           <div className="space-y-3 sm:space-y-6">
             <Card className="p-4 sm:p-8">
+              {own && (
+                <p className="mb-4 rounded-2xl bg-tangerine-50 p-3 text-sm text-ink">
+                  This is a preview of your profile. People can't see it until our team verifies you{own.photoUrl ? "" : " and you've added a profile photo"}.
+                </p>
+              )}
               <div className="flex items-center gap-4 sm:gap-6">
-                <Avatar name={l.name} hue={l.hue} size={64} className="sm:h-24 sm:w-24" />
+                <Avatar src={l.photoUrl} name={l.name} hue={l.hue} size={64} className="sm:h-24 sm:w-24" />
                 <div className="min-w-0">
                   <div className="flex flex-wrap items-center gap-2">
                     <h1 className="h-page font-display font-semibold text-ink">{l.name}</h1>

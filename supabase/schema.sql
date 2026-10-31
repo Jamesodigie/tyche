@@ -576,14 +576,7 @@ create policy "admin_log: admin" on public.admin_log for all using (public.is_ad
 -- -----------------------------------------------------------------------------
 
 -- Approved lawyers, public fields only. Readable by everyone, including logged-out visitors.
-create or replace view public.lawyer_directory as
-  select l.id, l.slug, l.name, l.title, l.state, l.city, l.year_called, l.areas, l.languages, l.bio,
-         l.consult_fee, l.consult_free, l.booking_fee, l.booking_free, l.session_mins, l.days,
-         l.time_from, l.time_to, l.channels, l.rating, l.reviews, l.responds, l.hue,
-         (l.payout_destination is not null or l.subaccount_code is not null) as payout_ready
-  from public.lawyers l
-  join public.profiles p on p.id = l.user_id
-  where l.status = 'approved' and not p.suspended;
+-- (lawyer_directory is defined further down, with the profile-photo rule.)
 
 -- Anonymised case board for approved lawyers. Never exposes who filed the report.
 create or replace view public.case_board as
@@ -597,8 +590,7 @@ create or replace view public.case_evidence as
   from public.evidence e
   where public.lawyer_can_view_report(e.report_id);
 
-revoke all on public.lawyer_directory, public.case_board, public.case_evidence from anon, authenticated;
-grant select on public.lawyer_directory to anon, authenticated;
+revoke all on public.case_board, public.case_evidence from anon, authenticated;
 grant select on public.case_board, public.case_evidence to authenticated;
 grant execute on function public.community_count() to anon, authenticated;
 grant execute on function public.taken_slots(uuid) to anon, authenticated;
@@ -653,6 +645,91 @@ end $$;
 --
 --   update public.profiles set role = 'admin' where email = 'you@example.com';
 -- =============================================================================
+
+
+-- =============================================================================
+-- Profile pictures, referrals, email changes (added 31 Oct 2026; safe to re-run)
+-- =============================================================================
+alter table public.profiles add column if not exists avatar_url text;
+alter table public.profiles add column if not exists referred_by uuid references public.profiles (id) on delete set null;
+alter table public.lawyers  add column if not exists photo_url text;
+
+-- Public bucket: profile pictures are meant to be seen (lawyer directory). Each person writes only their own folder.
+insert into storage.buckets (id, name, public) values ('avatars', 'avatars', true) on conflict (id) do update set public = true;
+drop policy if exists "avatars: owner upload" on storage.objects;
+create policy "avatars: owner upload" on storage.objects for insert to authenticated
+  with check (bucket_id = 'avatars' and (storage.foldername(name))[1] = auth.uid()::text);
+drop policy if exists "avatars: owner delete" on storage.objects;
+create policy "avatars: owner delete" on storage.objects for delete to authenticated
+  using (bucket_id = 'avatars' and (storage.foldername(name))[1] = auth.uid()::text);
+drop policy if exists "avatars: read" on storage.objects;
+create policy "avatars: read" on storage.objects for select using (bucket_id = 'avatars');
+
+-- A lawyer can't be approved (or stay listed) without a profile photo.
+create or replace function public.require_lawyer_photo() returns trigger
+language plpgsql as $$
+begin
+  if new.status = 'approved' and coalesce(new.photo_url, '') = '' and (tg_op = 'INSERT' or old.status is distinct from 'approved') then
+    raise exception 'This lawyer needs a profile photo before they can be approved.';
+  end if;
+  return new;
+end $$;
+drop trigger if exists require_lawyer_photo on public.lawyers;
+create trigger require_lawyer_photo before insert or update on public.lawyers
+  for each row execute function public.require_lawyer_photo();
+
+-- Directory: approved, not suspended, and with a photo. (photo_url is added at the end of the view.)
+create or replace view public.lawyer_directory as
+  select l.id, l.slug, l.name, l.title, l.state, l.city, l.year_called, l.areas, l.languages, l.bio,
+         l.consult_fee, l.consult_free, l.booking_fee, l.booking_free, l.session_mins, l.days,
+         l.time_from, l.time_to, l.channels, l.rating, l.reviews, l.responds, l.hue,
+         (l.payout_destination is not null or l.subaccount_code is not null) as payout_ready,
+         l.photo_url
+  from public.lawyers l
+  join public.profiles p on p.id = l.user_id
+  where l.status = 'approved' and not p.suspended and coalesce(l.photo_url, '') <> '';
+revoke all on public.lawyer_directory from anon, authenticated;
+grant select on public.lawyer_directory to anon, authenticated;
+
+-- New accounts: remember who invited them (?ref= link).
+create or replace function public.handle_new_user() returns trigger
+language plpgsql security definer set search_path = public as $$
+begin
+  insert into profiles (id, name, email, phone, role, adult_confirmed, terms_version, consented_at, referred_by)
+  values (
+    new.id,
+    coalesce(new.raw_user_meta_data ->> 'name', split_part(new.email, '@', 1)),
+    new.email,
+    new.raw_user_meta_data ->> 'phone',
+    case when new.raw_user_meta_data ->> 'role' = 'lawyer' then 'lawyer' else 'client' end,
+    coalesce((new.raw_user_meta_data -> 'consent' ->> 'adult_confirmed')::boolean, false),
+    new.raw_user_meta_data -> 'consent' ->> 'terms_version',
+    case when new.raw_user_meta_data -> 'consent' ->> 'consented_at' is not null then now() end,
+    (select p.id from profiles p where p.id::text = new.raw_user_meta_data ->> 'ref')
+  )
+  on conflict (id) do nothing;
+  return new;
+end $$;
+
+-- How many people joined with my invite link.
+create or replace function public.my_referral_count() returns integer
+language sql stable security definer set search_path = public as $$
+  select count(*)::int from profiles where referred_by = auth.uid();
+$$;
+grant execute on function public.my_referral_count() to authenticated;
+
+-- Keep the profile email in step when someone changes their sign-in email.
+create or replace function public.sync_profile_email() returns trigger
+language plpgsql security definer set search_path = public as $$
+begin
+  if new.email is distinct from old.email and new.email is not null then
+    update profiles set email = new.email where id = new.id;
+  end if;
+  return new;
+end $$;
+drop trigger if exists on_auth_email_changed on auth.users;
+create trigger on_auth_email_changed after update of email on auth.users
+  for each row execute function public.sync_profile_email();
 
 -- Make the API notice new tables/columns right away.
 notify pgrst, 'reload schema';

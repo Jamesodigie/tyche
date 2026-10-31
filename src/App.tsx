@@ -1,6 +1,7 @@
 import { Route, Routes } from "react-router-dom";
 import { Layout } from "./components/Layout";
 import Home from "./pages/Home";
+import Settings from "./pages/Settings";
 import SignIn, { ResetPassword } from "./pages/SignIn";
 import PayCallback from "./pages/PayCallback";
 import LawyerJoin from "./pages/LawyerJoin";
@@ -45,6 +46,7 @@ export default function App() {
         <Route path="community/join" element={<CommunityJoin />} />
         <Route path="me" element={<MySpace />} />
         <Route path="lawyer/dashboard" element={<LawyerDashboard />} />
+        <Route path="settings" element={<Settings />} />
         <Route path="messages" element={<Messages />} />
         <Route path="messages/:threadId" element={<Messages />} />
         <Route path="session/:id" element={<Session />} />

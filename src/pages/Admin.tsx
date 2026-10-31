@@ -229,7 +229,7 @@ function Overview() {
           <div className="mt-4 space-y-3">
             {pending.slice(0, 4).map((l) => (
               <Link to="/admin/approvals" key={l.id} className="flex items-center gap-3 rounded-3xl bg-cream p-3 hover:bg-plum-50">
-                <Avatar name={l.name} hue={l.hue} size={40} className="ring-2" />
+                <Avatar src={l.photoUrl} name={l.name} hue={l.hue} size={40} className="ring-2" />
                 <span className="flex-1"><span className="block text-sm font-semibold text-ink">{l.name}</span><span className="text-xs text-plum-500">Lawyer application · {l.state}</span></span>
                 <ChevronDown className="-rotate-90 text-plum-300" size={18} />
               </Link>
@@ -288,7 +288,7 @@ function LawyerRow({ l }: { l: Lawyer }) {
   return (
     <Card className="p-5">
       <div className="flex flex-wrap items-center gap-4">
-        <Avatar name={l.name} hue={l.hue} size={52} />
+        <Avatar src={l.photoUrl} name={l.name} hue={l.hue} size={52} />
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-2">
             <p className="font-display text-lg font-semibold text-ink">{l.name}</p>
@@ -298,7 +298,8 @@ function LawyerRow({ l }: { l: Lawyer }) {
         </div>
         <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto">
           <button onClick={() => setOpen(!open)} className="min-h-[40px] rounded-full px-3 py-2 text-sm font-semibold text-plum-600 hover:bg-plum-50">{open ? "Hide" : "Details"}</button>
-          {st !== "approved" && <Button size="sm" variant="teal" disabled={busy} onClick={() => decide("approved")}><Check size={16} /> Approve</Button>}
+          {st !== "approved" && mode === "live" && !l.photoUrl && <span className="rounded-full bg-tangerine-50 px-3 py-1.5 text-xs font-semibold text-tangerine-600">Needs a profile photo</span>}
+          {st !== "approved" && <Button size="sm" variant="teal" disabled={busy || (mode === "live" && !l.photoUrl)} onClick={() => decide("approved")}><Check size={16} /> Approve</Button>}
           {st !== "rejected" && <Button size="sm" variant="outline" disabled={busy} onClick={() => decide("rejected")}><X size={16} /> {st === "approved" ? "Revoke" : "Reject"}</Button>}
         </div>
       </div>

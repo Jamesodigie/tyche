@@ -96,7 +96,19 @@ export function Badge({ children, tone = "plum", className }: { children: ReactN
   return <span className={cx("inline-flex items-center gap-1 rounded-full px-3 py-1 text-xs font-semibold", t, className)}>{children}</span>;
 }
 
-export function Avatar({ name, hue = 285, size = 56, className }: { name: string; hue?: number; size?: number; className?: string }) {
+export function Avatar({ name, hue = 285, size = 56, className, src }: { name: string; hue?: number; size?: number; className?: string; src?: string }) {
+  if (src)
+    return (
+      <img
+        src={src}
+        alt={name}
+        loading="lazy"
+        width={size}
+        height={size}
+        className={cx("shrink-0 rounded-full bg-plum-100 object-cover ring-4 ring-white", className)}
+        style={{ width: size, height: size }}
+      />
+    );
   return (
     <span
       className={cx("grid shrink-0 place-items-center rounded-full font-display font-semibold text-white ring-4 ring-white", className)}

@@ -81,6 +81,7 @@ export type Lawyer = {
   verified: boolean;
   responds: string;
   hue: number; // avatar colour
+  photoUrl?: string; // profile picture (required for listed lawyers)
   // live-only extras
   slug?: string;
   status?: "pending" | "approved" | "rejected";

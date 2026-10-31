@@ -155,6 +155,27 @@ export function PreviewProvider({ children }: { children: ReactNode }) {
       },
       signOut: async () => setS((p) => ({ ...p, user: null })),
       resetPassword: async () => null,
+      uploadPhoto: async (file) => {
+        const url = await new Promise<string>((ok) => { const r = new FileReader(); r.onload = () => ok(String(r.result)); r.readAsDataURL(file); });
+        setS((p) => (p.user ? { ...p, user: { ...p.user, avatarUrl: url } } : p));
+        return null;
+      },
+      updateProfile: async ({ name, phone }) => {
+        setS((p) => (p.user ? { ...p, user: { ...p.user, name, phone } } : p));
+        return null;
+      },
+      changePassword: async () => null,
+      changeEmail: async () => null,
+      confirmEmailChange: async (newEmail, code) => {
+        if (code.replace(/\D/g, "") !== "123456") return "Preview mode: the code is 123456.";
+        setS((p) => (p.user ? { ...p, user: { ...p.user, email: newEmail } } : p));
+        return null;
+      },
+      deleteAccount: async () => {
+        setS((p) => ({ ...p, user: null }));
+        return null;
+      },
+      referralCount: async () => 0,
 
       createLawyer: async () => null,
       updateLawyer: async (l) => {

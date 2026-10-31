@@ -9,13 +9,15 @@ import {
   type Channel, type SessionKind,
 } from "../lib/data";
 import { useStore } from "../lib/store";
+import { findIn } from "../lib/store";
 
 export default function Book() {
   const { id } = useParams();
   const [params] = useSearchParams();
-  const { findLawyer, user, book, bids, reports, takenSlots, ready } = useStore();
+  const { publicLawyers, user, book, bids, reports, takenSlots, ready } = useStore();
   const navigate = useNavigate();
-  const l = findLawyer(id);
+  // Only verified (approved, listed) lawyers can be booked.
+  const l = findIn(publicLawyers, id);
   const bid = bids.find((b) => b.id === params.get("bid"));
 
   const [kind, setKind] = useState<SessionKind>(bid?.kind || (params.get("kind") as SessionKind) || "consultation");
@@ -82,7 +84,7 @@ export default function Book() {
           <h1 className="h-page font-display font-semibold text-ink">You're booked with {l.name.split(" ")[0]} 💜</h1>
           <Card className="mt-8 p-6 text-left">
             <div className="flex items-center gap-4">
-              <Avatar name={l.name} hue={l.hue} size={56} />
+              <Avatar src={l.photoUrl} name={l.name} hue={l.hue} size={56} />
               <div>
                 <p className="font-semibold text-ink">{l.name}</p>
                 <p className="text-sm text-plum-500">{KIND_COPY[kind].title} · {CHANNEL_LABEL[channel]}</p>
@@ -239,7 +241,7 @@ export default function Book() {
         <aside className="hidden lg:block lg:pt-16">
           <Card className="p-6 lg:sticky lg:top-24">
             <div className="flex items-center gap-4">
-              <Avatar name={l.name} hue={l.hue} size={60} />
+              <Avatar src={l.photoUrl} name={l.name} hue={l.hue} size={60} />
               <div><p className="font-display text-xl font-semibold text-ink">{l.name}</p><p className="text-sm text-plum-500">{l.city}, {l.state}</p></div>
             </div>
             <div className="mt-5 space-y-2 text-sm">

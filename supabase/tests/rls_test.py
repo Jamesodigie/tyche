@@ -100,6 +100,14 @@ check("anon directory empty before approval", q("select count(*) from public.law
 check("anon can't read lawyers table", q("select count(*) from public.lawyers")[0][0] == 0)
 
 as_user(ids["admin"])
+try:
+    q("update public.lawyers set status = 'approved' where slug = 'bob'"); no_photo_blocked = False
+except Exception:
+    conn.rollback() if not conn.autocommit else None; no_photo_blocked = True
+check("lawyer without a photo can't be approved", no_photo_blocked)
+as_user(ids["bob"])
+q("update public.lawyers set photo_url = 'https://x.supabase.co/storage/v1/object/public/avatars/bob/a.jpg' where slug = 'bob'")
+as_user(ids["admin"])
 q("update public.lawyers set status = 'approved' where slug = 'bob'")
 check("admin approves lawyer", q("select status from public.lawyers where slug='bob'")[0][0] == "approved")
 bob_lawyer = q("select id from public.lawyers where slug='bob'")[0][0]

@@ -9,7 +9,7 @@ import { PreviewProvider } from "./preview";
 //   • PreviewProvider — in-browser demo, used only while the Supabase keys aren't set
 
 export type Role = "client" | "lawyer" | "admin";
-export type User = { id: string; name: string; email: string; phone?: string; role: Role; lawyerId?: string; suspended?: boolean };
+export type User = { id: string; name: string; email: string; phone?: string; role: Role; lawyerId?: string; suspended?: boolean; avatarUrl?: string };
 
 export type LawyerInput = {
   name: string;
@@ -44,6 +44,10 @@ export type CommunityStatus = { active: boolean; name?: string; phone?: string; 
 /** Where a guest's last community payment reference is remembered on this device. */
 /** Bump when the Terms/Privacy text changes in a way people should agree to again (everyone is asked once more). */
 export const CONSENT_VERSION = "2026-10-28";
+/** Where an invite (?ref=) is remembered on this device until sign-up. */
+export const REF_KEY = "tyche:ref";
+/** Email change half-done: the other inbox's code is still needed. */
+export const EMAIL_NEEDS_OTHER = "EMAIL_NEEDS_OTHER";
 export const COMMUNITY_REF_KEY = "tyche:community-ref";
 export type VerifyResult = {
   purpose?: "booking" | "community";
@@ -104,6 +108,18 @@ export type Ctx = {
   resendEmailCode: (email: string) => Promise<string | null>;
   signOut: () => Promise<void>;
   resetPassword: (email: string) => Promise<string | null>;
+
+  // settings — a string result is an error message, null means it worked
+  /** Profile picture (resized on the device). Lawyers must have one to be listed. */
+  uploadPhoto: (file: File) => Promise<string | null>;
+  updateProfile: (p: { name: string; phone?: string }) => Promise<string | null>;
+  changePassword: (current: string, next: string) => Promise<string | null>;
+  /** Sends a code to the new address; finish with confirmEmailChange(). */
+  changeEmail: (newEmail: string, password: string) => Promise<string | null>;
+  confirmEmailChange: (newEmail: string, code: string) => Promise<string | null>;
+  /** Permanently deletes the account and its files (after checking the password). */
+  deleteAccount: (password: string) => Promise<string | null>;
+  referralCount: () => Promise<number>;
 
   // actions — a string result is an error message, null means it worked
   createLawyer: (i: LawyerInput, licence?: File | null) => Promise<string | null>;

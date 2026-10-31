@@ -3,7 +3,8 @@
 import type { Session } from "@supabase/supabase-js";
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import type { Account, Bid, Booking, CommunityMember, Evidence, Lawyer, Message, Payment, Report, SupportMessage } from "./data";
-import { COMMUNITY_REF_KEY, NEEDS_CODE, StoreCtx, findIn, slugify, type AdminData, type LawyerPayout, type Ctx, type LawyerInput, type User } from "./store";
+import { COMMUNITY_REF_KEY, EMAIL_NEEDS_OTHER, REF_KEY, NEEDS_CODE, StoreCtx, findIn, slugify, type AdminData, type LawyerPayout, type Ctx, type LawyerInput, type User } from "./store";
+import { squareJpeg } from "./image";
 import { supabase } from "./supabase";
 import { usePush } from "./usePush";
 
@@ -41,6 +42,7 @@ const toLawyer = (r: any): Lawyer => ({
   status: r.status || "approved",
   responds: r.responds || "within a day",
   hue: r.hue ?? 280,
+  photoUrl: r.photo_url || undefined,
   meetLink: r.meet_link || undefined,
   payoutReady: r.payout_ready ?? !!r.subaccount_code,
   payoutBank: r.payout_bank || undefined,
@@ -113,6 +115,11 @@ const toPayment = (p: any): Payment => ({
   reference: p.reference, purpose: p.purpose, amount: p.amount, tycheShare: p.tyche_share, lawyerShare: p.lawyer_share, status: p.status,
   bookingId: p.booking_id || undefined, createdAt: p.created_at,
 });
+
+/** The invite this visitor arrived with (?ref=…), if any. */
+const readRef = () => {
+  try { return localStorage.getItem(REF_KEY) || null; } catch { return null; }
+};
 
 /** Ask the server to send any emails waiting for this person now (fire-and-forget). */
 const sendEmailsNow = (token: string) => {
@@ -350,6 +357,7 @@ export function LiveProvider({ children }: { children: ReactNode }) {
       role,
       lawyerId: myLawyer?.id,
       suspended: !!profile?.suspended,
+      avatarUrl: profile?.avatar_url || myLawyer?.photoUrl || undefined,
       // Profile loaded and no consent on record → ask once (accounts made before 28 Oct 2026).
     };
   }, [session, profile, myLawyer]);
@@ -451,7 +459,7 @@ export function LiveProvider({ children }: { children: ReactNode }) {
           password: i.password,
           options: {
             emailRedirectTo: `${window.location.origin}/signin`,
-            data: { name: i.name.trim(), phone: i.phone || null, role: i.role, lawyer_draft: i.lawyer || null, consent: i.consent || null },
+            data: { name: i.name.trim(), phone: i.phone || null, role: i.role, lawyer_draft: i.lawyer || null, consent: i.consent || null, ref: readRef() },
           },
         });
         if (error) return { error: friendly(error.message) };
@@ -547,6 +555,87 @@ export function LiveProvider({ children }: { children: ReactNode }) {
         setMyLawyer((m) => (m ? { ...m, hasLicence: true } : m));
         syncGoogle();
         return null;
+      },
+
+      // ---------- settings ----------
+      uploadPhoto: async (file) => {
+        // Read the live session (this can run straight after sign-up, before state updates).
+        const { data: sess } = await sb.auth.getSession();
+        const uid = sess.session?.user.id;
+        if (!uid) return "Please sign in first.";
+        let blob: Blob;
+        try { blob = await squareJpeg(file); } catch (e) { return (e as Error).message; }
+        const path = `${uid}/avatar-${Date.now()}.jpg`;
+        const up = await sb.storage.from("avatars").upload(path, blob, { contentType: "image/jpeg", cacheControl: "31536000" });
+        if (up.error) return friendly(up.error.message);
+        const url = sb.storage.from("avatars").getPublicUrl(path).data.publicUrl;
+        const { error } = await sb.from("profiles").update({ avatar_url: url }).eq("id", uid);
+        if (error) return friendly(error.message);
+        setProfile((p: any) => (p ? { ...p, avatar_url: url } : p));
+        const { data: row } = await sb.from("lawyers").select("id").eq("user_id", uid).maybeSingle();
+        if (row) {
+          const r2 = await sb.from("lawyers").update({ photo_url: url }).eq("id", row.id);
+          if (r2.error) return friendly(r2.error.message);
+          setMyLawyer((m) => (m ? { ...m, photoUrl: url } : m));
+        }
+        return null;
+      },
+      updateProfile: async ({ name, phone }) => {
+        if (!session) return "Please sign in first.";
+        if (name.trim().length < 2) return "Please enter your name.";
+        const { error } = await sb.from("profiles").update({ name: name.trim(), phone: phone?.trim() || null }).eq("id", session.user.id);
+        if (error) return friendly(error.message);
+        setProfile((p: any) => (p ? { ...p, name: name.trim(), phone: phone?.trim() || null } : p));
+        return null;
+      },
+      changePassword: async (current, next) => {
+        if (!session?.user.email) return "Please sign in first.";
+        if (next.length < 6) return "Your new password needs at least 6 characters.";
+        const check = await sb.auth.signInWithPassword({ email: session.user.email, password: current });
+        if (check.error) return "Your current password isn't right.";
+        const { error } = await sb.auth.updateUser({ password: next });
+        if (error) return /different from the old/i.test(error.message) ? "Please choose a password you haven't used before." : friendly(error.message);
+        return null;
+      },
+      changeEmail: async (newEmail, password) => {
+        if (!session?.user.email) return "Please sign in first.";
+        const check = await sb.auth.signInWithPassword({ email: session.user.email, password });
+        if (check.error) return "Your password isn't right.";
+        const e = newEmail.trim().toLowerCase();
+        if (!/^\S+@\S+\.\S+$/.test(e)) return "Please enter a valid email.";
+        if (e === session.user.email?.toLowerCase()) return "That's already your email.";
+        const { error } = await sb.auth.updateUser({ email: e });
+        return error ? friendly(error.message) : null;
+      },
+      confirmEmailChange: async (newEmail, code) => {
+        const token = code.replace(/\D/g, "");
+        const target = newEmail.trim().toLowerCase();
+        const current = session?.user.email?.toLowerCase() || "";
+        // The code may come from the new inbox or (with "secure email change") the current one.
+        let r = await sb.auth.verifyOtp({ email: target, token, type: "email_change" });
+        if (r.error && current) r = await sb.auth.verifyOtp({ email: current, token, type: "email_change" });
+        if (r.error) return /expired|invalid/i.test(r.error.message) ? "That code is wrong or has expired. Check the latest email, or send a new code." : friendly(r.error.message);
+        const { data: s2 } = await sb.auth.refreshSession();
+        if (s2.session) await loadUser(s2.session);
+        const now = (s2.session?.user.email || "").toLowerCase();
+        return now === target ? null : EMAIL_NEEDS_OTHER;
+      },
+      deleteAccount: async (password) => {
+        if (!session?.user.email) return "Please sign in first.";
+        const check = await sb.auth.signInWithPassword({ email: session.user.email, password });
+        if (check.error) return "That password isn't right.";
+        const token = check.data.session?.access_token || session.access_token;
+        const r = await fetch("/api/account", { method: "DELETE", headers: { Authorization: `Bearer ${token}` } }).catch(() => null);
+        if (!r) return "We couldn't reach Tyche. Check your connection and try again.";
+        const j = await r.json().catch(() => ({}));
+        if (!r.ok) return j.error || "We couldn't delete your account. Please message support.";
+        await sb.auth.signOut().catch(() => {});
+        clearUser();
+        return null;
+      },
+      referralCount: async () => {
+        const { data } = await sb.rpc("my_referral_count");
+        return typeof data === "number" ? data : 0;
       },
 
       // ---------- reports ----------
@@ -753,7 +842,11 @@ export function LiveProvider({ children }: { children: ReactNode }) {
       loadAdmin,
       lawyerState: (l) => l.status || (l.verified ? "approved" : "pending"),
       reviewLawyer: async (id, decision) => {
-        await sb.from("lawyers").update({ status: decision }).eq("id", id);
+        const { error } = await sb.from("lawyers").update({ status: decision }).eq("id", id);
+        if (error) {
+          alert(/photo/i.test(error.message) ? "This lawyer needs a profile photo before you can approve them." : friendly(error.message));
+          return;
+        }
         if (decision === "approved" && session) sendEmailsNow(session.access_token); // lawyer's founder welcome
         const l = admin?.lawyers.find((x) => x.id === id);
         await adminLog(`${decision === "approved" ? "Approved" : "Rejected"} lawyer ${l?.name || id}`);

@@ -1,7 +1,8 @@
 import { CodeStep } from "../components/CodeStep";
+import { PhotoPicker } from "../components/PhotoPicker";
 import { ConsentChecks, consentOk, consentRecord } from "../components/Consent";
 import { ArrowLeft, ArrowRight, BadgeCheck, FileCheck2, Gavel, Sparkles, Upload } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { channelIcon } from "../components/LawyerCard";
 import { Avatar, Blobs, Button, Card, Chip, Field, Input, Notice, PasswordInput, Select, Stepper, Textarea, Toggle } from "../components/ui";
@@ -44,13 +45,22 @@ function FeeBlock({ label, sub, fee, free, onFee, onFree, freeLabel }: { label: 
 }
 
 export default function LawyerJoin() {
-  const { user, myLawyer, signUp, createLawyer, uploadLicence } = useStore();
+  const { user, myLawyer, signUp, createLawyer, uploadLicence, uploadPhoto } = useStore();
   const navigate = useNavigate();
   const [step, setStep] = useState(0);
   const [done, setDone] = useState<"" | "created" | "confirm">("");
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState("");
   const [licence, setLicence] = useState<File | null>(null);
+  const [photo, setPhoto] = useState<File | null>(null);
+  const [photoUrl, setPhotoUrl] = useState<string | undefined>();
+  useEffect(() => {
+    if (!photo) return setPhotoUrl(undefined);
+    const u = URL.createObjectURL(photo);
+    setPhotoUrl(u);
+    return () => URL.revokeObjectURL(u);
+  }, [photo]);
+  const hasPhoto = !!photo || !!user?.avatarUrl;
   const [consent, setConsent] = useState({ adult: false, terms: false });
   const [f, setF] = useState({
     name: user?.name || "", email: user?.email || "", phone: "", password: "", meetLink: "",
@@ -63,7 +73,7 @@ export default function LawyerJoin() {
   const set = <K extends keyof typeof f>(k: K, v: (typeof f)[K]) => setF((p) => ({ ...p, [k]: v }));
 
   const valid = [
-    f.name.trim().length > 2 && (!!user || (/\S+@\S+\.\S+/.test(f.email) && f.phone.replace(/\D/g, "").length >= 10 && f.password.length >= 6 && consentOk(consent))),
+    f.name.trim().length > 2 && hasPhoto && (!!user || (/\S+@\S+\.\S+/.test(f.email) && f.phone.replace(/\D/g, "").length >= 10 && f.password.length >= 6 && consentOk(consent))),
     f.scn.trim() && f.yearCalled && f.city.trim() && f.areas.length > 0,
     (f.consultFree || f.consultFee > 0) && (f.bookingFree || f.bookingFee > 0),
     f.days.length > 0 && f.channels.length > 0 && f.from < f.to && (!f.meetLink || /^https:\/\/meet\.google\.com\//.test(f.meetLink.trim())),
@@ -81,6 +91,7 @@ export default function LawyerJoin() {
     };
     if (user) {
       const error = await createLawyer(input, licence);
+      if (!error && photo) await uploadPhoto(photo);
       setBusy(false);
       return error ? setErr(error) : setDone("created");
     }
@@ -95,6 +106,7 @@ export default function LawyerJoin() {
     }
     // Account exists and the profile is created from the sign-up details; attach the licence if given.
     if (licence) await uploadLicence(licence);
+    if (photo) await uploadPhoto(photo);
     setBusy(false);
     setDone("created");
   };
@@ -120,6 +132,7 @@ export default function LawyerJoin() {
               onVerified={async () => {
                 // Signed in now: the lawyer profile is created from the sign-up details. Attach the licence if given.
                 if (licence) await uploadLicence(licence).catch(() => null);
+                if (photo) await uploadPhoto(photo).catch(() => null);
                 setDone("created");
               }}
             />
@@ -161,6 +174,15 @@ export default function LawyerJoin() {
 
             {step === 0 && (
               <div className="grid gap-5 sm:grid-cols-2">
+                <PhotoPicker
+                  className="sm:col-span-2"
+                  name={f.name}
+                  file={photo}
+                  currentUrl={user?.avatarUrl}
+                  onPick={setPhoto}
+                  required
+                  hint="Required. A clear, friendly photo of your face — clients see it before they book."
+                />
                 <div className="sm:col-span-2"><Field label="Full name (as on your call-to-bar certificate)"><Input value={f.name} onChange={(e) => set("name", e.target.value)} placeholder="Barr. Adaeze Okafor" /></Field></div>
                 {user ? (
                   <p className="rounded-3xl bg-lagoon-50 p-4 text-sm text-lagoon-600 sm:col-span-2">Signed in as <b>{user.email}</b> — we'll attach your lawyer profile to this account.</p>
@@ -252,7 +274,7 @@ export default function LawyerJoin() {
             {step === 4 && (
               <div className="space-y-4">
                 <div className="flex items-center gap-4 rounded-4xl bg-cream p-5">
-                  <Avatar name={f.name} size={64} hue={260} />
+                  <Avatar name={f.name} size={64} hue={260} src={photoUrl || user?.avatarUrl} />
                   <div>
                     <p className="font-display text-2xl font-semibold text-ink">{f.name}</p>
                     <p className="text-sm text-plum-500">{f.city}, {f.state} · Called {f.yearCalled} · {f.scn}</p>

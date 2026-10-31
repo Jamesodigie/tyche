@@ -1,4 +1,5 @@
 import { YourData } from "../components/YourData";
+import { PhotoPicker } from "../components/PhotoPicker";
 import {
   BadgeCheck, Banknote, Briefcase, CalendarHeart, CheckCircle2, Clock, Eye, FileCheck2, Gavel, Link2, MessageCircleHeart, Save, Send, Settings2, Upload, Video, Wallet,
 } from "lucide-react";
@@ -271,8 +272,34 @@ function LawyerBookingCard({ b, report }: { b: Booking; report?: Report }) {
 const payoutLabel = (s?: string) =>
   ({ queued: "Sending", waiting: "Waiting for your bank", sent: "On its way", completed: "Paid ✓", failed: "Delayed — we're on it" } as Record<string, string>)[s || ""] || "Processing";
 
+/** Lawyers must have a photo to be approved and listed. */
+function PhotoNeeded({ name }: { name: string }) {
+  const { uploadPhoto } = useStore();
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState("");
+  return (
+    <div className="mt-5 rounded-3xl bg-tangerine-50 p-4 ring-1 ring-tangerine-200">
+      <p className="mb-3 text-sm font-semibold text-ink">Add your profile photo — it's required. Clients only see lawyers with a photo.</p>
+      <PhotoPicker
+        name={name}
+        required
+        hint={busy ? "Uploading…" : "Tap to choose a clear photo of your face."}
+        onPick={async (f) => {
+          setBusy(true);
+          setErr("");
+          const e = await uploadPhoto(f);
+          setBusy(false);
+          if (e) setErr(e);
+        }}
+        className="bg-white"
+      />
+      {err && <p className="mt-2 text-sm text-tangerine-600">{err}</p>}
+    </div>
+  );
+}
+
 export default function LawyerDashboard() {
-  const { user, myLawyer: me, caseBoard, bids, bookings, lawyerState, ready, myPayouts } = useStore();
+  const { user, myLawyer: me, caseBoard, bids, bookings, lawyerState, ready, myPayouts, mode } = useStore();
   const [tab, setTab] = useState<(typeof TABS)[number]["id"]>("cases");
   const [area, setArea] = useState("");
 
@@ -295,7 +322,7 @@ export default function LawyerDashboard() {
       <Blobs />
       <div className="relative mx-auto max-w-5xl px-4 sm:px-6 py-6 sm:py-10">
         <div className="flex flex-wrap items-center gap-4 sm:gap-5">
-          <Avatar name={me.name} hue={me.hue} size={60} />
+          <Avatar src={me.photoUrl} name={me.name} hue={me.hue} size={60} />
           <div className="flex-1">
             <p className="font-script text-2xl text-tangerine-500">good to see you, Counsel</p>
             <h1 className="h-page flex flex-wrap items-center gap-2 font-display font-semibold text-ink">
@@ -305,6 +332,8 @@ export default function LawyerDashboard() {
           </div>
           <Button variant="outline" to={`/lawyers/${me.id}`}>View public profile</Button>
         </div>
+
+        {!me.photoUrl && mode === "live" && <PhotoNeeded name={me.name} />}
 
         <SetupCards me={me} />
 

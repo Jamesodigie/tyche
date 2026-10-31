@@ -15,7 +15,7 @@ export function LawyerCard({ l, kind }: { l: Lawyer; kind?: SessionKind }) {
   return (
     <div className="group flex flex-col rounded-3xl border border-plum-100 bg-white p-4 shadow-soft transition hover:-translate-y-1 sm:rounded-4xl sm:p-6">
       <div className="flex items-start gap-3 sm:gap-4">
-        <Avatar name={l.name} hue={l.hue} size={48} />
+        <Avatar src={l.photoUrl} name={l.name} hue={l.hue} size={48} />
         <div className="min-w-0 flex-1">
           <Link to={`/lawyers/${l.id}`} className="-my-1 flex items-center gap-1.5 py-1 font-display text-lg font-semibold leading-tight sm:text-xl text-ink hover:text-plum-600">
             {l.name}
