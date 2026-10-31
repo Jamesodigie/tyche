@@ -152,3 +152,27 @@ $$;
 drop trigger if exists tyche_payment_email on public.payments;
 create trigger tyche_payment_email after update of status on public.payments
 for each row execute function public.tyche_payment_email_trigger();
+
+-- ---------- Founder welcome for lawyers, sent when Tyche approves them ----------
+-- (People seeking help get the founder welcome as soon as they verify their email.)
+-- Safe to run again.
+alter table public.tyche_email_jobs drop constraint if exists tyche_email_jobs_event_type_check;
+alter table public.tyche_email_jobs add constraint tyche_email_jobs_event_type_check check (event_type in (
+  'welcome', 'lawyer_approved', 'report_saved', 'lawyer_offer_received', 'booking_confirmed',
+  'booking_reminder_24h', 'booking_reminder_1h', 'booking_cancelled', 'payment_received', 'payment_failed'
+));
+
+create or replace function public.tyche_lawyer_approved_email_trigger()
+returns trigger language plpgsql security definer set search_path = public as $$
+begin
+  if new.status = 'approved' and old.status is distinct from 'approved' then
+    perform public.tyche_queue_email('lawyer_approved', new.user_id, new.id::text, now());
+  end if;
+  return new;
+end;
+$$;
+drop trigger if exists tyche_lawyer_approved_email on public.lawyers;
+create trigger tyche_lawyer_approved_email after update of status on public.lawyers
+for each row execute function public.tyche_lawyer_approved_email_trigger();
+
+notify pgrst, 'reload schema';

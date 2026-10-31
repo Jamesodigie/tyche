@@ -1,7 +1,7 @@
 // GET /api/email-worker — drains Tyche's transactional email queue.
 // Configure a scheduled call in Vercel. Never expose RESEND_API_KEY to the browser.
 import type { VercelRequest, VercelResponse } from "@vercel/node";
-import { db } from "./_lib.js";
+import { db, requireUser } from "./_lib.js";
 
 type Job = {
   id: string;
@@ -66,6 +66,35 @@ function founderWelcomeHtml(name: string) {
   </div>${footerHtml()}</body></html>`;
 }
 
+function founderLawyerHtml(name: string) {
+  const greeting = name ? esc(name) : "Counsel";
+  const base = SITE();
+  return `<!doctype html><html><body style="margin:0;background:#f7f4fb;font-family:Arial,sans-serif;color:#20152e">
+  <div style="max-width:640px;margin:28px auto;background:#fff;border:1px solid #eee6f5;border-radius:18px;overflow:hidden">
+    <div style="padding:24px 30px;background:#6f35a5;color:#fff;font-size:23px;font-weight:700">Tyche <span style="font-weight:400">💜</span></div>
+    <div style="padding:30px;line-height:1.75;font-size:16px">
+      <p>Dear ${greeting},</p>
+      <h1 style="font-size:25px;line-height:1.3;margin:0 0 18px;color:#5b2a86">You're approved. Welcome to Tyche.</h1>
+      <p>My name is Ighirigir Syntyche, and I founded Tyche with a simple belief: <strong>everyone deserves to be heard, to understand their rights, and to have a fair chance at justice.</strong></p>
+      <p>Our team has reviewed your details, and your profile is now live. People who need legal support can find you, book you, and invite you onto their cases.</p>
+      <p>Many of the people who come to Tyche have been through something painful. Often, you will be the first lawyer they have ever spoken to. How they are treated in that first conversation can decide whether they keep going.</p>
+      <div style="margin:24px 0;padding:18px 20px;background:#f7f4fb;border-left:4px solid #6f35a5;border-radius:8px;font-weight:700;color:#4b2867">Thank you for choosing to stand with them.</div>
+      <p>A few things to help you start well:</p>
+      <ul style="padding-left:20px;margin:0 0 16px">
+        <li>Keep your profile, fees and availability up to date.</li>
+        <li>Check your case board for reports where people have asked for a lawyer.</li>
+        <li>Add your bank account so your earnings can be paid to you.</li>
+        <li>Treat everything you see on Tyche as strictly confidential.</li>
+      </ul>
+      <p>We are building Tyche together, and your feedback matters. If anything could be better, reply to this email or message our team on the platform.</p>
+      <p style="margin-top:28px">With gratitude and purpose,</p>
+      <p style="margin-bottom:2px;font-weight:700;color:#5b2a86">Ighirigir Syntyche</p>
+      <p style="margin-top:0;color:#766b80">Founder, Tyche<br><em>Making access to justice more human.</em></p>
+      <p style="margin:28px 0"><a href="${esc(base + "/lawyer/dashboard")}" style="background:#6f35a5;color:#fff;text-decoration:none;padding:13px 18px;border-radius:9px;display:inline-block;font-weight:700">Open my lawyer dashboard</a></p>
+    </div>
+  </div>${footerHtml()}</body></html>`;
+}
+
 async function send(to: string, subject: string, html: string) {
   const key = process.env.RESEND_API_KEY;
   if (!key) throw new Error("Missing RESEND_API_KEY");
@@ -78,12 +107,18 @@ async function send(to: string, subject: string, html: string) {
   if (!response.ok) throw new Error(`Resend returned ${response.status}: ${(await response.text()).slice(0, 300)}`);
 }
 
-async function render(job: Job, _email: string, name: string) {
+async function render(job: Job, _email: string, name: string, role = "client") {
   const base = SITE();
   const greeting = name ? `Hi ${name},` : "Hello,";
   switch (job.event_type) {
     case "welcome":
+      if (role === "lawyer") return null; // lawyers get their founder letter when Tyche approves them
       return { subject: "A personal welcome to Tyche — from our founder", html: founderWelcomeHtml(name) };
+    case "lawyer_approved": {
+      const { data } = await db().from("lawyers").select("status").eq("id", job.entity_id).maybeSingle();
+      if (!data || data.status !== "approved") return null;
+      return { subject: "You're approved — a welcome from Tyche's founder", html: founderLawyerHtml(name) };
+    }
     case "report_saved": {
       const { data } = await db().from("reports").select("id").eq("id", job.entity_id).maybeSingle();
       if (!data) return null;
@@ -127,10 +162,20 @@ export default async function emailWorker(req: VercelRequest, res: VercelRespons
   if (!["GET", "POST"].includes(req.method || "")) return res.status(405).json({ error: "Method not allowed" });
   const secret = process.env.CRON_SECRET;
   const auth = req.headers.authorization || "";
-  if (!secret || auth !== `Bearer ${secret}`) return res.status(401).json({ error: "Unauthorized" });
+  // The scheduler uses CRON_SECRET. The site also "nudges" the queue right after something
+  // happens (email verified, lawyer approved), so emails go out at once: a signed-in person
+  // can only send their own due emails; an admin can send everyone's (e.g. an approval).
+  let onlyFor: string | null = null;
+  if (!secret || auth !== `Bearer ${secret}`) {
+    const me = auth ? await requireUser(req).catch(() => null) : null;
+    if (!me) return res.status(401).json({ error: "Unauthorized" });
+    if (me.role !== "admin") onlyFor = me.id;
+  }
 
   let sent = 0, skipped = 0, failed = 0;
-  const { data: jobs, error } = await db().from("tyche_email_jobs").select("*").eq("status", "pending").lte("scheduled_at", new Date().toISOString()).order("scheduled_at").limit(50);
+  let q = db().from("tyche_email_jobs").select("*").eq("status", "pending").lte("scheduled_at", new Date().toISOString()).order("scheduled_at").limit(50);
+  if (onlyFor) q = q.eq("recipient_user_id", onlyFor);
+  const { data: jobs, error } = await q;
   if (error) return res.status(500).json({ error: "Could not load email queue" });
 
   for (const job of (jobs || []) as Job[]) {
@@ -142,13 +187,13 @@ export default async function emailWorker(req: VercelRequest, res: VercelRespons
         skipped++;
         continue;
       }
-      const { data: profile } = await db().from("profiles").select("email, name").eq("id", job.recipient_user_id).maybeSingle();
+      const { data: profile } = await db().from("profiles").select("email, name, role").eq("id", job.recipient_user_id).maybeSingle();
       if (!profile?.email) {
         await db().from("tyche_email_jobs").update({ status: "sent", sent_at: new Date().toISOString(), last_error: "Recipient has no email address; skipped." }).eq("id", job.id);
         skipped++;
         continue;
       }
-      const rendered = await render(job, profile.email, profile.name || "");
+      const rendered = await render(job, profile.email, profile.name || "", profile.role || "client");
       if (!rendered) {
         await db().from("tyche_email_jobs").update({ status: "sent", sent_at: new Date().toISOString(), last_error: "Event no longer needs an email." }).eq("id", job.id);
         skipped++;

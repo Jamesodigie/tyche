@@ -9,22 +9,50 @@
     {
       "source": "/(.*)",
       "headers": [
-        { "key": "X-Content-Type-Options", "value": "nosniff" },
-        { "key": "Referrer-Policy", "value": "strict-origin-when-cross-origin" },
-        { "key": "X-Frame-Options", "value": "DENY" },
-        { "key": "Permissions-Policy", "value": "camera=(self \"https://meet.jit.si\"), microphone=(self \"https://meet.jit.si\"), geolocation=()" }
+        {
+          "key": "X-Content-Type-Options",
+          "value": "nosniff"
+        },
+        {
+          "key": "Referrer-Policy",
+          "value": "strict-origin-when-cross-origin"
+        },
+        {
+          "key": "X-Frame-Options",
+          "value": "DENY"
+        },
+        {
+          "key": "Permissions-Policy",
+          "value": "camera=(self \"https://meet.jit.si\"), microphone=(self \"https://meet.jit.si\"), geolocation=()"
+        }
       ]
     },
     {
       "source": "/sw.js",
-      "headers": [{ "key": "Cache-Control", "value": "no-cache" }]
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "no-cache"
+        }
+      ]
     }
   ],
   "crons": [
-    { "path": "/api/payout", "schedule": "0 8 * * *" }
+    {
+      "path": "/api/payout",
+      "schedule": "0 8 * * *"
+    },
+    {
+      "path": "/api/email-worker",
+      "schedule": "0 9 * * *"
+    }
   ],
   "functions": {
-    "api/sync.ts": { "maxDuration": 60 },
-    "api/email-worker.ts": { "maxDuration": 60 }
+    "api/sync.ts": {
+      "maxDuration": 60
+    },
+    "api/email-worker.ts": {
+      "maxDuration": 60
+    }
   }
 }

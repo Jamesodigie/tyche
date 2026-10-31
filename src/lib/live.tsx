@@ -114,6 +114,11 @@ const toPayment = (p: any): Payment => ({
   bookingId: p.booking_id || undefined, createdAt: p.created_at,
 });
 
+/** Ask the server to send any emails waiting for this person now (fire-and-forget). */
+const sendEmailsNow = (token: string) => {
+  fetch("/api/email-worker", { method: "POST", headers: { Authorization: `Bearer ${token}` } }).catch(() => {});
+};
+
 const friendly = (msg?: string) => {
   if (!msg) return "Something went wrong. Please try again.";
   if (/invalid login/i.test(msg)) return "That email and password don't match. Please try again.";
@@ -485,7 +490,10 @@ export function LiveProvider({ children }: { children: ReactNode }) {
         let { data, error } = await sb.auth.verifyOtp({ email: email.trim(), token, type: "email" });
         if (error) ({ data, error } = await sb.auth.verifyOtp({ email: email.trim(), token, type: "signup" }));
         if (error) return friendly(error.message);
-        if (data.session) await loadUser(data.session);
+        if (data.session) {
+          await loadUser(data.session);
+          sendEmailsNow(data.session.access_token); // founder welcome goes out straight away
+        }
         return null;
       },
       resendEmailCode: async (email) => {
@@ -746,6 +754,7 @@ export function LiveProvider({ children }: { children: ReactNode }) {
       lawyerState: (l) => l.status || (l.verified ? "approved" : "pending"),
       reviewLawyer: async (id, decision) => {
         await sb.from("lawyers").update({ status: decision }).eq("id", id);
+        if (decision === "approved" && session) sendEmailsNow(session.access_token); // lawyer's founder welcome
         const l = admin?.lawyers.find((x) => x.id === id);
         await adminLog(`${decision === "approved" ? "Approved" : "Rejected"} lawyer ${l?.name || id}`);
         await Promise.all([loadAdmin(), loadPublic()]);
