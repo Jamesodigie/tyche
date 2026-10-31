@@ -3,6 +3,15 @@ import react from "@vitejs/plugin-react";
 import { VitePWA } from "vite-plugin-pwa";
 import legacy from "@vitejs/plugin-legacy";
 
+// Safety net: a Vercel *production* build without the Supabase keys would put the real site
+// into demo mode (fake code 123456, nothing saved). Fail the build instead — Vercel then
+// keeps the last working version live.
+if (process.env.VERCEL_ENV === "production" && (!process.env.VITE_SUPABASE_URL || !process.env.VITE_SUPABASE_ANON_KEY)) {
+  throw new Error(
+    "VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY must be set for Production in Vercel → Settings → Environment Variables. Build stopped so the live site doesn't fall back to demo mode.",
+  );
+}
+
 export default defineConfig({
   plugins: [
     react(),

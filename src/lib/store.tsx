@@ -156,7 +156,21 @@ export type Ctx = {
 
 export const StoreCtx = createContext<Ctx | null>(null);
 
+/** The real website must never run the demo. */
+const isRealSite = () => typeof window !== "undefined" && /(^|\.)gettyche\.com\.ng$/i.test(window.location.hostname);
+
 export function StoreProvider({ children }: { children: ReactNode }) {
+  if (!isLive && isRealSite())
+    return (
+      <div style={{ minHeight: "100vh", display: "grid", placeItems: "center", padding: 24, background: "#FFFBF7", fontFamily: "system-ui, sans-serif", textAlign: "center", color: "#2a1838" }}>
+        <div style={{ maxWidth: 420 }}>
+          <img src="/tyche-logo.png" alt="Tyche" style={{ height: 40, margin: "0 auto 16px" }} />
+          <h1 style={{ fontSize: 22, margin: "0 0 8px" }}>We'll be right back</h1>
+          <p style={{ color: "#6b4f80", lineHeight: 1.6 }}>Tyche is being updated. Please try again in a few minutes. In danger right now? Call <b>112</b>.</p>
+          <p style={{ color: "#6b4f80", lineHeight: 1.6 }}>Need us? WhatsApp <a href="https://wa.me/2348057564242">0805 756 4242</a></p>
+        </div>
+      </div>
+    );
   return isLive ? <LiveProvider>{children}</LiveProvider> : <PreviewProvider>{children}</PreviewProvider>;
 }
 
