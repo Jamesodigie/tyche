@@ -11,7 +11,7 @@ import {
 } from "../lib/data";
 import { useStore } from "../lib/store";
 
-const STEPS = ["Your safe space", "What happened", "Your evidence", "Who sees it", "Review"];
+const STEPS = ["Your safe space", "What happened", "Your evidence", "Who sees it", "Review & save"];
 const WANTS = ["Understand my options", "Talk to a lawyer", "Report formally", "Get content taken down", "Feel safe again", "Just keep a record for now"];
 const kindIcon = { image: ImageIcon, audio: FileAudio, video: FileVideo, doc: FileText };
 const toggle = (a: string[], v: string) => (a.includes(v) ? a.filter((x) => x !== v) : [...a, v]);
@@ -109,7 +109,7 @@ export default function Report() {
   };
 
   const valid = [
-    r.alias.trim().length > 1 && !!user,
+    r.alias.trim().length > 1,
     r.category && r.setting && r.description.trim().length >= 10,
     true,
     true,
@@ -118,13 +118,23 @@ export default function Report() {
 
   const next = () => setStep(step + 1);
 
+  // New visitors create their account (and enter the email code) as the very last step;
+  // the report is saved the moment they're signed in.
+  const [saveWhenSignedIn, setSaveWhenSignedIn] = useState(false);
+  useEffect(() => {
+    if (saveWhenSignedIn && user && !saving) {
+      setSaveWhenSignedIn(false);
+      submit();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [saveWhenSignedIn, user]);
+
   const submit = async () => {
     if (!agreed) return setErr("Please tick the box to confirm Tyche may keep this report and your evidence.");
     // Never save a report until the visitor has completed account creation and
     // email verification (or is already signed in to a verified account).
     if (!user) {
-      setErr("Please create your account and verify your email before saving your report.");
-      setStep(0);
+      setErr("Please create your account below to save your report.");
       return;
     }
     setSaving(true);
@@ -154,25 +164,16 @@ export default function Report() {
                 <div className="flex items-start gap-3 rounded-3xl bg-gradient-to-br from-blush-50 to-plum-50 p-3.5 sm:p-5">
                   <Heart size={18} className="mt-0.5 shrink-0 fill-tangerine-200 text-tangerine-500" />
                   <p className="text-sm leading-relaxed text-ink sm:text-[15px]">
-                    Whatever happened, it wasn't your fault. <span className="hidden sm:inline">You're doing something brave just by being here. </span>Let's make a private space so your report and evidence stay safe.
+                    Whatever happened, it wasn't your fault. <span className="hidden sm:inline">You're doing something brave just by being here. </span>Take it one step at a time.
                   </p>
                 </div>
                 <Field label="Pick a nickname" hint="This is the only name lawyers will see until you choose to share more.">
                   <Input value={r.alias} onChange={(e) => set("alias", e.target.value)} placeholder="e.g. Sunflower" />
                 </Field>
-                {!user ? (
-                  <div className="rounded-3xl bg-cream p-4 sm:p-5">
-                    <p className="mb-4 text-sm font-semibold text-ink">Create your private account <span className="font-normal text-plum-500">— so your report and evidence are saved safely</span></p>
-                    <AccountForm
-                      cta="Create & continue"
-                      nameLabel="Your name or a nickname"
-                      nameHint="Lawyers only see it if you book them. The Tyche team keeps it private."
-                      defaultName={r.alias}
-                      onDone={() => r.alias.trim().length > 1 && setStep(1)}
-                    />
-                  </div>
-                ) : (
+                {user ? (
                   <p className="rounded-3xl bg-lagoon-50 p-4 text-sm text-lagoon-600">You're signed in as <b>{user.name}</b> — this report will be saved to your space.</p>
+                ) : (
+                  <p className="rounded-3xl bg-cream p-4 text-sm text-plum-600">Nothing is saved yet. At the end you'll create a private account so your report and evidence are kept safe.</p>
                 )}
               </div>
             )}
@@ -274,20 +275,40 @@ export default function Report() {
                   <input type="checkbox" className="mt-0.5 h-5 w-5 shrink-0 accent-plum-600" checked={agreed} onChange={(e) => setAgreed(e.target.checked)} aria-label="I agree Tyche may keep this report" />
                   <span>I agree that Tyche may keep this report and my evidence safely, and share it only as I chose above (lawyers{r.authorities.length ? ", the authorities I picked" : ""} and Tyche's support team). I can ask for it to be deleted at any time.</span>
                 </label>
+                {!user && (
+                  <div className="rounded-3xl bg-white p-4 ring-1 ring-plum-100 sm:p-5">
+                    <p className="mb-4 text-sm font-semibold text-ink">Last step: create your private account <span className="font-normal text-plum-500">— we'll email you a code, then your report is saved.</span></p>
+                    {agreed ? (
+                      <AccountForm
+                        cta="Save my report"
+                        nameLabel="Your name or a nickname"
+                        nameHint="Lawyers only see it if you book them. The Tyche team keeps it private."
+                        defaultName={r.alias}
+                        onDone={() => setSaveWhenSignedIn(true)}
+                      />
+                    ) : (
+                      <p className="text-sm text-plum-500">Tick the box above first.</p>
+                    )}
+                    {saveWhenSignedIn && <p className="mt-3 text-sm text-plum-600">Saving your report…</p>}
+                  </div>
+                )}
               </div>
             )}
 
             {err && <div className="mt-6"><Notice>{err}</Notice></div>}
-            {(user || step > 0) && (
+            {(
+
               <div className="mt-8 flex items-center justify-between">
                 {step > 0 ? <Button variant="ghost" onClick={() => setStep(step - 1)} disabled={saving}><ArrowLeft size={18} /> Back</Button> : <span />}
                 {step < STEPS.length - 1 ? (
                   <Button disabled={!valid} onClick={next}>{step === 2 && !r.evidence.length ? "Skip for now" : "Continue"} <ArrowRight size={18} /></Button>
-                ) : (
+                ) : user ? (
                   <Button variant="warm" size="lg" onClick={submit} disabled={saving || !agreed}>
                     <ShieldCheck size={18} /> {saving ? (r.evidence.length ? "Uploading evidence…" : "Saving…") : "Save my report"}
                   </Button>
-                )}
+                ) : saving ? (
+                  <span className="text-sm font-semibold text-plum-600">{r.evidence.length ? "Uploading evidence…" : "Saving…"}</span>
+                ) : <span />}
               </div>
             )}
           </Card>
