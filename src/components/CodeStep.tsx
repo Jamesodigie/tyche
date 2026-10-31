@@ -25,7 +25,7 @@ export function CodeStep({ email, onVerified, onBack, sentAlready = true }: { em
 
   const submit = async (value = code) => {
     const c = value.replace(/\D/g, "");
-    if (c.length < 6) return setErr("Enter the 6-digit code from the email.");
+    if (c.length < 6) return setErr("Enter the code from the email.");
     setErr("");
     setBusy(true);
     const error = await verifyEmailCode(email, c);
@@ -49,23 +49,25 @@ export function CodeStep({ email, onVerified, onBack, sentAlready = true }: { em
       <div>
         <p className="font-display text-xl font-semibold text-ink">Check your email</p>
         <p className="mt-1 text-sm text-plum-600">
-          We sent a 6-digit code to <b className="break-all text-ink">{email}</b>. Enter it below to verify your account.
+          We sent a code to <b className="break-all text-ink">{email}</b>. Enter it below to verify your account.
         </p>
       </div>
       <input
         ref={input}
         value={code}
         onChange={(e) => {
-          const v = e.target.value.replace(/\D/g, "").slice(0, 6);
+          // Supabase codes are 6 digits by default but can be set to 8 — accept both.
+          const v = e.target.value.replace(/\D/g, "").slice(0, 8);
+          const pasted = v.length - code.length > 1;
           setCode(v);
-          if (v.length === 6) submit(v);
+          if (v.length === 8 || (pasted && v.length >= 6)) submit(v);
         }}
         inputMode="numeric"
         autoComplete="one-time-code"
         pattern="[0-9]*"
-        placeholder="••••••"
-        aria-label="6-digit code"
-        className="mx-auto block w-full max-w-[16rem] rounded-2xl border-2 border-plum-200 bg-white py-3 text-center font-mono text-3xl tracking-[0.4em] text-ink outline-none focus:border-plum-500"
+        placeholder="code"
+        aria-label="6-digit code" maxLength={8}
+        className="mx-auto block w-full max-w-[18rem] rounded-2xl border-2 border-plum-200 bg-white py-3 text-center font-mono text-2xl tracking-[0.3em] sm:text-3xl text-ink outline-none focus:border-plum-500"
       />
       {mode === "preview" && <p className="text-xs text-plum-400">Preview mode: the code is 123456.</p>}
       {err && <Notice>{err}</Notice>}

@@ -28,7 +28,7 @@ export default function SignIn() {
     e.preventDefault();
     if (!supabase) return;
     const token = code.replace(/\D/g, "");
-    if (token.length < 6) return setErr("Enter the 6-digit code from the email.");
+    if (token.length < 6) return setErr("Enter the code from the email.");
     if (newPw.length < 6) return setErr("Your new password needs at least 6 characters.");
     setErr("");
     setBusy(true);
@@ -96,7 +96,7 @@ export default function SignIn() {
                 <ArrowLeft size={16} /> Back to sign in
               </button>
               <h1 className="h-page mt-2 font-display font-semibold text-ink">Reset your password</h1>
-              <p className="mt-2 text-plum-700/80">We'll email you a 6-digit code to choose a new one.</p>
+              <p className="mt-2 text-plum-700/80">We'll email you a code to choose a new one.</p>
             </>
           )}
 
@@ -105,10 +105,10 @@ export default function SignIn() {
               <div className="text-center">
                 <MailCheck className="mx-auto text-lagoon-500" size={40} />
                 <p className="mt-3 font-display text-xl font-semibold text-ink">Check your inbox</p>
-                <p className="mt-1 text-sm text-plum-600">If there's an account for <b>{email}</b>, we've sent a 6-digit code. Check spam too.</p>
+                <p className="mt-1 text-sm text-plum-600">If there's an account for <b>{email}</b>, we've sent a code. Check spam too.</p>
               </div>
-              <Field label="6-digit code">
-                <Input required inputMode="numeric" autoComplete="one-time-code" maxLength={8} value={code} onChange={(e) => setCode(e.target.value)} placeholder="123456" aria-label="Reset code" className="text-center text-xl tracking-[0.4em]" />
+              <Field label="Code from the email">
+                <Input required inputMode="numeric" autoComplete="one-time-code" maxLength={8} value={code} onChange={(e) => setCode(e.target.value)} placeholder="code" aria-label="Reset code" className="text-center text-xl tracking-[0.4em]" />
               </Field>
               <Field label="New password" hint="At least 6 characters">
                 <PasswordInput required minLength={6} value={newPw} onChange={(e) => setNewPw(e.target.value)} autoComplete="new-password" />
